@@ -35,6 +35,10 @@ var _entityPreUnregistered: PackedByteArray = PackedByteArray()
 ## 1 while an entity is removed but its id stays locked until end_frame().
 var _entityUnregistering: PackedByteArray = PackedByteArray()
 
+## Chunk rectangle an entity covers as (minColumn, minRow, maxColumn, maxRow). [br]
+## Lets set_position() and set_radius() drop out before touching any chunk.
+var _entityChunkArea: Array[Vector4i] = []
+
 ## All chunks an entity currently stands in, per entity id.
 var _entityChunkIds: Array[PackedInt32Array] = []
 
@@ -105,7 +109,10 @@ func register_entity(p_position: Vector2, p_radius: float, p_team: int, p_groups
 	_entityPosition[l_id] = p_position
 	_entityRadius[l_id] = p_radius
 	
-	for l_chunkId: int in _compute_overlapping_chunks(p_position, p_radius):
+	var l_area: Vector4i = _compute_chunk_area(p_position, p_radius)
+	_entityChunkArea[l_id] = l_area
+	
+	for l_chunkId: int in _collect_chunks_in_area(l_area):
 		_add_entity_to_chunk(l_id, l_chunkId)
 	
 	return l_id
@@ -134,17 +141,15 @@ func unregister_entity(p_id: int) -> void:
 ## @param p_position The new position
 func set_position(p_id: int, p_position: Vector2) -> void:
 	_entityPosition[p_id] = p_position
-	
-	var l_newChunkIds: PackedInt32Array = _compute_overlapping_chunks(p_position, _entityRadius[p_id])
-	var l_oldChunkIds: PackedInt32Array = _entityChunkIds[p_id].duplicate()
-	
-	for l_chunkId: int in l_oldChunkIds:
-		if (not l_newChunkIds.has(l_chunkId)):
-			_remove_entity_from_chunk(p_id, l_chunkId)
-	
-	for l_chunkId: int in l_newChunkIds:
-		if (not l_oldChunkIds.has(l_chunkId)):
-			_add_entity_to_chunk(p_id, l_chunkId)
+	_apply_chunk_area(p_id, _compute_chunk_area(p_position, _entityRadius[p_id]))
+
+
+## Resizes an entity and updates only the chunks it entered or left. [br]
+## @param p_id The entity id to resize [br]
+## @param p_radius The new effect radius
+func set_radius(p_id: int, p_radius: float) -> void:
+	_entityRadius[p_id] = p_radius
+	_apply_chunk_area(p_id, _compute_chunk_area(_entityPosition[p_id], p_radius))
 
 
 ## Closes the frame and releases the ids removed during it for reuse. [br]
@@ -177,7 +182,7 @@ func get_entities_in_radius(p_position: Vector2, p_radius: float) -> PackedInt32
 	var l_result: PackedInt32Array = PackedInt32Array()
 	var l_squaredRadius: float = p_radius * p_radius
 	
-	for l_chunkId: int in _compute_overlapping_chunks(p_position, p_radius):
+	for l_chunkId: int in _collect_chunks_in_area(_compute_chunk_area(p_position, p_radius)):
 		for l_id: int in _entitiesInChunk[l_chunkId]:
 			if (_entityPosition[l_id].distance_squared_to(p_position) > l_squaredRadius):
 				continue
@@ -237,35 +242,68 @@ func _acquire_id() -> int:
 	_entityRadius.append(0.0)
 	_entityPreUnregistered.append(0)
 	_entityUnregistering.append(0)
+	_entityChunkArea.append(Vector4i.ZERO)
 	_entityChunkIds.append(PackedInt32Array())
 	_entityChunkIndices.append(PackedInt32Array())
 	
 	return _entityModules.size() - 1
 
 
-## Calculates every chunk covered by a position and radius, clamped to the map. [br]
+## Calculates the chunk rectangle a position and radius cover, clamped to the map. [br]
+## Allocation free, so callers can compare it against the last area before doing any work. [br]
 ## @param p_position Center of the covered area [br]
 ## @param p_radius Radius of the covered area [br]
-## @return The covered chunk ids, in ascending order
-func _compute_overlapping_chunks(p_position: Vector2, p_radius: float) -> PackedInt32Array:
+## @return The rectangle as (minColumn, minRow, maxColumn, maxRow)
+func _compute_chunk_area(p_position: Vector2, p_radius: float) -> Vector4i:
 	var l_chunkSize: float = C_ChunkingServer.CHUNK_SIZE
-	var l_minColumn: int = clampi(floori((p_position.x - p_radius) / l_chunkSize), 0, C_ChunkingServer.MAP_CHUNK_COLUMNS - 1)
-	var l_maxColumn: int = clampi(floori((p_position.x + p_radius) / l_chunkSize), 0, C_ChunkingServer.MAP_CHUNK_COLUMNS - 1)
-	var l_minRow: int = clampi(floori((p_position.y - p_radius) / l_chunkSize), 0, C_ChunkingServer.MAP_CHUNK_ROWS - 1)
-	var l_maxRow: int = clampi(floori((p_position.y + p_radius) / l_chunkSize), 0, C_ChunkingServer.MAP_CHUNK_ROWS - 1)
+	var l_lastColumn: int = C_ChunkingServer.MAP_CHUNK_COLUMNS - 1
+	var l_lastRow: int = C_ChunkingServer.MAP_CHUNK_ROWS - 1
 	
+	return Vector4i(
+		clampi(floori((p_position.x - p_radius) / l_chunkSize), 0, l_lastColumn),
+		clampi(floori((p_position.y - p_radius) / l_chunkSize), 0, l_lastRow),
+		clampi(floori((p_position.x + p_radius) / l_chunkSize), 0, l_lastColumn),
+		clampi(floori((p_position.y + p_radius) / l_chunkSize), 0, l_lastRow))
+
+
+## Lists every chunk inside a chunk rectangle. [br]
+## @param p_area The rectangle as (minColumn, minRow, maxColumn, maxRow) [br]
+## @return The chunk ids inside the rectangle, in ascending order
+func _collect_chunks_in_area(p_area: Vector4i) -> PackedInt32Array:
 	var l_chunkIds: PackedInt32Array = PackedInt32Array()
-	l_chunkIds.resize((l_maxColumn - l_minColumn + 1) * (l_maxRow - l_minRow + 1))
+	l_chunkIds.resize((p_area.z - p_area.x + 1) * (p_area.w - p_area.y + 1))
 	
 	var l_writeIndex: int = 0
-	for l_row: int in range(l_minRow, l_maxRow + 1):
+	for l_row: int in range(p_area.y, p_area.w + 1):
 		var l_rowOffset: int = l_row * C_ChunkingServer.MAP_CHUNK_COLUMNS
 		
-		for l_column: int in range(l_minColumn, l_maxColumn + 1):
+		for l_column: int in range(p_area.x, p_area.z + 1):
 			l_chunkIds[l_writeIndex] = l_rowOffset + l_column
 			l_writeIndex += 1
 	
 	return l_chunkIds
+
+
+## Moves an entity onto a new chunk rectangle, touching only the chunks it entered or left. [br]
+## Returns at once while the rectangle is unchanged, which is the common case when moving. [br]
+## @param p_id The entity id to update [br]
+## @param p_area The new rectangle as (minColumn, minRow, maxColumn, maxRow)
+func _apply_chunk_area(p_id: int, p_area: Vector4i) -> void:
+	if (p_area == _entityChunkArea[p_id]):
+		return
+	
+	_entityChunkArea[p_id] = p_area
+	
+	var l_newChunkIds: PackedInt32Array = _collect_chunks_in_area(p_area)
+	var l_oldChunkIds: PackedInt32Array = _entityChunkIds[p_id].duplicate()
+	
+	for l_chunkId: int in l_oldChunkIds:
+		if (not l_newChunkIds.has(l_chunkId)):
+			_remove_entity_from_chunk(p_id, l_chunkId)
+	
+	for l_chunkId: int in l_newChunkIds:
+		if (not l_oldChunkIds.has(l_chunkId)):
+			_add_entity_to_chunk(p_id, l_chunkId)
 
 
 ## Determines the row a chunk belongs to. [br]
@@ -388,18 +426,23 @@ func _apply_count_delta(p_chunkId: int, p_team: int, p_delta: int) -> void:
 
 
 ## Rebuilds the group mask of a chunk from the entities still standing in it. [br]
+## Only reached while removing, so the mask can only shrink and the scan stops once it reaches the old value. [br]
 ## @param p_chunkId The chunk to rebuild [br]
 ## @param p_team Team whose mask is rebuilt, a C_ChunkingServer.TEAM value [br]
 ## @return true if the mask value changed
 func _rebuild_chunk_groups(p_chunkId: int, p_team: int) -> bool:
+	var l_chunkIndex: int = _get_team_chunk_index(p_team, p_chunkId)
+	var l_oldGroups: int = _chunkGroups[l_chunkIndex]
 	var l_groups: int = 0
 	
 	for l_id: int in _entitiesInChunk[p_chunkId]:
 		if (_entityTeam[l_id] == p_team):
 			l_groups |= _entityGroups[l_id]
+			
+			if (l_groups == l_oldGroups):
+				break
 	
-	var l_chunkIndex: int = _get_team_chunk_index(p_team, p_chunkId)
-	if (_chunkGroups[l_chunkIndex] == l_groups):
+	if (l_groups == l_oldGroups):
 		return false
 	
 	_chunkGroups[l_chunkIndex] = l_groups
@@ -423,18 +466,23 @@ func _apply_group_to_row(p_rowIndex: int, p_team: int, p_groups: int) -> bool:
 
 
 ## Rebuilds a row mask from the chunk masks of that row — counterpart of the remove path. [br]
+## Stops as soon as the old value is reached again, because the mask can only shrink here. [br]
 ## @param p_rowIndex The row to rebuild [br]
 ## @param p_team Team whose mask is rebuilt, a C_ChunkingServer.TEAM value [br]
 ## @return true if the mask value changed
 func _rebuild_row_groups(p_rowIndex: int, p_team: int) -> bool:
+	var l_rowIndex: int = _get_team_row_index(p_team, p_rowIndex)
+	var l_oldGroups: int = _rowGroups[l_rowIndex]
 	var l_groups: int = 0
 	var l_firstChunkIndex: int = _get_team_chunk_index(p_team, p_rowIndex * C_ChunkingServer.MAP_CHUNK_COLUMNS)
 	
 	for l_columnOffset: int in C_ChunkingServer.MAP_CHUNK_COLUMNS:
 		l_groups |= _chunkGroups[l_firstChunkIndex + l_columnOffset]
+		
+		if (l_groups == l_oldGroups):
+			break
 	
-	var l_rowIndex: int = _get_team_row_index(p_team, p_rowIndex)
-	if (_rowGroups[l_rowIndex] == l_groups):
+	if (l_groups == l_oldGroups):
 		return false
 	
 	_rowGroups[l_rowIndex] = l_groups
@@ -449,13 +497,18 @@ func _apply_group_to_map(p_team: int, p_groups: int) -> void:
 
 
 ## Rebuilds the map mask from all row masks, never from chunks directly. [br]
+## Stops as soon as the old value is reached again, because the mask can only shrink here. [br]
 ## @param p_team Team whose mask is rebuilt, a C_ChunkingServer.TEAM value
 func _rebuild_map_groups(p_team: int) -> void:
+	var l_oldGroups: int = _mapGroups[p_team]
 	var l_groups: int = 0
 	var l_firstRowIndex: int = _get_team_row_index(p_team, 0)
 	
 	for l_rowOffset: int in C_ChunkingServer.MAP_CHUNK_ROWS:
 		l_groups |= _rowGroups[l_firstRowIndex + l_rowOffset]
+		
+		if (l_groups == l_oldGroups):
+			return
 	
 	_mapGroups[p_team] = l_groups
 
