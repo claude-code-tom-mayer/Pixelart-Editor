@@ -1,0 +1,462 @@
+extends RefCounted
+## Sorts entities into square chunks, rows and one map aggregate for fast group queries. [br]
+## Counts are always written through, group masks only cascade upwards when they really change.
+class_name ChunkingServer
+
+#region PRIVATE_VARIABLES
+
+## Entity ids that may be reused; only filled by end_frame().
+var _freeIds: PackedInt32Array = PackedInt32Array()
+
+## Ids removed during this frame; moved to _freeIds by end_frame().
+var _pendingFreeIds: PackedInt32Array = PackedInt32Array()
+
+## Module management per entity id; null while the id is free.
+var _entityModules: Array[M_ModuleManager] = []
+
+## Team per entity id, as a C_ChunkingServer.TEAM value.
+var _entityTeam: PackedByteArray = PackedByteArray()
+
+## Bitmask of the groups an entity belongs to.
+var _entityGroups: PackedInt64Array = PackedInt64Array()
+
+## Bitmask of the groups an entity is allowed to attack.
+var _entityTargetedGroups: PackedInt64Array = PackedInt64Array()
+
+## Current position per entity id.
+var _entityPosition: PackedVector2Array = PackedVector2Array()
+
+## Effect radius per entity id; decides in how many chunks the entity stands.
+var _entityRadius: PackedFloat32Array = PackedFloat32Array()
+
+## 1 while an entity is announced for removal but still fully active.
+var _entityPreUnregistered: PackedByteArray = PackedByteArray()
+
+## 1 while an entity is removed but its id stays locked until end_frame().
+var _entityUnregistering: PackedByteArray = PackedByteArray()
+
+## All chunks an entity currently stands in, per entity id.
+var _entityChunkIds: Array[PackedInt32Array] = []
+
+## Slot of the entity inside _entitiesInChunk, parallel to _entityChunkIds. [br]
+## Makes removal from a chunk an O(1) swap-and-pop.
+var _entityChunkIndices: Array[PackedInt32Array] = []
+
+## Entity ids per chunk.
+var _entitiesInChunk: Array[PackedInt32Array] = []
+
+## Group bitmask per team and chunk, addressed by _get_team_chunk_index().
+var _chunkGroups: PackedInt64Array = PackedInt64Array()
+
+## Entity count per team and chunk, addressed by _get_team_chunk_index().
+var _chunkCounts: PackedInt32Array = PackedInt32Array()
+
+## Group bitmask per team and row — the OR of the chunk masks of that row.
+var _rowGroups: PackedInt64Array = PackedInt64Array()
+
+## Entity count per team and row, addressed by _get_team_row_index().
+var _rowCounts: PackedInt32Array = PackedInt32Array()
+
+## Group bitmask per team over the whole map — the OR of all row masks.
+var _mapGroups: PackedInt64Array = PackedInt64Array()
+
+## Entity count per team over the whole map.
+var _mapCounts: PackedInt32Array = PackedInt32Array()
+
+#endregion
+
+#region LIFECYCLE
+
+## Allocates the chunk, row and map containers for the configured grid.
+func _init() -> void:
+	var l_chunkSlots: int = C_ChunkingServer.TEAM_COUNT * C_ChunkingServer.CHUNK_COUNT
+	var l_rowSlots: int = C_ChunkingServer.TEAM_COUNT * C_ChunkingServer.MAP_CHUNK_ROWS
+	
+	_chunkGroups.resize(l_chunkSlots)
+	_chunkCounts.resize(l_chunkSlots)
+	_rowGroups.resize(l_rowSlots)
+	_rowCounts.resize(l_rowSlots)
+	_mapGroups.resize(C_ChunkingServer.TEAM_COUNT)
+	_mapCounts.resize(C_ChunkingServer.TEAM_COUNT)
+	
+	_entitiesInChunk.resize(C_ChunkingServer.CHUNK_COUNT)
+	for l_chunkId: int in C_ChunkingServer.CHUNK_COUNT:
+		_entitiesInChunk[l_chunkId] = PackedInt32Array()
+
+#endregion
+
+#region PUBLIC_METHODS
+
+## Registers a new entity and adds it to every chunk its radius covers. [br]
+## @param p_position Start position of the entity [br]
+## @param p_radius Effect radius of the entity [br]
+## @param p_team Team of the entity, a C_ChunkingServer.TEAM value [br]
+## @param p_groups Bitmask of the groups the entity belongs to [br]
+## @param p_targetedGroups Bitmask of the groups the entity may attack [br]
+## @param p_module Module management of the entity [br]
+## @return The assigned entity id
+func register_entity(p_position: Vector2, p_radius: float, p_team: int, p_groups: int, p_targetedGroups: int, p_module: M_ModuleManager) -> int:
+	var l_id: int = _acquire_id()
+	
+	_entityModules[l_id] = p_module
+	_entityTeam[l_id] = p_team
+	_entityGroups[l_id] = p_groups
+	_entityTargetedGroups[l_id] = p_targetedGroups
+	_entityPosition[l_id] = p_position
+	_entityRadius[l_id] = p_radius
+	
+	for l_chunkId: int in _compute_overlapping_chunks(p_position, p_radius):
+		_add_entity_to_chunk(l_id, l_chunkId)
+	
+	return l_id
+
+
+## Marks an entity for removal; it stays fully active and queryable. [br]
+## @param p_id The entity id to mark
+func pre_unregister_entity(p_id: int) -> void:
+	_entityPreUnregistered[p_id] = 1
+
+
+## Removes an entity from all its chunks and locks its id until end_frame(). [br]
+## @param p_id The entity id to remove
+func unregister_entity(p_id: int) -> void:
+	_entityUnregistering[p_id] = 1
+	
+	var l_chunkIds: PackedInt32Array = _entityChunkIds[p_id].duplicate()
+	for l_chunkId: int in l_chunkIds:
+		_remove_entity_from_chunk(p_id, l_chunkId)
+	
+	_pendingFreeIds.append(p_id)
+
+
+## Moves an entity and updates only the chunks it entered or left. [br]
+## @param p_id The entity id to move [br]
+## @param p_position The new position
+func set_position(p_id: int, p_position: Vector2) -> void:
+	_entityPosition[p_id] = p_position
+	
+	var l_newChunkIds: PackedInt32Array = _compute_overlapping_chunks(p_position, _entityRadius[p_id])
+	var l_oldChunkIds: PackedInt32Array = _entityChunkIds[p_id].duplicate()
+	
+	for l_chunkId: int in l_oldChunkIds:
+		if (not l_newChunkIds.has(l_chunkId)):
+			_remove_entity_from_chunk(p_id, l_chunkId)
+	
+	for l_chunkId: int in l_newChunkIds:
+		if (not l_oldChunkIds.has(l_chunkId)):
+			_add_entity_to_chunk(p_id, l_chunkId)
+
+
+## Closes the frame and releases the ids removed during it for reuse. [br]
+## Has to be called exactly once per frame by the owning system.
+func end_frame() -> void:
+	for l_id: int in _pendingFreeIds:
+		_entityUnregistering[l_id] = 0
+		_entityPreUnregistered[l_id] = 0
+		_entityModules[l_id] = null
+		_freeIds.append(l_id)
+	
+	_pendingFreeIds.clear()
+
+#endregion
+
+#region PUBLIC_QUERIES
+
+## Returns the entity ids standing in a chunk; the array is live, treat it as read only. [br]
+## @param p_chunkId The chunk to read [br]
+## @return The entity ids inside that chunk
+func get_entities_in_chunk(p_chunkId: int) -> PackedInt32Array:
+	return _entitiesInChunk[p_chunkId]
+
+
+## Collects all entity ids whose position lies inside a circle. [br]
+## @param p_position Center of the circle [br]
+## @param p_radius Radius of the circle [br]
+## @return The entity ids inside the circle, each one exactly once
+func get_entities_in_radius(p_position: Vector2, p_radius: float) -> PackedInt32Array:
+	var l_result: PackedInt32Array = PackedInt32Array()
+	var l_squaredRadius: float = p_radius * p_radius
+	
+	for l_chunkId: int in _compute_overlapping_chunks(p_position, p_radius):
+		for l_id: int in _entitiesInChunk[l_chunkId]:
+			if (_entityPosition[l_id].distance_squared_to(p_position) > l_squaredRadius):
+				continue
+			
+			if (_entityChunkIds[l_id].size() > 1 and l_result.has(l_id)):
+				continue
+			
+			l_result.append(l_id)
+	
+	return l_result
+
+
+## Checks whether a chunk holds at least one of the searched groups. [br]
+## @param p_chunkId The chunk to check [br]
+## @param p_team Team to check, a C_ChunkingServer.TEAM value [br]
+## @param p_groupMask Bitmask of the searched groups [br]
+## @return true if at least one searched group bit is present
+func chunk_has_group(p_chunkId: int, p_team: int, p_groupMask: int) -> bool:
+	return (_chunkGroups[_get_team_chunk_index(p_team, p_chunkId)] & p_groupMask) != 0
+
+
+## Checks whether a row holds at least one of the searched groups. [br]
+## @param p_rowIndex The row to check [br]
+## @param p_team Team to check, a C_ChunkingServer.TEAM value [br]
+## @param p_groupMask Bitmask of the searched groups [br]
+## @return true if at least one searched group bit is present
+func row_has_group(p_rowIndex: int, p_team: int, p_groupMask: int) -> bool:
+	return (_rowGroups[_get_team_row_index(p_team, p_rowIndex)] & p_groupMask) != 0
+
+
+## Checks whether the map holds at least one of the searched groups. [br]
+## @param p_team Team to check, a C_ChunkingServer.TEAM value [br]
+## @param p_groupMask Bitmask of the searched groups [br]
+## @return true if at least one searched group bit is present
+func map_has_group(p_team: int, p_groupMask: int) -> bool:
+	return (_mapGroups[p_team] & p_groupMask) != 0
+
+#endregion
+
+#region PRIVATE_METHODS
+
+## Takes a free entity id or appends a fresh slot to every entity container. [br]
+## @return The id the next entity is stored under
+func _acquire_id() -> int:
+	var l_lastFreeIndex: int = _freeIds.size() - 1
+	
+	if (l_lastFreeIndex >= 0):
+		var l_reusedId: int = _freeIds[l_lastFreeIndex]
+		_freeIds.remove_at(l_lastFreeIndex)
+		return l_reusedId
+	
+	_entityModules.append(null)
+	_entityTeam.append(0)
+	_entityGroups.append(0)
+	_entityTargetedGroups.append(0)
+	_entityPosition.append(Vector2.ZERO)
+	_entityRadius.append(0.0)
+	_entityPreUnregistered.append(0)
+	_entityUnregistering.append(0)
+	_entityChunkIds.append(PackedInt32Array())
+	_entityChunkIndices.append(PackedInt32Array())
+	
+	return _entityModules.size() - 1
+
+
+## Calculates every chunk covered by a position and radius, clamped to the map. [br]
+## @param p_position Center of the covered area [br]
+## @param p_radius Radius of the covered area [br]
+## @return The covered chunk ids, in ascending order
+func _compute_overlapping_chunks(p_position: Vector2, p_radius: float) -> PackedInt32Array:
+	var l_chunkSize: float = C_ChunkingServer.CHUNK_SIZE
+	var l_minColumn: int = clampi(floori((p_position.x - p_radius) / l_chunkSize), 0, C_ChunkingServer.MAP_CHUNK_COLUMNS - 1)
+	var l_maxColumn: int = clampi(floori((p_position.x + p_radius) / l_chunkSize), 0, C_ChunkingServer.MAP_CHUNK_COLUMNS - 1)
+	var l_minRow: int = clampi(floori((p_position.y - p_radius) / l_chunkSize), 0, C_ChunkingServer.MAP_CHUNK_ROWS - 1)
+	var l_maxRow: int = clampi(floori((p_position.y + p_radius) / l_chunkSize), 0, C_ChunkingServer.MAP_CHUNK_ROWS - 1)
+	
+	var l_chunkIds: PackedInt32Array = PackedInt32Array()
+	l_chunkIds.resize((l_maxColumn - l_minColumn + 1) * (l_maxRow - l_minRow + 1))
+	
+	var l_writeIndex: int = 0
+	for l_row: int in range(l_minRow, l_maxRow + 1):
+		var l_rowOffset: int = l_row * C_ChunkingServer.MAP_CHUNK_COLUMNS
+		
+		for l_column: int in range(l_minColumn, l_maxColumn + 1):
+			l_chunkIds[l_writeIndex] = l_rowOffset + l_column
+			l_writeIndex += 1
+	
+	return l_chunkIds
+
+
+## Determines the row a chunk belongs to. [br]
+## @param p_chunkId The chunk to resolve [br]
+## @return The row index of that chunk
+func _get_row_index(p_chunkId: int) -> int:
+	@warning_ignore("integer_division")
+	var l_rowIndex: int = p_chunkId / C_ChunkingServer.MAP_CHUNK_COLUMNS
+	return l_rowIndex
+
+
+## Maps team and chunk onto the slot inside the per team chunk containers. [br]
+## @param p_team Team block to address, a C_ChunkingServer.TEAM value [br]
+## @param p_chunkId The chunk inside that block [br]
+## @return The flat container index
+func _get_team_chunk_index(p_team: int, p_chunkId: int) -> int:
+	return p_team * C_ChunkingServer.CHUNK_COUNT + p_chunkId
+
+
+## Maps team and row onto the slot inside the per team row containers. [br]
+## @param p_team Team block to address, a C_ChunkingServer.TEAM value [br]
+## @param p_rowIndex The row inside that block [br]
+## @return The flat container index
+func _get_team_row_index(p_team: int, p_rowIndex: int) -> int:
+	return p_team * C_ChunkingServer.MAP_CHUNK_ROWS + p_rowIndex
+
+
+## Adds an entity to a chunk and cascades its groups upwards while they change. [br]
+## @param p_id The entity id to add [br]
+## @param p_chunkId The target chunk
+func _add_entity_to_chunk(p_id: int, p_chunkId: int) -> void:
+	var l_chunkEntities: PackedInt32Array = _entitiesInChunk[p_chunkId]
+	var l_chunkIds: PackedInt32Array = _entityChunkIds[p_id]
+	var l_chunkIndices: PackedInt32Array = _entityChunkIndices[p_id]
+	
+	l_chunkIds.append(p_chunkId)
+	l_chunkIndices.append(l_chunkEntities.size())
+	l_chunkEntities.append(p_id)
+	
+	_entityChunkIds[p_id] = l_chunkIds
+	_entityChunkIndices[p_id] = l_chunkIndices
+	_entitiesInChunk[p_chunkId] = l_chunkEntities
+	
+	var l_team: int = _entityTeam[p_id]
+	var l_groups: int = _entityGroups[p_id]
+	var l_chunkIndex: int = _get_team_chunk_index(l_team, p_chunkId)
+	var l_mergedGroups: int = _chunkGroups[l_chunkIndex] | l_groups
+	
+	_apply_count_delta(p_chunkId, l_team, 1)
+	
+	if (l_mergedGroups == _chunkGroups[l_chunkIndex]):
+		return
+	
+	_chunkGroups[l_chunkIndex] = l_mergedGroups
+	
+	if (_apply_group_to_row(_get_row_index(p_chunkId), l_team, l_groups)):
+		_apply_group_to_map(l_team, l_groups)
+
+
+## Removes an entity from a chunk and rebuilds the masks upwards while they change. [br]
+## @param p_id The entity id to remove [br]
+## @param p_chunkId The source chunk
+func _remove_entity_from_chunk(p_id: int, p_chunkId: int) -> void:
+	var l_slot: int = _entityChunkIds[p_id].find(p_chunkId)
+	var l_indexInChunk: int = _entityChunkIndices[p_id][l_slot]
+	
+	_swap_and_pop_chunk_entity(p_chunkId, l_indexInChunk)
+	_swap_and_pop_entity_slot(p_id, l_slot)
+	
+	var l_team: int = _entityTeam[p_id]
+	_apply_count_delta(p_chunkId, l_team, -1)
+	
+	if (_rebuild_chunk_groups(p_chunkId, l_team)):
+		if (_rebuild_row_groups(_get_row_index(p_chunkId), l_team)):
+			_rebuild_map_groups(l_team)
+
+
+## Drops one slot out of a chunk list and repairs the index of the moved entity. [br]
+## @param p_chunkId The chunk to shrink [br]
+## @param p_indexInChunk The slot the last entry is moved into
+func _swap_and_pop_chunk_entity(p_chunkId: int, p_indexInChunk: int) -> void:
+	var l_chunkEntities: PackedInt32Array = _entitiesInChunk[p_chunkId]
+	var l_lastIndex: int = l_chunkEntities.size() - 1
+	var l_movedId: int = l_chunkEntities[l_lastIndex]
+	
+	l_chunkEntities[p_indexInChunk] = l_movedId
+	l_chunkEntities.resize(l_lastIndex)
+	_entitiesInChunk[p_chunkId] = l_chunkEntities
+	
+	var l_movedIndices: PackedInt32Array = _entityChunkIndices[l_movedId]
+	l_movedIndices[_entityChunkIds[l_movedId].find(p_chunkId)] = p_indexInChunk
+	_entityChunkIndices[l_movedId] = l_movedIndices
+
+
+## Drops one chunk entry out of an entity by swap-and-pop. [br]
+## @param p_id The entity to shrink [br]
+## @param p_slot The entry the last one is moved into
+func _swap_and_pop_entity_slot(p_id: int, p_slot: int) -> void:
+	var l_chunkIds: PackedInt32Array = _entityChunkIds[p_id]
+	var l_chunkIndices: PackedInt32Array = _entityChunkIndices[p_id]
+	var l_lastSlot: int = l_chunkIds.size() - 1
+	
+	l_chunkIds[p_slot] = l_chunkIds[l_lastSlot]
+	l_chunkIndices[p_slot] = l_chunkIndices[l_lastSlot]
+	l_chunkIds.resize(l_lastSlot)
+	l_chunkIndices.resize(l_lastSlot)
+	
+	_entityChunkIds[p_id] = l_chunkIds
+	_entityChunkIndices[p_id] = l_chunkIndices
+
+
+## Writes a count change through to chunk, row and map at once. [br]
+## @param p_chunkId The chunk the entity was added to or removed from [br]
+## @param p_team Team whose counts change, a C_ChunkingServer.TEAM value [br]
+## @param p_delta The change to apply, 1 when adding and -1 when removing
+func _apply_count_delta(p_chunkId: int, p_team: int, p_delta: int) -> void:
+	_chunkCounts[_get_team_chunk_index(p_team, p_chunkId)] += p_delta
+	_rowCounts[_get_team_row_index(p_team, _get_row_index(p_chunkId))] += p_delta
+	_mapCounts[p_team] += p_delta
+
+
+## Rebuilds the group mask of a chunk from the entities still standing in it. [br]
+## @param p_chunkId The chunk to rebuild [br]
+## @param p_team Team whose mask is rebuilt, a C_ChunkingServer.TEAM value [br]
+## @return true if the mask value changed
+func _rebuild_chunk_groups(p_chunkId: int, p_team: int) -> bool:
+	var l_groups: int = 0
+	
+	for l_id: int in _entitiesInChunk[p_chunkId]:
+		if (_entityTeam[l_id] == p_team):
+			l_groups |= _entityGroups[l_id]
+	
+	var l_chunkIndex: int = _get_team_chunk_index(p_team, p_chunkId)
+	if (_chunkGroups[l_chunkIndex] == l_groups):
+		return false
+	
+	_chunkGroups[l_chunkIndex] = l_groups
+	return true
+
+
+## Merges a group mask into a row mask — counterpart of the add path. [br]
+## @param p_rowIndex The row to extend [br]
+## @param p_team Team whose mask is extended, a C_ChunkingServer.TEAM value [br]
+## @param p_groups The group bits to merge in [br]
+## @return true if the mask value changed
+func _apply_group_to_row(p_rowIndex: int, p_team: int, p_groups: int) -> bool:
+	var l_rowIndex: int = _get_team_row_index(p_team, p_rowIndex)
+	var l_mergedGroups: int = _rowGroups[l_rowIndex] | p_groups
+	
+	if (l_mergedGroups == _rowGroups[l_rowIndex]):
+		return false
+	
+	_rowGroups[l_rowIndex] = l_mergedGroups
+	return true
+
+
+## Rebuilds a row mask from the chunk masks of that row — counterpart of the remove path. [br]
+## @param p_rowIndex The row to rebuild [br]
+## @param p_team Team whose mask is rebuilt, a C_ChunkingServer.TEAM value [br]
+## @return true if the mask value changed
+func _rebuild_row_groups(p_rowIndex: int, p_team: int) -> bool:
+	var l_groups: int = 0
+	var l_firstChunkIndex: int = _get_team_chunk_index(p_team, p_rowIndex * C_ChunkingServer.MAP_CHUNK_COLUMNS)
+	
+	for l_columnOffset: int in C_ChunkingServer.MAP_CHUNK_COLUMNS:
+		l_groups |= _chunkGroups[l_firstChunkIndex + l_columnOffset]
+	
+	var l_rowIndex: int = _get_team_row_index(p_team, p_rowIndex)
+	if (_rowGroups[l_rowIndex] == l_groups):
+		return false
+	
+	_rowGroups[l_rowIndex] = l_groups
+	return true
+
+
+## Merges a group mask into the map mask — last step of the add cascade. [br]
+## @param p_team Team whose mask is extended, a C_ChunkingServer.TEAM value [br]
+## @param p_groups The group bits to merge in
+func _apply_group_to_map(p_team: int, p_groups: int) -> void:
+	_mapGroups[p_team] |= p_groups
+
+
+## Rebuilds the map mask from all row masks, never from chunks directly. [br]
+## @param p_team Team whose mask is rebuilt, a C_ChunkingServer.TEAM value
+func _rebuild_map_groups(p_team: int) -> void:
+	var l_groups: int = 0
+	var l_firstRowIndex: int = _get_team_row_index(p_team, 0)
+	
+	for l_rowOffset: int in C_ChunkingServer.MAP_CHUNK_ROWS:
+		l_groups |= _rowGroups[l_firstRowIndex + l_rowOffset]
+	
+	_mapGroups[p_team] = l_groups
+
+#endregion
