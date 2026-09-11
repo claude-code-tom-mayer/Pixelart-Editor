@@ -1,0 +1,742 @@
+<title>Entity Chunk System</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Literata:ital,opsz,wght@0,18..36,400;0,18..36,500;0,18..36,600;1,18..36,400&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#EEF0EA;
+  --surface:#FFFFFF;
+  --surface-2:#E3E7DD;
+  --ink:#1B2420;
+  --ink-soft:#56635B;
+  --line:#C6CFC0;
+  --accent:#C15A2B;
+  --accent-soft:#EFD9C9;
+  --accent-2:#2B6E6E;
+  --accent-2-soft:#D3E5E3;
+  --code-bg:#1B2420;
+  --code-ink:#E7ECDC;
+  --code-soft:#93A392;
+  --code-accent:#EDA274;
+  --code-accent-2:#7FCFC6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12160F;
+    --surface:#181D16;
+    --surface-2:#20271C;
+    --ink:#E8ECE1;
+    --ink-soft:#A3AFA0;
+    --line:#323C2C;
+    --accent:#E38A56;
+    --accent-soft:#3A2A1D;
+    --accent-2:#63C2B8;
+    --accent-2-soft:#173230;
+    --code-bg:#0B0E08;
+    --code-ink:#DCE6D0;
+    --code-soft:#7C8A78;
+    --code-accent:#F0A878;
+    --code-accent-2:#8AD9CF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12160F;
+  --surface:#181D16;
+  --surface-2:#20271C;
+  --ink:#E8ECE1;
+  --ink-soft:#A3AFA0;
+  --line:#323C2C;
+  --accent:#E38A56;
+  --accent-soft:#3A2A1D;
+  --accent-2:#63C2B8;
+  --accent-2-soft:#173230;
+  --code-bg:#0B0E08;
+  --code-ink:#DCE6D0;
+  --code-soft:#7C8A78;
+  --code-accent:#F0A878;
+  --code-accent-2:#8AD9CF;
+}
+
+*{box-sizing:border-box;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Literata',Georgia,'Times New Roman',serif;
+  font-size:16px;
+  line-height:1.62;
+  padding-inline:20px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.eyebrow,.nav,.meta dt,.tag,.group-title,figcaption,th,.chip,.strip-label{
+  font-family:'Overpass',system-ui,-apple-system,sans-serif;
+}
+code,.mono,.code,table.vars td:nth-child(1),table.vars td:nth-child(2),.sig{
+  font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+h1,h2,h3{text-wrap:balance;margin:0 0 .4em;}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.015em;}
+h2{font-size:1.35rem;font-weight:700;margin-top:0;}
+h3{font-size:1rem;font-weight:700;}
+p{max-width:66ch;margin:0 0 .9em;}
+.prose p:last-child{margin-bottom:0;}
+a{color:var(--accent-2);text-underline-offset:2px;}
+a:focus-visible,.nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+.wrap{max-width:920px;margin-inline:auto;padding-block:28px 80px;}
+
+.nav{
+  position:sticky;top:0;z-index:5;
+  display:flex;gap:2px;overflow-x:auto;
+  background:var(--bg);
+  border-bottom:1px solid var(--line);
+  padding-block:10px;
+  margin-inline:calc(-1 * max(20px, (100vw - 920px)/2));
+  padding-inline:max(20px, (100vw - 920px)/2);
+}
+.nav a{
+  flex:none;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);text-decoration:none;
+  padding:6px 12px;border-radius:99px;border:1px solid transparent;white-space:nowrap;
+}
+.nav a:hover{color:var(--ink);border-color:var(--line);}
+.nav a.active{color:var(--accent);background:var(--accent-soft);border-color:var(--accent-soft);}
+
+.titleblock{
+  margin-top:22px;border:1px solid var(--line);background:var(--surface);
+  border-radius:2px;padding:24px;position:relative;
+}
+.titleblock::before,.titleblock::after{
+  content:"";position:absolute;width:10px;height:10px;border-color:var(--ink-soft);opacity:.5;
+}
+.titleblock::before{top:6px;left:6px;border-top:1px solid;border-left:1px solid;}
+.titleblock::after{top:6px;right:6px;border-top:1px solid;border-right:1px solid;}
+.eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);}
+.titleblock h1{margin-top:.3em;}
+.titleblock .sub{color:var(--ink-soft);font-size:1rem;max-width:58ch;}
+.meta{display:flex;flex-wrap:wrap;gap:22px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--line);}
+.meta div{display:flex;flex-direction:column;gap:2px;}
+.meta dt{font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;}
+.meta dd{margin:0;font-size:.84rem;font-family:'JetBrains Mono',monospace;}
+
+section{margin-top:56px;}
+section > .eyebrow{display:block;margin-bottom:6px;}
+.group-title{
+  font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-soft);margin:30px 0 8px;
+}
+
+.figure-panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:3px;
+  padding:18px 18px 12px;overflow-x:auto;margin-top:16px;
+}
+.figure-panel svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+figcaption{font-size:.8rem;color:var(--ink-soft);margin-top:10px;text-align:center;}
+
+.decisions{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
+.decision{
+  display:grid;grid-template-columns:auto 1fr;gap:14px;
+  padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--accent-2);
+  background:var(--surface);border-radius:2px;
+}
+.decision.warn{border-left-color:var(--accent);}
+.decision .chip{
+  font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent-2);white-space:nowrap;padding-top:3px;
+}
+.decision.warn .chip{color:var(--accent);}
+.decision p{margin:0;max-width:62ch;font-size:.94rem;}
+.decision strong{color:var(--ink);}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--surface);}
+table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:560px;}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+th{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);background:var(--surface-2);font-weight:700;}
+tr:last-child td{border-bottom:none;}
+table.vars td:nth-child(1){color:var(--accent-2);white-space:nowrap;}
+table.vars td:nth-child(2){color:var(--ink-soft);white-space:nowrap;}
+table.num td{font-variant-numeric:tabular-nums;}
+table.num td:nth-child(n+2){font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+td .win{color:var(--accent-2);font-weight:700;}
+
+.fn{border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px;overflow:hidden;}
+.fn-head{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.fn-name{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.9rem;}
+.tag{font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:99px;}
+.tag.pub{background:var(--accent-2-soft);color:var(--accent-2);}
+.tag.cost{background:var(--surface-2);color:var(--ink-soft);}
+.fn-body{padding:14px 16px 16px;display:grid;gap:12px;}
+.fn-note{margin:0;font-size:.9rem;color:var(--ink-soft);max-width:68ch;}
+.fn-note strong{color:var(--ink);font-weight:600;}
+.fn-note + .fn-note{margin-top:-4px;}
+
+.code{
+  background:var(--code-bg);color:var(--code-ink);border-radius:3px;padding:13px 15px;
+  font-size:.78rem;line-height:1.65;overflow-x:auto;white-space:pre;margin:0;
+}
+.code .c{color:var(--code-soft);}
+.code .k{color:var(--code-accent-2);}
+.code .t{color:var(--code-accent);}
+.code .s{color:#B6C98F;}
+
+.strip{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-top:14px;font-size:.74rem;}
+.strip div{padding:10px 12px;flex:1;text-align:center;font-family:'JetBrains Mono',monospace;}
+.strip .t0{background:var(--accent-2-soft);color:var(--accent-2);border-right:1px solid var(--line);}
+.strip .t1{background:var(--accent-soft);color:var(--accent);}
+.strip-label{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;display:block;opacity:.8;font-weight:700;}
+
+ol.seq{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;}
+ol.seq li{display:grid;grid-template-columns:28px 1fr;gap:14px;padding:12px 0;border-top:1px solid var(--line);}
+ol.seq li:first-child{border-top:none;}
+ol.seq .n{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent-2);}
+ol.seq p{margin:0;font-size:.94rem;}
+ul.rules{margin:14px 0 0;padding-left:1.1em;}
+ul.rules li{margin-bottom:.55em;font-size:.94rem;max-width:66ch;}
+ul.rules li::marker{color:var(--accent);}
+
+.note-inline{
+  border-left:3px solid var(--line);padding:2px 0 2px 14px;margin-top:16px;
+  color:var(--ink-soft);font-size:.9rem;
+}
+@media (max-width:640px){
+  h1{font-size:1.55rem;}
+  .titleblock{padding:18px;}
+  .meta{gap:14px;}
+  section{margin-top:44px;}
+}
+@media (prefers-reduced-motion: no-preference){
+  html{scroll-behavior:smooth;}
+}
+</style>
+
+<div class="nav" id="nav">
+  <a href="#architecture">Architecture</a>
+  <a href="#cascade">Cascade</a>
+  <a href="#layout">Memory layout</a>
+  <a href="#fastpath">Fast path</a>
+  <a href="#usage">How to use</a>
+  <a href="#api">API</a>
+  <a href="#constants">Constants</a>
+  <a href="#rules">Rules</a>
+  <a href="#performance">Performance</a>
+</div>
+
+<div class="wrap">
+
+  <div class="titleblock">
+    <span class="eyebrow">Implementation reference · Godot 4 / GDScript</span>
+    <h1>Entity Chunk System</h1>
+    <p class="sub">Entities sorted into square chunks, rows and one map aggregate, so group and team questions never need a full scan.</p>
+    <div class="meta">
+      <div><dt>Classes</dt><dd>ChunkingServer · C_ChunkingServer</dd></div>
+      <div><dt>Grid</dt><dd>square, derived on class load</dd></div>
+      <div><dt>Teams</dt><dd>ATTACKER · DEFENDER</dd></div>
+      <div><dt>Public API</dt><dd>6 commands · 5 queries</dd></div>
+      <div><dt>State</dt><dd>implemented, not yet parsed in Godot</dd></div>
+    </div>
+  </div>
+
+  <section id="architecture">
+    <span class="eyebrow">Architecture</span>
+    <h2>Four levels, one rule</h2>
+    <div class="prose">
+      <p>Every entity stands in one or more <strong>chunks</strong>, depending on its radius. A fixed number of chunks forms a <strong>row</strong>, all rows form the <strong>map</strong>. Each of those three levels carries the same two aggregates per team: a bitmask of the groups present, and a plain entity count.</p>
+      <p>The rule that keeps it cheap: <strong>counts are always written through, masks only cascade upwards while they actually change.</strong> A removal can therefore never force a rescan of the whole map — it stops at the first level whose mask comes out unchanged.</p>
+      <p>Entities are pure data. There are no nodes and no objects per entity: an entity <em>is</em> an integer id, and every property is one slot in a packed array at that index. Ids are recycled, but never within the frame they were released in.</p>
+    </div>
+
+    <div class="figure-panel">
+      <figure style="margin:0;">
+        <svg viewBox="0 0 840 330" role="img" aria-label="Nested diagram: the map holds rows, each row holds chunks, each chunk holds entity ids. Every level carries a group bitmask and an entity count per team." style="color:var(--ink)">
+          <rect x="8" y="8" width="824" height="314" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+          <text x="24" y="30" font-family="Overpass,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="currentColor">MAP</text>
+          <text x="700" y="30" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-soft)">_mapGroups[team]</text>
+          <text x="700" y="44" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-soft)">_mapCounts[team]</text>
+
+          <rect x="24" y="56" width="792" height="120" rx="3" fill="none" stroke="currentColor" stroke-width="1.2"/>
+          <text x="38" y="74" font-family="Overpass,sans-serif" font-size="11" font-weight="700" fill="var(--accent-2)">ROW 0</text>
+          <text x="620" y="74" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-soft)">_rowGroups · _rowCounts</text>
+          <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
+            <rect x="38" y="84" width="128" height="76" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+            <rect x="174" y="84" width="128" height="76" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+            <rect x="310" y="84" width="128" height="76" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+            <rect x="446" y="84" width="128" height="76" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+            <text x="46" y="100">chunk 0</text><text x="182" y="100">chunk 1</text><text x="318" y="100">chunk 2</text><text x="454" y="100">chunk 3</text>
+            <circle cx="80" cy="130" r="4.5" fill="var(--accent)"/>
+            <circle cx="246" cy="136" r="4.5" fill="var(--accent)"/>
+            <circle cx="380" cy="124" r="4.5" fill="var(--accent)"/>
+            <circle cx="500" cy="138" r="4.5" fill="var(--accent)"/>
+            <circle cx="262" cy="128" r="17" fill="none" stroke="var(--accent)" stroke-dasharray="3 3"/>
+          </g>
+
+          <rect x="24" y="188" width="792" height="120" rx="3" fill="none" stroke="currentColor" stroke-width="1.2"/>
+          <text x="38" y="206" font-family="Overpass,sans-serif" font-size="11" font-weight="700" fill="var(--accent-2)">ROW 1</text>
+          <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
+            <rect x="38" y="216" width="128" height="76" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+            <rect x="174" y="216" width="128" height="76" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+            <rect x="310" y="216" width="128" height="76" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+            <rect x="446" y="216" width="128" height="76" fill="none" stroke="currentColor" stroke-opacity=".45"/>
+            <text x="46" y="232">chunk 4</text><text x="182" y="232">chunk 5</text><text x="318" y="232">chunk 6</text><text x="454" y="232">chunk 7</text>
+            <circle cx="104" cy="262" r="4.5" fill="var(--accent)"/>
+            <text x="596" y="232" font-size="10" fill="var(--ink-soft)">_chunkGroups · _chunkCounts</text>
+            <text x="596" y="248" font-size="10" fill="var(--ink-soft)">_entitiesInChunk[chunkId]</text>
+          </g>
+
+          <g font-family="Overpass,sans-serif" font-size="10.5">
+            <text x="596" y="130" fill="var(--accent)">one entity, four chunks</text>
+            <text x="596" y="146" fill="var(--ink-soft)">its radius spans the border</text>
+            <line x1="510" y1="128" x2="586" y2="128" stroke="var(--accent)" stroke-width="1"/>
+          </g>
+        </svg>
+        <figcaption>Map ⊃ Row ⊃ Chunk ⊃ entity id. An entity whose radius crosses a chunk border (dashed) stands in every chunk it touches, so <code>_entityChunkIds</code> holds a list, not a single value.</figcaption>
+      </figure>
+    </div>
+
+    <p class="group-title">What changed against the original spec</p>
+    <div class="decisions">
+      <div class="decision">
+        <span class="chip">Counts</span>
+        <p><strong>Counts live in one place, not in the rebuild functions.</strong> The spec had <code>_rebuild_row_groups</code> and <code>_rebuild_map_groups</code> decrement the row and map counts, but those only run when a mask changed — the counts would drift apart whenever the cascade stopped early. <code>_apply_count_delta()</code> now writes chunk, row and map counts on every add and remove, exactly as the spec's own third decision requires.</p>
+      </div>
+      <div class="decision">
+        <span class="chip">Layout</span>
+        <p><strong>One flat array per kind of data, with a block per team</strong>, instead of an <code>…Attacker</code> / <code>…Defender</code> pair. Every function already takes a team, so indexing by it removes the branch from every access — see <a href="#layout">memory layout</a>.</p>
+      </div>
+      <div class="decision">
+        <span class="chip">Fast path</span>
+        <p><strong>Movement that stays inside the same chunks costs almost nothing.</strong> Each entity caches the chunk rectangle it covers, so <code>set_position()</code> can drop out after one comparison — see <a href="#fastpath">fast path</a>.</p>
+      </div>
+      <div class="decision">
+        <span class="chip">Rebuilds</span>
+        <p><strong>The three rebuilds stop as soon as the answer is decided.</strong> They are only reachable from the remove path, where a mask can only shrink, so once the running <code>OR</code> reaches the old value the rest of the scan cannot change it.</p>
+      </div>
+      <div class="decision">
+        <span class="chip">Added</span>
+        <p><strong><code>set_radius()</code></strong> joins the public API. It shares the delta logic with <code>set_position()</code> through <code>_apply_chunk_area()</code>, so a resize updates the same chunks a move would.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="cascade">
+    <span class="eyebrow">Aggregation</span>
+    <h2>Add cascades by OR, remove cascades by rebuild</h2>
+    <div class="prose">
+      <p>A bitmask grows for free: <code>mask |= groups</code>. It cannot shrink the same way — clearing a bit would be wrong as long as any other entity still holds it. So the two directions are genuinely different operations, and only the add path is O(1) per level.</p>
+    </div>
+
+    <div class="table-wrap" style="margin-top:16px;">
+      <table>
+        <tr><th>Level</th><th>Add path</th><th>Remove path</th></tr>
+        <tr>
+          <td><strong>Chunk</strong></td>
+          <td><code>_chunkGroups |= groups</code><br><span style="color:var(--ink-soft)">O(1)</span></td>
+          <td><code>_rebuild_chunk_groups()</code> re-ORs the entities left in the chunk<br><span style="color:var(--ink-soft)">O(entities in chunk), stops early</span></td>
+        </tr>
+        <tr>
+          <td><strong>Row</strong></td>
+          <td><code>_apply_group_to_row()</code><br><span style="color:var(--ink-soft)">O(1)</span></td>
+          <td><code>_rebuild_row_groups()</code> re-ORs the chunks of that row<br><span style="color:var(--ink-soft)">O(columns), stops early</span></td>
+        </tr>
+        <tr>
+          <td><strong>Map</strong></td>
+          <td><code>_apply_group_to_map()</code><br><span style="color:var(--ink-soft)">O(1)</span></td>
+          <td><code>_rebuild_map_groups()</code> re-ORs all row masks, never chunks<br><span style="color:var(--ink-soft)">O(rows), stops early</span></td>
+        </tr>
+        <tr>
+          <td><strong>Counts</strong></td>
+          <td colspan="2"><code>_apply_count_delta()</code> writes ±1 through all three levels, unconditionally, on both paths<br><span style="color:var(--ink-soft)">O(1)</span></td>
+        </tr>
+      </table>
+    </div>
+
+    <p class="note-inline">Both paths stop at the first level whose value did not change. On the add path that is the common case after the first few entities of a group arrive; on the remove path it is the common case whenever another entity of the same group stays behind.</p>
+  </section>
+
+  <section id="layout">
+    <span class="eyebrow">Data</span>
+    <h2>Structure of arrays, one block per team</h2>
+    <div class="prose">
+      <p>There is no entity object and no per-team container. Each kind of data is a single packed array; the team selects a block inside it and the chunk or row selects the slot:</p>
+    </div>
+
+    <div class="strip">
+      <div class="t0"><span class="strip-label">team 0 · attacker</span>index 0 … CHUNK_COUNT-1</div>
+      <div class="t1"><span class="strip-label">team 1 · defender</span>index CHUNK_COUNT … 2·CHUNK_COUNT-1</div>
+    </div>
+
+    <div class="code" style="margin-top:14px;"><span class="c">## Maps team and chunk onto the slot inside the per team chunk containers.</span>
+<span class="k">func</span> _get_team_chunk_index(p_team: <span class="t">int</span>, p_chunkId: <span class="t">int</span>) -&gt; <span class="t">int</span>:
+    <span class="k">return</span> p_team * C_ChunkingServer.CHUNK_COUNT + p_chunkId</div>
+
+    <div class="prose" style="margin-top:16px;">
+      <p>Adding a third team means adding one enum entry — every container sizes itself from <code>TEAM_COUNT</code> in <code>_init()</code>, and no call site changes.</p>
+    </div>
+
+    <p class="group-title">Per entity, indexed by id</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Field</th><th>Type</th><th>Holds</th></tr>
+        <tr><td>_entityTeam</td><td>PackedByteArray</td><td>Team, as a <code>TEAM</code> value</td></tr>
+        <tr><td>_entityGroups</td><td>PackedInt64Array</td><td>Bitmask of the groups the entity belongs to</td></tr>
+        <tr><td>_entityTargetedGroups</td><td>PackedInt64Array</td><td>Bitmask of the groups it may attack</td></tr>
+        <tr><td>_entityPosition</td><td>PackedVector2Array</td><td>Current position</td></tr>
+        <tr><td>_entityRadius</td><td>PackedFloat32Array</td><td>Effect radius</td></tr>
+        <tr><td>_entityModules</td><td>Array[M_ModuleManager]</td><td>Module management; <code>null</code> while the id is free</td></tr>
+        <tr><td>_entityChunkArea</td><td>Array[Vector4i]</td><td>Covered rectangle as (minColumn, minRow, maxColumn, maxRow)</td></tr>
+        <tr><td>_entityChunkIds</td><td>Array[PackedInt32Array]</td><td>Chunks the entity currently stands in</td></tr>
+        <tr><td>_entityChunkIndices</td><td>Array[PackedInt32Array]</td><td>Its slot inside each of those chunks</td></tr>
+        <tr><td>_entityPreUnregistered</td><td>PackedByteArray</td><td>1 while announced for removal but still active</td></tr>
+        <tr><td>_entityUnregistering</td><td>PackedByteArray</td><td>1 while removed but the id is still locked</td></tr>
+      </table>
+    </div>
+
+    <p class="group-title">Per chunk, row and map</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Field</th><th>Type</th><th>Holds</th></tr>
+        <tr><td>_entitiesInChunk</td><td>Array[PackedInt32Array]</td><td>Entity ids per chunk</td></tr>
+        <tr><td>_chunkGroups</td><td>PackedInt64Array</td><td>Group mask per team and chunk</td></tr>
+        <tr><td>_chunkCounts</td><td>PackedInt32Array</td><td>Entity count per team and chunk</td></tr>
+        <tr><td>_rowGroups</td><td>PackedInt64Array</td><td>Group mask per team and row</td></tr>
+        <tr><td>_rowCounts</td><td>PackedInt32Array</td><td>Entity count per team and row</td></tr>
+        <tr><td>_mapGroups</td><td>PackedInt64Array</td><td>Group mask per team</td></tr>
+        <tr><td>_mapCounts</td><td>PackedInt32Array</td><td>Entity count per team</td></tr>
+      </table>
+    </div>
+
+    <p class="note-inline"><code>_entityChunkIndices</code> is what makes removal O(1): it records where the entity sits inside each chunk list, so the chunk can swap its last element into that slot and shrink, instead of searching and shifting.</p>
+  </section>
+
+  <section id="fastpath">
+    <span class="eyebrow">Movement</span>
+    <h2>The rectangle check that skips the work</h2>
+    <div class="prose">
+      <p>Both <code>set_position()</code> and <code>set_radius()</code> go through <code>_apply_chunk_area()</code>. It compares the new rectangle against the one the entity already covers, and returns before touching a single chunk when they match — which is what happens on the large majority of movement calls.</p>
+    </div>
+
+    <div class="figure-panel">
+      <figure style="margin:0;">
+        <svg viewBox="0 0 700 420" role="img" aria-label="Flow: compute the chunk rectangle, compare it against the cached one; if equal return immediately, otherwise collect the chunks, diff against the old list and run the add and remove cascades." style="color:var(--ink)">
+          <g font-family="JetBrains Mono, monospace" font-size="11">
+            <rect x="180" y="14" width="340" height="38" rx="3" fill="none" stroke="currentColor"/>
+            <text x="350" y="38" text-anchor="middle" fill="currentColor">_compute_chunk_area() -&gt; Vector4i</text>
+            <text x="530" y="32" font-family="Overpass,sans-serif" font-size="10" fill="var(--ink-soft)">no allocation:</text>
+            <text x="530" y="45" font-family="Overpass,sans-serif" font-size="10" fill="var(--ink-soft)">4 clamps, a value type</text>
+
+            <line x1="350" y1="52" x2="350" y2="82" stroke="currentColor" marker-end="url(#av)"/>
+            <polygon points="350,86 452,124 350,162 248,124" fill="none" stroke="currentColor"/>
+            <text x="350" y="121" text-anchor="middle" font-size="10">same rectangle</text>
+            <text x="350" y="135" text-anchor="middle" font-size="10">as last frame?</text>
+
+            <line x1="248" y1="124" x2="150" y2="124" stroke="var(--accent-2)" stroke-width="1.6" marker-end="url(#ateal)"/>
+            <rect x="14" y="105" width="132" height="38" rx="3" fill="none" stroke="var(--accent-2)" stroke-width="1.6"/>
+            <text x="80" y="129" text-anchor="middle" fill="var(--accent-2)">return</text>
+            <text x="80" y="164" text-anchor="middle" font-family="Overpass,sans-serif" font-size="10" font-weight="700" fill="var(--accent-2)">90 – 99% of calls</text>
+
+            <line x1="350" y1="162" x2="350" y2="192" stroke="currentColor" marker-end="url(#av)"/>
+            <text x="364" y="182" font-family="Overpass,sans-serif" font-size="10" fill="var(--ink-soft)">no</text>
+
+            <rect x="180" y="196" width="340" height="38" rx="3" fill="none" stroke="currentColor"/>
+            <text x="350" y="220" text-anchor="middle" fill="currentColor">_collect_chunks_in_area(p_area)</text>
+
+            <line x1="350" y1="234" x2="350" y2="264" stroke="currentColor" marker-end="url(#av)"/>
+            <rect x="180" y="268" width="340" height="38" rx="3" fill="none" stroke="currentColor"/>
+            <text x="350" y="292" text-anchor="middle" fill="currentColor">diff against _entityChunkIds</text>
+
+            <line x1="270" y1="306" x2="200" y2="342" stroke="var(--accent)" marker-end="url(#aacc)"/>
+            <line x1="430" y1="306" x2="500" y2="342" stroke="var(--accent-2)" marker-end="url(#ateal)"/>
+
+            <rect x="40" y="346" width="250" height="54" rx="3" fill="none" stroke="var(--accent)"/>
+            <text x="165" y="367" text-anchor="middle" fill="var(--accent)">_remove_entity_from_chunk()</text>
+            <text x="165" y="386" text-anchor="middle" font-family="Overpass,sans-serif" font-size="10" fill="var(--ink-soft)">swap-and-pop, then rebuild upwards</text>
+
+            <rect x="410" y="346" width="250" height="54" rx="3" fill="none" stroke="var(--accent-2)"/>
+            <text x="535" y="367" text-anchor="middle" fill="var(--accent-2)">_add_entity_to_chunk()</text>
+            <text x="535" y="386" text-anchor="middle" font-family="Overpass,sans-serif" font-size="10" fill="var(--ink-soft)">append, then OR upwards</text>
+          </g>
+          <defs>
+            <marker id="av" viewBox="0 0 8 8" refX="4" refY="7" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L4,8 L8,0 Z" fill="currentColor"/></marker>
+            <marker id="ateal" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent-2)"/></marker>
+            <marker id="aacc" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker>
+          </defs>
+        </svg>
+        <figcaption>The comparison is one <code>Vector4i</code> equality. Only a move that actually crosses a chunk border pays for the chunk list, the diff and the cascades.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="usage">
+    <span class="eyebrow">How to use</span>
+    <h2>Wiring it into a scene</h2>
+    <div class="prose">
+      <p>The server is a plain <code>RefCounted</code>, not an autoload — the system that owns the entities owns the server, and the grid comes from <code>C_ChunkingServer</code> at class load. Create it, register entities, push positions, and close each frame.</p>
+    </div>
+
+    <div class="code" style="margin-top:16px;"><span class="c">## Owns the units of one battle and keeps their chunk assignment current.</span>
+<span class="k">extends</span> Node
+<span class="k">class_name</span> Battlefield
+
+<span class="c">## Group bits every unit type is matched against.</span>
+<span class="k">const</span> GROUP_INFANTRY: <span class="t">int</span> = 1 &lt;&lt; 0
+<span class="k">const</span> GROUP_ARMOR: <span class="t">int</span> = 1 &lt;&lt; 1
+<span class="k">const</span> GROUP_AIR: <span class="t">int</span> = 1 &lt;&lt; 2
+
+<span class="c">## Spatial index of every living unit.</span>
+<span class="k">var</span> _chunking: ChunkingServer = ChunkingServer.new()
+
+<span class="c">## Ids of the units this battlefield drives.</span>
+<span class="k">var</span> _unitIds: PackedInt32Array = PackedInt32Array()
+
+
+<span class="c">## Registers one unit and keeps its id.</span>
+<span class="c">## @param p_position Where the unit spawns</span>
+<span class="c">## @return The registered entity id</span>
+<span class="k">func</span> spawn_infantry(p_position: <span class="t">Vector2</span>) -&gt; <span class="t">int</span>:
+    <span class="k">var</span> l_id: <span class="t">int</span> = _chunking.register_entity(
+        p_position,
+        48.0,
+        C_ChunkingServer.TEAM.ATTACKER,
+        GROUP_INFANTRY,
+        GROUP_ARMOR | GROUP_AIR,
+        <span class="k">null</span>)
+    
+    _unitIds.append(l_id)
+    <span class="k">return</span> l_id
+
+
+<span class="c">## Pushes the new positions and closes the frame for the chunking server.</span>
+<span class="c">## @param p_delta Time since the last physics step</span>
+<span class="k">func</span> _physics_process(p_delta: <span class="t">float</span>) -&gt; <span class="t">void</span>:
+    <span class="k">for</span> l_id: <span class="t">int</span> <span class="k">in</span> _unitIds:
+        _chunking.set_position(l_id, _get_movement_target(l_id, p_delta))
+    
+    _chunking.end_frame()</div>
+
+    <p class="group-title">Per frame order</p>
+    <ol class="seq">
+      <li><span class="n">1</span><p>Move whatever moved — <code>set_position()</code> and <code>set_radius()</code> may be called in any order and as often as needed.</p></li>
+      <li><span class="n">2</span><p>Run the systems that read the index: targeting, auras, spatial queries. Every mask and count is already correct, there is no rebuild step to trigger.</p></li>
+      <li><span class="n">3</span><p>Announce deaths with <code>pre_unregister_entity()</code> while other systems may still need the entity, then remove them with <code>unregister_entity()</code>.</p></li>
+      <li><span class="n">4</span><p>Call <code>end_frame()</code> exactly once, last. Only now do removed ids become available to <code>register_entity()</code> again.</p></li>
+    </ol>
+
+    <p class="group-title">Asking spatial questions</p>
+    <div class="code"><span class="c">## Cheap to expensive: the map mask rules out a whole search before it starts.</span>
+<span class="k">func</span> find_air_threats(p_position: <span class="t">Vector2</span>) -&gt; <span class="t">PackedInt32Array</span>:
+    <span class="k">if</span> (<span class="k">not</span> _chunking.map_has_group(C_ChunkingServer.TEAM.DEFENDER, GROUP_AIR)):
+        <span class="k">return</span> PackedInt32Array()
+    
+    <span class="k">return</span> _chunking.get_entities_in_radius(p_position, 320.0)</div>
+    <p class="fn-note" style="margin-top:12px;">The three <code>has_group</code> queries exist to be asked first. A map check is one <code>AND</code> and rules out every chunk at once; a row check narrows to one band; a chunk check tells you whether iterating its entity list is worth it at all.</p>
+  </section>
+
+  <section id="api">
+    <span class="eyebrow">Reference</span>
+    <h2>Public API</h2>
+    <p class="prose">Eleven functions. Everything else is <code>_</code>-prefixed and internal to the cascade. <code>p_team</code> is always a <code>C_ChunkingServer.TEAM</code> value, <code>p_groups</code> and <code>p_groupMask</code> are always 64-bit bitmasks.</p>
+
+    <p class="group-title">Commands</p>
+
+    <div class="fn">
+      <div class="fn-head"><span class="fn-name">register_entity</span><span class="tag pub">public</span><span class="tag cost">O(covered chunks)</span></div>
+      <div class="fn-body">
+        <div class="code"><span class="k">func</span> register_entity(p_position: <span class="t">Vector2</span>, p_radius: <span class="t">float</span>, p_team: <span class="t">int</span>,
+        p_groups: <span class="t">int</span>, p_targetedGroups: <span class="t">int</span>, p_module: <span class="t">M_ModuleManager</span>) -&gt; <span class="t">int</span></div>
+        <p class="fn-note">Takes an id from the free list or appends a new slot to every entity container, stores the entity data, and adds it to each chunk its radius covers. <strong>Returns the entity id</strong>, which is the handle for every other call.</p>
+      </div>
+    </div>
+
+    <div class="fn">
+      <div class="fn-head"><span class="fn-name">set_position</span><span class="tag pub">public</span><span class="tag cost">O(1) unchanged</span></div>
+      <div class="fn-body">
+        <div class="code"><span class="k">func</span> set_position(p_id: <span class="t">int</span>, p_position: <span class="t">Vector2</span>) -&gt; <span class="t">void</span></div>
+        <p class="fn-note">Stores the position and updates the chunk assignment only if the covered rectangle changed. Safe to call every frame for every entity — that is what it is built for.</p>
+      </div>
+    </div>
+
+    <div class="fn">
+      <div class="fn-head"><span class="fn-name">set_radius</span><span class="tag pub">public</span><span class="tag cost">O(1) unchanged</span></div>
+      <div class="fn-body">
+        <div class="code"><span class="k">func</span> set_radius(p_id: <span class="t">int</span>, p_radius: <span class="t">float</span>) -&gt; <span class="t">void</span></div>
+        <p class="fn-note">Same delta path as <code>set_position()</code>, for an aura that grows, a shield that expands or a weapon range that changes with a buff. Setting the radius it already has costs nothing.</p>
+      </div>
+    </div>
+
+    <div class="fn">
+      <div class="fn-head"><span class="fn-name">pre_unregister_entity</span><span class="tag pub">public</span><span class="tag cost">O(1)</span></div>
+      <div class="fn-body">
+        <div class="code"><span class="k">func</span> pre_unregister_entity(p_id: <span class="t">int</span>) -&gt; <span class="t">void</span></div>
+        <p class="fn-note">Marks the entity as doomed and changes nothing else — it stays in its chunks, in every mask and in every count. Announcement only, so other systems can stop picking it as a target before it disappears.</p>
+      </div>
+    </div>
+
+    <div class="fn">
+      <div class="fn-head"><span class="fn-name">unregister_entity</span><span class="tag pub">public</span><span class="tag cost">O(covered chunks)</span></div>
+      <div class="fn-body">
+        <div class="code"><span class="k">func</span> unregister_entity(p_id: <span class="t">int</span>) -&gt; <span class="t">void</span></div>
+        <p class="fn-note">Removes the entity from every chunk immediately and runs the full remove cascade. The id goes to the pending list, <strong>not</strong> the free list: it stays locked for the rest of the frame so a queued reference cannot silently resolve to a different entity.</p>
+      </div>
+    </div>
+
+    <div class="fn">
+      <div class="fn-head"><span class="fn-name">end_frame</span><span class="tag pub">public</span><span class="tag cost">O(removed this frame)</span></div>
+      <div class="fn-body">
+        <div class="code"><span class="k">func</span> end_frame() -&gt; <span class="t">void</span></div>
+        <p class="fn-note">Moves the pending ids into the free list, clears their flags and drops their module reference. <strong>Call it exactly once per frame, after every other system has run.</strong> Skip it and ids are never recycled; call it mid-frame and an id can be handed out while something still references it.</p>
+      </div>
+    </div>
+
+    <p class="group-title">Queries</p>
+
+    <div class="fn">
+      <div class="fn-head"><span class="fn-name">chunk_has_group · row_has_group · map_has_group</span><span class="tag pub">public</span><span class="tag cost">O(1)</span></div>
+      <div class="fn-body">
+        <div class="code"><span class="k">func</span> chunk_has_group(p_chunkId: <span class="t">int</span>, p_team: <span class="t">int</span>, p_groupMask: <span class="t">int</span>) -&gt; <span class="t">bool</span>
+<span class="k">func</span> row_has_group(p_rowIndex: <span class="t">int</span>, p_team: <span class="t">int</span>, p_groupMask: <span class="t">int</span>) -&gt; <span class="t">bool</span>
+<span class="k">func</span> map_has_group(p_team: <span class="t">int</span>, p_groupMask: <span class="t">int</span>) -&gt; <span class="t">bool</span></div>
+        <p class="fn-note">One bitwise <code>AND</code> each. Always correct with no lazy rebuild, because the cascade keeps all three levels current. Use them as the filter in front of any iteration.</p>
+      </div>
+    </div>
+
+    <div class="fn">
+      <div class="fn-head"><span class="fn-name">get_entities_in_chunk</span><span class="tag pub">public</span><span class="tag cost">O(1)</span></div>
+      <div class="fn-body">
+        <div class="code"><span class="k">func</span> get_entities_in_chunk(p_chunkId: <span class="t">int</span>) -&gt; <span class="t">PackedInt32Array</span></div>
+        <p class="fn-note">Returns the chunk's own list, not a copy. <strong>Treat it as read only</strong> — and do not hold it across a call that adds or removes an entity in that chunk, because swap-and-pop reorders it.</p>
+      </div>
+    </div>
+
+    <div class="fn">
+      <div class="fn-head"><span class="fn-name">get_entities_in_radius</span><span class="tag pub">public</span><span class="tag cost">O(entities in covered chunks)</span></div>
+      <div class="fn-body">
+        <div class="code"><span class="k">func</span> get_entities_in_radius(p_position: <span class="t">Vector2</span>, p_radius: <span class="t">float</span>) -&gt; <span class="t">PackedInt32Array</span></div>
+        <p class="fn-note">Collects the candidates from every covered chunk, then filters by true squared distance. Each id appears once: an entity standing in several of the covered chunks is only checked against the result list when it actually spans more than one.</p>
+        <p class="fn-note">Filters by <strong>point in circle</strong>, using the entity position against the query radius — the entity's own radius is not added. For circle-overlap semantics, query with <code>p_radius + maxEntityRadius</code> and re-filter.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="constants">
+    <span class="eyebrow">Reference</span>
+    <h2>C_ChunkingServer</h2>
+    <div class="prose">
+      <p>Configuration is four constants; the grid the server actually uses is derived from them once, in <code>_static_init()</code>, on class load. They are <code>static var</code> rather than <code>const</code> because GDScript cannot call <code>ceili()</code> or <code>maxi()</code> in a constant expression.</p>
+    </div>
+
+    <p class="group-title">Configured</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Constant</th><th>Type</th><th>Meaning</th></tr>
+        <tr><td>CONFIGURED_MAP_SIZE</td><td>Vector2</td><td>World size the grid has to cover, in world units</td></tr>
+        <tr><td>CONFIGURED_CHUNK_COLUMNS</td><td>int</td><td>Wanted chunks per row — a wish, not a guarantee</td></tr>
+        <tr><td>CONFIGURED_CHUNK_ROWS</td><td>int</td><td>Wanted chunk rows — a wish, not a guarantee</td></tr>
+        <tr><td>COVERAGE_EPSILON</td><td>float</td><td>Tolerance so float error cannot add a spurious column</td></tr>
+        <tr><td>TEAM</td><td>enum</td><td><code>ATTACKER</code>, <code>DEFENDER</code> — the values index every per-team container</td></tr>
+      </table>
+    </div>
+
+    <p class="group-title">Derived on class load</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Value</th><th>Type</th><th>Meaning</th></tr>
+        <tr><td>CHUNK_SIZE</td><td>float</td><td>Chunk edge length, identical on both axes</td></tr>
+        <tr><td>MAP_CHUNK_COLUMNS</td><td>int</td><td>Chunks per row after the square recalculation</td></tr>
+        <tr><td>MAP_CHUNK_ROWS</td><td>int</td><td>Chunk rows after the square recalculation</td></tr>
+        <tr><td>CHUNK_COUNT</td><td>int</td><td>Total chunks — columns × rows</td></tr>
+        <tr><td>MAP_SIZE</td><td>Vector2</td><td>Size the grid really covers, never below the configured size</td></tr>
+        <tr><td>TEAM_COUNT</td><td>int</td><td><code>TEAM.size()</code> — the size of every per-team block</td></tr>
+      </table>
+    </div>
+
+    <h3 style="margin-top:30px;">Square chunks, whatever you configure</h3>
+    <div class="prose">
+      <p>A column count and a row count imply two different chunk edges. If they disagree, the chunks are rectangles. The recalculation takes the edge closest to both wishes, uses it on both axes, and derives the counts back from it so the grid still covers the whole map:</p>
+    </div>
+
+    <div class="code" style="margin-top:14px;">l_columnEdge  = CONFIGURED_MAP_SIZE.x / CONFIGURED_CHUNK_COLUMNS
+l_rowEdge     = CONFIGURED_MAP_SIZE.y / CONFIGURED_CHUNK_ROWS
+
+CHUNK_SIZE         = (l_columnEdge + l_rowEdge) * 0.5
+MAP_CHUNK_COLUMNS  = ceil(CONFIGURED_MAP_SIZE.x / CHUNK_SIZE)
+MAP_CHUNK_ROWS     = ceil(CONFIGURED_MAP_SIZE.y / CHUNK_SIZE)
+MAP_SIZE           = Vector2(MAP_CHUNK_COLUMNS, MAP_CHUNK_ROWS) * CHUNK_SIZE</div>
+
+    <div class="table-wrap" style="margin-top:16px;">
+      <table class="num">
+        <tr><th>Configured</th><th>Implied edges</th><th>CHUNK_SIZE</th><th>Resulting grid</th><th>MAP_SIZE</th></tr>
+        <tr><td>4096 × 4096, 32 × 32</td><td>128 · 128</td><td>128</td><td>32 × 32 = 1024</td><td>4096 × 4096</td></tr>
+        <tr><td>1000 × 1000, 10 × 5</td><td>100 · 200</td><td>150</td><td>7 × 7 = 49</td><td>1050 × 1050</td></tr>
+        <tr><td>2048 × 1024, 16 × 16</td><td>128 · 64</td><td>96</td><td>22 × 11 = 242</td><td>2112 × 1056</td></tr>
+      </table>
+    </div>
+    <p class="note-inline">Already-square configurations pass through untouched — the first row is the shipped default. Otherwise the grid may end slightly larger than configured, never smaller, so no position falls outside it. Positions beyond <code>MAP_SIZE</code> clamp into the border chunks rather than erroring.</p>
+  </section>
+
+  <section id="rules">
+    <span class="eyebrow">Contract</span>
+    <h2>What the caller has to respect</h2>
+    <ul class="rules">
+      <li><strong><code>end_frame()</code> once per frame, last.</strong> It is the only thing that recycles ids, and the lock it releases is what makes a queued damage event safe.</li>
+      <li><strong>An unregistered id is dead until re-registered.</strong> Do not move it, resize it or query with it — the server does not re-check a caller's id.</li>
+      <li><strong>64 groups maximum.</strong> Groups are bits in an <code>int64</code>. Group values are the caller's to define; the server only ORs and ANDs them.</li>
+      <li><strong>Teams are array indices.</strong> Pass <code>TEAM</code> values, not arbitrary integers; a third team needs only a new enum entry.</li>
+      <li><strong><code>get_entities_in_chunk()</code> hands out live state.</strong> Read it, do not store it, do not write to it.</li>
+      <li><strong>The grid is fixed after class load.</strong> Changing the configuration means changing the constants and restarting — there is no resize.</li>
+    </ul>
+  </section>
+
+  <section id="performance">
+    <span class="eyebrow">Measurements</span>
+    <h2>Where the cost went</h2>
+    <div class="prose">
+      <p>Both optimisations were measured before being written, on a transliteration of the algorithm rather than in Godot — so the iteration counts are exact and the wall-clock gain is not. They are reported here as ratios for that reason.</p>
+    </div>
+
+    <p class="group-title">How often movement changes the chunk set · 2000 entities, 120 frames</p>
+    <div class="table-wrap">
+      <table class="num">
+        <tr><th>Movement per frame</th><th>Entity radius</th><th>Rectangle unchanged</th></tr>
+        <tr><td>2 units</td><td>0</td><td><span class="win">98.7%</span></td></tr>
+        <tr><td>2 units</td><td>60</td><td><span class="win">97.5%</span></td></tr>
+        <tr><td>8 units</td><td>0</td><td><span class="win">95.2%</span></td></tr>
+        <tr><td>8 units</td><td>60</td><td><span class="win">90.6%</span></td></tr>
+        <tr><td>25 units</td><td>60</td><td>76.4%</td></tr>
+      </table>
+    </div>
+    <p class="note-inline">Every one of those calls used to allocate two arrays and run a set difference. It now costs four clamps and one comparison.</p>
+
+    <p class="group-title">Rebuild scan length, with and without the early exit</p>
+    <div class="table-wrap">
+      <table class="num">
+        <tr><th>Chunk contents</th><th>Distinct groups</th><th>Full scan</th><th>Early exit</th><th>Ratio</th></tr>
+        <tr><td>40 entities</td><td>1</td><td>39.0</td><td><span class="win">1.0</span></td><td>39×</td></tr>
+        <tr><td>40 entities</td><td>4</td><td>39.0</td><td><span class="win">8.3</span></td><td>4.7×</td></tr>
+        <tr><td>120 entities</td><td>1</td><td>119.0</td><td><span class="win">1.0</span></td><td>119×</td></tr>
+        <tr><td>120 entities</td><td>8</td><td>119.0</td><td><span class="win">21.6</span></td><td>5.5×</td></tr>
+        <tr><td>400 entities</td><td>4</td><td>399.0</td><td><span class="win">8.4</span></td><td>47×</td></tr>
+      </table>
+    </div>
+    <p class="note-inline">Dense chunks benefit most, and a chunk whose entities share one group resolves in a single iteration. Worst case is unchanged: when the mask really did shrink, the scan runs to the end.</p>
+
+    <p class="group-title">Correctness</p>
+    <div class="prose" style="margin-top:8px;">
+      <p>The same transliteration is fuzz-tested against a brute-force rebuild: 50 trials × 500 random operations mixing registration, long moves, sub-chunk nudges, radius changes, removal and frame ends. After each batch every chunk mask, every count at all three levels, the entity-to-slot index mapping, the cached rectangle and the id lifecycle are compared against a full recomputation. All pass.</p>
+      <p>That validates the <em>algorithm</em>, not the GDScript. The scripts have not been through the Godot parser yet, so the first editor run is still the real smoke test.</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav a'));
+  var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  if(!('IntersectionObserver' in window)) return;
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        var id = '#' + e.target.id;
+        links.forEach(function(a){ a.classList.toggle('active', a.getAttribute('href') === id); });
+      }
+    });
+  }, { rootMargin: '-35% 0px -60% 0px' });
+  sections.forEach(function(s){ if(s) obs.observe(s); });
+})();
+</script>
