@@ -1,9 +1,15 @@
-extends ChunkingServer
+extends RefCounted
 ## Resolves area hits through the chunk index, so only entities near the shape are tested. [br]
 ## Hit and hurt groups decide whether a hit connects at all, stop groups end it at the first blocker.
 class_name HitServer
 
 #region PRIVATE_VARIABLES
+
+## Chunk index and shared entity slots this server reads; owned by the api server.
+var _chunking: ChunkingServer = null
+
+## Module management per entity id; receives every hit that connects with it.
+var _entityModules: Array[M_ModuleManager] = []
 
 ## Vertical extent per entity as (bottom, top); the third axis next to the 2D position.
 var _entityYBand: PackedVector2Array = PackedVector2Array()
@@ -30,31 +36,37 @@ var _freeCurveIndices: PackedInt32Array = PackedInt32Array()
 
 #region LIFECYCLE
 
-## Takes an id from the chunking server and clears the hit data of that slot. [br]
-## Without the reset a recycled id would inherit the groups and curve of its predecessor. [br]
-## @return The id the next entity is stored under
-func _acquire_id() -> int:
-	var l_id: int = super()
-	
-	if (l_id == _entityYBand.size()):
-		_entityYBand.append(Vector2.ZERO)
-		_entityHurtGroups.append(0)
-		_entityHitGroups.append(0)
-		_entityStopGroups.append(0)
-		_entityCurveIndex.append(C_HitServer.NO_CURVE)
-		return l_id
-	
-	_entityYBand[l_id] = Vector2.ZERO
-	_entityHurtGroups[l_id] = 0
-	_entityHitGroups[l_id] = 0
-	_entityStopGroups[l_id] = 0
-	_release_curve(l_id)
-	
-	return l_id
+## Binds the server to the chunk index it resolves its shapes against. [br]
+## @param p_chunking The index and shared entity slots every server reads
+func _init(p_chunking: ChunkingServer) -> void:
+	_chunking = p_chunking
 
 #endregion
 
 #region PUBLIC_METHODS
+
+## Gives an entity its hit side; the api server calls this while it registers. [br]
+## @param p_id The entity to arm [br]
+## @param p_module Module management that receives its hits [br]
+## @param p_hitProfile Band, groups and radius profile of the entity
+func register(p_id: int, p_module: M_ModuleManager, p_hitProfile: R_HitProfile) -> void:
+	_ensure_slot(p_id)
+	
+	_entityModules[p_id] = p_module
+	_entityYBand[p_id] = p_hitProfile.yBand
+	_entityHurtGroups[p_id] = p_hitProfile.hurtGroups
+	_entityHitGroups[p_id] = p_hitProfile.hitGroups
+	_entityStopGroups[p_id] = p_hitProfile.stopGroups
+	
+	set_radius_curve(p_id, p_hitProfile.radiusCurve)
+
+
+## Drops everything an entity holds once its id is handed back for reuse. [br]
+## @param p_id The entity whose slot is released
+func release_entity(p_id: int) -> void:
+	_entityModules[p_id] = null
+	_release_curve(p_id)
+
 
 ## Sets the vertical extent an entity occupies. [br]
 ## @param p_id The entity to change [br]
@@ -252,7 +264,7 @@ func _test_circle(p_candidateIds: PackedInt32Array, p_emitterId: int, p_origin: 
 	for l_id: int in p_candidateIds:
 		var l_height: float = _get_sample_height(l_id, p_hitYBand)
 		var l_radius: float = _get_effective_radius(l_id, l_height)
-		var l_distanceSquared: float = _entityPosition[l_id].distance_squared_to(p_origin)
+		var l_distanceSquared: float = _chunking.entityPosition[l_id].distance_squared_to(p_origin)
 		var l_reach: float = p_radius + l_radius
 		
 		if (l_distanceSquared > l_reach * l_reach):
@@ -308,7 +320,7 @@ func _test_directional_rect(p_candidateIds: PackedInt32Array, p_emitterId: int, 
 	for l_id: int in p_candidateIds:
 		var l_height: float = _get_sample_height(l_id, p_hitYBand)
 		var l_radius: float = _get_effective_radius(l_id, l_height)
-		var l_toTarget: Vector2 = _entityPosition[l_id] - p_origin
+		var l_toTarget: Vector2 = _chunking.entityPosition[l_id] - p_origin
 		var l_along: float = l_toTarget.dot(l_forward)
 		var l_across: float = l_toTarget.dot(l_side)
 		var l_gapAlong: float = l_along - clampf(l_along, 0.0, p_length)
@@ -360,7 +372,7 @@ func _test_cake_slice(p_candidateIds: PackedInt32Array, p_emitterId: int, p_orig
 	for l_id: int in p_candidateIds:
 		var l_height: float = _get_sample_height(l_id, p_hitYBand)
 		var l_radius: float = _get_effective_radius(l_id, l_height)
-		var l_position: Vector2 = _entityPosition[l_id]
+		var l_position: Vector2 = _chunking.entityPosition[l_id]
 		var l_toTarget: Vector2 = l_position - p_origin
 		var l_reach: float = p_radius + l_radius
 		
@@ -380,6 +392,26 @@ func _test_cake_slice(p_candidateIds: PackedInt32Array, p_emitterId: int, p_orig
 #endregion
 
 #region PRIVATE_METHODS
+
+## Makes sure the hit slot of an id exists and holds nothing of a previous entity. [br]
+## @param p_id The entity slot to prepare
+func _ensure_slot(p_id: int) -> void:
+	if (p_id == _entityYBand.size()):
+		_entityModules.append(null)
+		_entityYBand.append(Vector2.ZERO)
+		_entityHurtGroups.append(0)
+		_entityHitGroups.append(0)
+		_entityStopGroups.append(0)
+		_entityCurveIndex.append(C_HitServer.NO_CURVE)
+		return
+	
+	_entityModules[p_id] = null
+	_entityYBand[p_id] = Vector2.ZERO
+	_entityHurtGroups[p_id] = 0
+	_entityHitGroups[p_id] = 0
+	_entityStopGroups[p_id] = 0
+	_release_curve(p_id)
+
 
 ## Gives the curve slot of an entity back for reuse, if it holds one. [br]
 ## @param p_id The entity whose profile is dropped
@@ -404,18 +436,18 @@ func _release_curve(p_id: int) -> void:
 func _gather_chunk_candidates(p_emitterId: int, p_minCorner: Vector2, p_maxCorner: Vector2,
 		p_hitYBand: Vector2) -> PackedInt32Array:
 	var l_candidateIds: PackedInt32Array = PackedInt32Array()
-	var l_area: Vector4i = _compute_chunk_area_from_bounds(p_minCorner, p_maxCorner)
-	var l_emitterTeam: int = _entityTeam[p_emitterId]
+	var l_area: Vector4i = _chunking.compute_chunk_area_from_bounds(p_minCorner, p_maxCorner)
+	var l_emitterTeam: int = _chunking.entityTeam[p_emitterId]
 	
-	for l_chunkId: int in _collect_chunks_in_area(l_area):
-		if (_get_opponent_count_in_chunk(l_chunkId, l_emitterTeam) == 0):
+	for l_chunkId: int in _chunking.collect_chunks_in_area(l_area):
+		if (not _chunking.has_opponent_in_chunk(l_chunkId, l_emitterTeam)):
 			continue
 		
-		for l_id: int in _entitiesInChunk[l_chunkId]:
+		for l_id: int in _chunking.entitiesInChunk[l_chunkId]:
 			if (not _can_be_hit(p_emitterId, l_id, p_hitYBand)):
 				continue
 			
-			if (_entityChunkIds[l_id].size() > 1 and l_candidateIds.has(l_id)):
+			if (_chunking.entityChunkIds[l_id].size() > 1 and l_candidateIds.has(l_id)):
 				continue
 			
 			l_candidateIds.append(l_id)
@@ -451,10 +483,10 @@ func _get_preferred_candidates(p_emitterId: int, p_preferredId: int, p_maxHits: 
 ## @param p_hitYBand Vertical extent of the hit [br]
 ## @return true if only the geometry is left to decide
 func _can_be_hit(p_emitterId: int, p_targetId: int, p_hitYBand: Vector2) -> bool:
-	if (_entityTeam[p_targetId] == _entityTeam[p_emitterId]):
+	if (_chunking.entityTeam[p_targetId] == _chunking.entityTeam[p_emitterId]):
 		return false
 	
-	if (_entityPreUnregistered[p_targetId] == 1 or _entityUnregistering[p_targetId] == 1):
+	if (_chunking.entityPreUnregistered[p_targetId] == 1 or _chunking.entityUnregistering[p_targetId] == 1):
 		return false
 	
 	if ((_entityHitGroups[p_emitterId] & _entityHurtGroups[p_targetId]) == 0):
@@ -462,20 +494,6 @@ func _can_be_hit(p_emitterId: int, p_targetId: int, p_hitYBand: Vector2) -> bool
 	
 	var l_band: Vector2 = _entityYBand[p_targetId]
 	return p_hitYBand.x <= l_band.y and p_hitYBand.y >= l_band.x
-
-
-## Counts the entities of every other team inside a chunk. [br]
-## @param p_chunkId The chunk to look at [br]
-## @param p_team The team the hit comes from [br]
-## @return How many entities there could be hit
-func _get_opponent_count_in_chunk(p_chunkId: int, p_team: int) -> int:
-	var l_count: int = 0
-	
-	for l_team: int in C_ChunkingServer.TEAM_COUNT:
-		if (l_team != p_team):
-			l_count += _chunkCounts[_get_team_chunk_index(l_team, p_chunkId)]
-	
-	return l_count
 
 
 ## Picks the height a hit is measured at: the middle of the hit band, held inside the target. [br]
@@ -493,7 +511,7 @@ func _get_sample_height(p_id: int, p_hitYBand: Vector2) -> float:
 ## @param p_sampleHeight The height the hit lands at [br]
 ## @return The radius that counts for this hit
 func _get_effective_radius(p_id: int, p_sampleHeight: float) -> float:
-	var l_radius: float = _entityRadius[p_id]
+	var l_radius: float = _chunking.entityRadius[p_id]
 	var l_curveIndex: int = _entityCurveIndex[p_id]
 	
 	if (l_curveIndex == C_HitServer.NO_CURVE):
@@ -516,7 +534,7 @@ func _get_effective_radius(p_id: int, p_sampleHeight: float) -> float:
 ## @param p_origin Where the hit comes from [br]
 ## @return The impact as (x, y, height)
 func _get_impact_position(p_id: int, p_radius: float, p_height: float, p_origin: Vector2) -> Vector3:
-	var l_position: Vector2 = _entityPosition[p_id]
+	var l_position: Vector2 = _chunking.entityPosition[p_id]
 	var l_toOrigin: Vector2 = p_origin - l_position
 	var l_distance: float = l_toOrigin.length()
 	

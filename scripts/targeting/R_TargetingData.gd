@@ -5,6 +5,9 @@ class_name R_TargetingData
 
 #region PUBLIC_VARIABLES
 
+## Bitmask of the groups the entity may go after.
+@export var targetedGroups: int = 0
+
 ## How many chunks in each direction a search covers.
 @export var searchChunks: int = 4
 

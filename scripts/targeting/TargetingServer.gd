@@ -1,9 +1,15 @@
-extends ChunkingServer
+extends RefCounted
 ## Picks and holds a target per entity and reports where it should move. [br]
 ## Searches are chunk counted and event driven: a target is only ever lost, never re-checked.
 class_name TargetingServer
 
 #region PRIVATE_VARIABLES
+
+## Chunk index and shared entity slots this server reads; owned by the api server.
+var _chunking: ChunkingServer = null
+
+## Bitmask of the groups an entity may go after.
+var _entityTargetedGroups: PackedInt64Array = PackedInt64Array()
 
 ## Current C_TargetingServer.STATE per entity.
 var _entityState: PackedByteArray = PackedByteArray()
@@ -36,13 +42,18 @@ var _targetersOf: Array[PackedInt32Array] = []
 
 #region LIFECYCLE
 
-## Takes an id from the chunking server and clears the targeting data of that slot. [br]
+## Binds the server to the chunk index it searches through. [br]
+## @param p_chunking The index and shared entity slots every server reads
+func _init(p_chunking: ChunkingServer) -> void:
+	_chunking = p_chunking
+
+
+## Makes sure the targeting slot of an id exists and holds nothing of a previous entity. [br]
 ## Without the reset a recycled id would inherit the target and flags of its predecessor. [br]
-## @return The id the next entity is stored under
-func _acquire_id() -> int:
-	var l_id: int = super()
-	
-	if (l_id == _entityState.size()):
+## @param p_id The entity slot to prepare
+func _ensure_slot(p_id: int) -> void:
+	if (p_id == _entityState.size()):
+		_entityTargetedGroups.append(0)
 		_entityState.append(C_TargetingServer.STATE.SEARCH)
 		_entitySearchChunks.append(0)
 		_entityFleeChunks.append(0)
@@ -52,44 +63,35 @@ func _acquire_id() -> int:
 		_entityTarget.append(C_TargetingServer.NO_TARGET)
 		_entityTargeterIndex.append(0)
 		_targetersOf.append(PackedInt32Array())
-		return l_id
+		return
 	
-	_entityState[l_id] = C_TargetingServer.STATE.SEARCH
-	_entitySearchChunks[l_id] = 0
-	_entityFleeChunks[l_id] = 0
-	_entitySquaredHitRange[l_id] = 0.0
-	_entityPriorityTargetedGroups[l_id] = 0
-	_entityFlags[l_id] = 0
-	_entityTarget[l_id] = C_TargetingServer.NO_TARGET
-	_entityTargeterIndex[l_id] = 0
-	_targetersOf[l_id] = PackedInt32Array()
-	
-	return l_id
+	_entityTargetedGroups[p_id] = 0
+	_entityState[p_id] = C_TargetingServer.STATE.SEARCH
+	_entitySearchChunks[p_id] = 0
+	_entityFleeChunks[p_id] = 0
+	_entitySquaredHitRange[p_id] = 0.0
+	_entityPriorityTargetedGroups[p_id] = 0
+	_entityFlags[p_id] = 0
+	_entityTarget[p_id] = C_TargetingServer.NO_TARGET
+	_entityTargeterIndex[p_id] = 0
+	_targetersOf[p_id] = PackedInt32Array()
 
 #endregion
 
 #region PUBLIC_METHODS
 
-## Registers an entity with its full targeting setup in one call. [br]
-## @param p_position Start position of the entity [br]
-## @param p_radius Effect radius of the entity [br]
-## @param p_team Team of the entity, a C_ChunkingServer.TEAM value [br]
-## @param p_groups Bitmask of the groups the entity belongs to [br]
-## @param p_targetedGroups Bitmask of the groups the entity may go after [br]
-## @param p_module Module management of the entity [br]
-## @param p_targetingData Ranges, priority groups and flags of the entity [br]
-## @return The assigned entity id
-func register_entity_with_targeting(p_position: Vector2, p_radius: float, p_team: int, p_groups: int,
-		p_targetedGroups: int, p_module: M_ModuleManager, p_targetingData: R_TargetingData) -> int:
-	var l_id: int = register_entity(p_position, p_radius, p_team, p_groups, p_targetedGroups, p_module)
+## Gives an entity its targeting side; the api server calls this while it registers. [br]
+## @param p_id The entity to set up [br]
+## @param p_targetingData Groups, ranges and flags of the entity
+func register(p_id: int, p_targetingData: R_TargetingData) -> void:
+	_ensure_slot(p_id)
 	
-	_entitySearchChunks[l_id] = p_targetingData.searchChunks
-	_entityFleeChunks[l_id] = p_targetingData.fleeChunks
-	_entitySquaredHitRange[l_id] = p_targetingData.hitRange * p_targetingData.hitRange
-	_entityPriorityTargetedGroups[l_id] = p_targetingData.priorityTargetedGroups
-	_entityFlags[l_id] = _build_flags(p_targetingData)
-	
-	return l_id
+	_entityTargetedGroups[p_id] = p_targetingData.targetedGroups
+	_entitySearchChunks[p_id] = p_targetingData.searchChunks
+	_entityFleeChunks[p_id] = p_targetingData.fleeChunks
+	_entitySquaredHitRange[p_id] = p_targetingData.hitRange * p_targetingData.hitRange
+	_entityPriorityTargetedGroups[p_id] = p_targetingData.priorityTargetedGroups
+	_entityFlags[p_id] = _build_flags(p_targetingData)
 
 
 ## Advances the state of one entity; cheap enough to run every tick. [br]
@@ -197,15 +199,15 @@ func set_priority_targeted_groups(p_id: int, p_priorityTargetedGroups: int) -> v
 ## @param p_id The entity to move [br]
 ## @return The position the movement should head for
 func get_target_position(p_id: int) -> Vector2:
-	var l_team: int = _entityTeam[p_id]
-	var l_ownY: float = _entityPosition[p_id].y
+	var l_team: int = _chunking.entityTeam[p_id]
+	var l_ownY: float = _chunking.entityPosition[p_id].y
 	
 	if (_entityState[p_id] == C_TargetingServer.STATE.FLEE):
 		return Vector2(C_TargetingServer.TEAM_BASE_X[l_team], l_ownY)
 	
 	var l_targetId: int = _entityTarget[p_id]
 	if (l_targetId != C_TargetingServer.NO_TARGET):
-		return _entityPosition[l_targetId]
+		return _chunking.entityPosition[l_targetId]
 	
 	if (_has_enemy_behind(p_id) or not _has_opponent_on_map(p_id)):
 		return Vector2(C_TargetingServer.TEAM_BASE_X[l_team], l_ownY)
@@ -235,21 +237,19 @@ func get_targeters(p_id: int) -> PackedInt32Array:
 
 #endregion
 
-#region OVERRIDES
+#region LIFECYCLE_EVENTS
 
-## Marks an entity for removal and sends everyone targeting it back to searching. [br]
-## @param p_id The entity id to mark
-func pre_unregister_entity(p_id: int) -> void:
-	super(p_id)
+## Sends everyone targeting an announced entity back to searching. [br]
+## @param p_id The entity that was announced for removal
+func on_pre_unregister(p_id: int) -> void:
 	drop_targeters(p_id)
 
 
-## Removes an entity and unlinks it from both sides of the targeting graph. [br]
-## @param p_id The entity id to remove
-func unregister_entity(p_id: int) -> void:
+## Unlinks a removed entity from both sides of the targeting graph. [br]
+## @param p_id The entity that was removed
+func on_unregister(p_id: int) -> void:
 	_drop_target(p_id)
 	drop_targeters(p_id)
-	super(p_id)
 
 #endregion
 
@@ -299,7 +299,7 @@ func _evaluate_state(p_id: int) -> int:
 	if (l_targetId == C_TargetingServer.NO_TARGET):
 		return C_TargetingServer.STATE.SEARCH
 	
-	var l_squaredDistance: float = _entityPosition[p_id].distance_squared_to(_entityPosition[l_targetId])
+	var l_squaredDistance: float = _chunking.entityPosition[p_id].distance_squared_to(_chunking.entityPosition[l_targetId])
 	if (l_squaredDistance <= _entitySquaredHitRange[p_id]):
 		return C_TargetingServer.STATE.COMBAT
 	
@@ -310,8 +310,8 @@ func _evaluate_state(p_id: int) -> int:
 ## @param p_id The entity to check [br]
 ## @return true while it has not reached its own side
 func _can_still_flee(p_id: int) -> bool:
-	var l_baseX: float = C_TargetingServer.TEAM_BASE_X[_entityTeam[p_id]]
-	return absf(_entityPosition[p_id].x - l_baseX) > C_TargetingServer.BASE_REACHED_EPSILON
+	var l_baseX: float = C_TargetingServer.TEAM_BASE_X[_chunking.entityTeam[p_id]]
+	return absf(_chunking.entityPosition[p_id].x - l_baseX) > C_TargetingServer.BASE_REACHED_EPSILON
 
 
 ## Checks whether any entity targeting this one is inside its flee distance. [br]
@@ -334,7 +334,7 @@ func _find_best_target(p_id: int) -> int:
 	var l_priorityGroups: int = _entityPriorityTargetedGroups[p_id]
 	var l_normalGroups: int = _entityTargetedGroups[p_id]
 	var l_searchedGroups: int = l_priorityGroups | l_normalGroups
-	var l_team: int = _entityTeam[p_id]
+	var l_team: int = _chunking.entityTeam[p_id]
 	
 	if (not _has_opponent_on_map(p_id)):
 		return C_TargetingServer.NO_TARGET
@@ -344,17 +344,17 @@ func _find_best_target(p_id: int) -> int:
 	var l_bestNormalId: int = C_TargetingServer.NO_TARGET
 	var l_bestNormalScore: float = -INF
 	
-	for l_chunkId: int in _collect_chunks_in_area(_get_search_area(p_id)):
-		if (not _has_opponent_in_chunk(l_chunkId, l_team)):
+	for l_chunkId: int in _chunking.collect_chunks_in_area(_get_search_area(p_id)):
+		if (not _chunking.has_opponent_in_chunk(l_chunkId, l_team)):
 			continue
 		
-		for l_candidateId: int in _entitiesInChunk[l_chunkId]:
+		for l_candidateId: int in _chunking.entitiesInChunk[l_chunkId]:
 			if (not _can_target(p_id, l_candidateId, l_searchedGroups)):
 				continue
 			
 			var l_score: float = _score_candidate(p_id, l_candidateId)
 			
-			if ((_entityGroups[l_candidateId] & l_priorityGroups) != 0):
+			if ((_chunking.entityGroups[l_candidateId] & l_priorityGroups) != 0):
 				if (l_score > l_bestPriorityScore):
 					l_bestPriorityScore = l_score
 					l_bestPriorityId = l_candidateId
@@ -372,7 +372,7 @@ func _find_best_target(p_id: int) -> int:
 ## @param p_id The entity that searches [br]
 ## @return The rectangle as (minColumn, minRow, maxColumn, maxRow)
 func _get_search_area(p_id: int) -> Vector4i:
-	var l_area: Vector4i = _entityChunkArea[p_id]
+	var l_area: Vector4i = _chunking.entityChunkArea[p_id]
 	var l_reach: int = _entitySearchChunks[p_id]
 	
 	return Vector4i(
@@ -388,13 +388,13 @@ func _get_search_area(p_id: int) -> Vector4i:
 ## @param p_groupMask The groups the searcher accepts [br]
 ## @return true if the candidate is worth scoring
 func _can_target(p_id: int, p_candidateId: int, p_groupMask: int) -> bool:
-	if (_entityTeam[p_candidateId] == _entityTeam[p_id]):
+	if (_chunking.entityTeam[p_candidateId] == _chunking.entityTeam[p_id]):
 		return false
 	
-	if (_entityPreUnregistered[p_candidateId] == 1 or _entityUnregistering[p_candidateId] == 1):
+	if (_chunking.entityPreUnregistered[p_candidateId] == 1 or _chunking.entityUnregistering[p_candidateId] == 1):
 		return false
 	
-	if ((_entityGroups[p_candidateId] & p_groupMask) == 0):
+	if ((_chunking.entityGroups[p_candidateId] & p_groupMask) == 0):
 		return false
 	
 	return (_entityFlags[p_candidateId] & C_TargetingServer.FLAG_INVISIBLE) == 0 \
@@ -426,7 +426,7 @@ func _score_candidate(p_id: int, p_candidateId: int) -> float:
 ## @param p_id The entity to locate [br]
 ## @return Its chunk as (column, row)
 func _get_chunk_coord(p_id: int) -> Vector2i:
-	var l_area: Vector4i = _entityChunkArea[p_id]
+	var l_area: Vector4i = _chunking.entityChunkArea[p_id]
 	return Vector2i(l_area.x, l_area.y)
 
 
@@ -448,7 +448,7 @@ func _get_chunk_distance(p_id: int, p_otherId: int) -> float:
 ## @return true if the other one is further back
 func _is_behind(p_id: int, p_otherId: int) -> bool:
 	var l_columnDelta: int = _get_chunk_coord(p_otherId).x - _get_chunk_coord(p_id).x
-	return l_columnDelta * _get_forward_sign(_entityTeam[p_id]) < 0
+	return l_columnDelta * _get_forward_sign(_chunking.entityTeam[p_id]) < 0
 
 
 ## Gives the direction a team marches in along x. [br]
@@ -463,39 +463,15 @@ func _get_forward_sign(p_team: int) -> int:
 ## @param p_id The entity to check [br]
 ## @return true if anything hostile got past it
 func _has_enemy_behind(p_id: int) -> bool:
-	var l_team: int = _entityTeam[p_id]
+	var l_team: int = _chunking.entityTeam[p_id]
 	var l_step: int = -_get_forward_sign(l_team)
 	var l_column: int = _get_chunk_coord(p_id).x + l_step
 	
 	while (l_column >= 0 and l_column < C_ChunkingServer.MAP_CHUNK_COLUMNS):
-		if (_has_opponent_in_column(l_column, l_team)):
+		if (_chunking.has_opponent_in_column(l_column, l_team)):
 			return true
 		
 		l_column += l_step
-	
-	return false
-
-
-## Checks whether any other team holds entities in a column. [br]
-## @param p_columnIndex The column to check [br]
-## @param p_team The team that asks [br]
-## @return true if an opponent stands there
-func _has_opponent_in_column(p_columnIndex: int, p_team: int) -> bool:
-	for l_team: int in C_ChunkingServer.TEAM_COUNT:
-		if (l_team != p_team and _columnCounts[_get_team_column_index(l_team, p_columnIndex)] > 0):
-			return true
-	
-	return false
-
-
-## Checks whether any other team holds entities in a chunk. [br]
-## @param p_chunkId The chunk to check [br]
-## @param p_team The team that asks [br]
-## @return true if an opponent stands there
-func _has_opponent_in_chunk(p_chunkId: int, p_team: int) -> bool:
-	for l_team: int in C_ChunkingServer.TEAM_COUNT:
-		if (l_team != p_team and _chunkCounts[_get_team_chunk_index(l_team, p_chunkId)] > 0):
-			return true
 	
 	return false
 
@@ -504,11 +480,11 @@ func _has_opponent_in_chunk(p_chunkId: int, p_team: int) -> bool:
 ## @param p_id The entity that asks [br]
 ## @return true if a search could find something
 func _has_opponent_on_map(p_id: int) -> bool:
-	var l_team: int = _entityTeam[p_id]
+	var l_team: int = _chunking.entityTeam[p_id]
 	var l_searchedGroups: int = _entityPriorityTargetedGroups[p_id] | _entityTargetedGroups[p_id]
 	
 	for l_otherTeam: int in C_ChunkingServer.TEAM_COUNT:
-		if (l_otherTeam != l_team and map_has_group(l_otherTeam, l_searchedGroups)):
+		if (l_otherTeam != l_team and _chunking.map_has_group(l_otherTeam, l_searchedGroups)):
 			return true
 	
 	return false
