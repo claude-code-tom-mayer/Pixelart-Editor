@@ -1,5 +1,5 @@
 extends RefCounted
-## Sorts entities into square chunks, rows and one map aggregate for fast group queries. [br]
+## Sorts entities into square chunks, columns and one map aggregate for fast group queries. [br]
 ## Counts are always written through, group masks only cascade upwards when they really change.
 class_name ChunkingServer
 
@@ -55,13 +55,14 @@ var _chunkGroups: PackedInt64Array = PackedInt64Array()
 ## Entity count per team and chunk, addressed by _get_team_chunk_index().
 var _chunkCounts: PackedInt32Array = PackedInt32Array()
 
-## Group bitmask per team and row — the OR of the chunk masks of that row.
-var _rowGroups: PackedInt64Array = PackedInt64Array()
+## Group bitmask per team and column — the OR of the chunk masks of that column. [br]
+## Columns are the aggregation level because the two bases face each other along x.
+var _columnGroups: PackedInt64Array = PackedInt64Array()
 
-## Entity count per team and row, addressed by _get_team_row_index().
-var _rowCounts: PackedInt32Array = PackedInt32Array()
+## Entity count per team and column, addressed by _get_team_column_index().
+var _columnCounts: PackedInt32Array = PackedInt32Array()
 
-## Group bitmask per team over the whole map — the OR of all row masks.
+## Group bitmask per team over the whole map — the OR of all column masks.
 var _mapGroups: PackedInt64Array = PackedInt64Array()
 
 ## Entity count per team over the whole map.
@@ -71,15 +72,15 @@ var _mapCounts: PackedInt32Array = PackedInt32Array()
 
 #region LIFECYCLE
 
-## Allocates the chunk, row and map containers for the configured grid.
+## Allocates the chunk, column and map containers for the configured grid.
 func _init() -> void:
 	var l_chunkSlots: int = C_ChunkingServer.TEAM_COUNT * C_ChunkingServer.CHUNK_COUNT
-	var l_rowSlots: int = C_ChunkingServer.TEAM_COUNT * C_ChunkingServer.MAP_CHUNK_ROWS
+	var l_columnSlots: int = C_ChunkingServer.TEAM_COUNT * C_ChunkingServer.MAP_CHUNK_COLUMNS
 	
 	_chunkGroups.resize(l_chunkSlots)
 	_chunkCounts.resize(l_chunkSlots)
-	_rowGroups.resize(l_rowSlots)
-	_rowCounts.resize(l_rowSlots)
+	_columnGroups.resize(l_columnSlots)
+	_columnCounts.resize(l_columnSlots)
 	_mapGroups.resize(C_ChunkingServer.TEAM_COUNT)
 	_mapCounts.resize(C_ChunkingServer.TEAM_COUNT)
 	
@@ -204,13 +205,13 @@ func chunk_has_group(p_chunkId: int, p_team: int, p_groupMask: int) -> bool:
 	return (_chunkGroups[_get_team_chunk_index(p_team, p_chunkId)] & p_groupMask) != 0
 
 
-## Checks whether a row holds at least one of the searched groups. [br]
-## @param p_rowIndex The row to check [br]
+## Checks whether a column holds at least one of the searched groups. [br]
+## @param p_columnIndex The column to check [br]
 ## @param p_team Team to check, a C_ChunkingServer.TEAM value [br]
 ## @param p_groupMask Bitmask of the searched groups [br]
 ## @return true if at least one searched group bit is present
-func row_has_group(p_rowIndex: int, p_team: int, p_groupMask: int) -> bool:
-	return (_rowGroups[_get_team_row_index(p_team, p_rowIndex)] & p_groupMask) != 0
+func column_has_group(p_columnIndex: int, p_team: int, p_groupMask: int) -> bool:
+	return (_columnGroups[_get_team_column_index(p_team, p_columnIndex)] & p_groupMask) != 0
 
 
 ## Checks whether the map holds at least one of the searched groups. [br]
@@ -316,13 +317,11 @@ func _apply_chunk_area(p_id: int, p_area: Vector4i) -> void:
 			_add_entity_to_chunk(p_id, l_chunkId)
 
 
-## Determines the row a chunk belongs to. [br]
+## Determines the column a chunk belongs to. [br]
 ## @param p_chunkId The chunk to resolve [br]
-## @return The row index of that chunk
-func _get_row_index(p_chunkId: int) -> int:
-	@warning_ignore("integer_division")
-	var l_rowIndex: int = p_chunkId / C_ChunkingServer.MAP_CHUNK_COLUMNS
-	return l_rowIndex
+## @return The column index of that chunk
+func _get_column_index(p_chunkId: int) -> int:
+	return p_chunkId % C_ChunkingServer.MAP_CHUNK_COLUMNS
 
 
 ## Maps team and chunk onto the slot inside the per team chunk containers. [br]
@@ -333,12 +332,12 @@ func _get_team_chunk_index(p_team: int, p_chunkId: int) -> int:
 	return p_team * C_ChunkingServer.CHUNK_COUNT + p_chunkId
 
 
-## Maps team and row onto the slot inside the per team row containers. [br]
+## Maps team and column onto the slot inside the per team column containers. [br]
 ## @param p_team Team block to address, a C_ChunkingServer.TEAM value [br]
-## @param p_rowIndex The row inside that block [br]
+## @param p_columnIndex The column inside that block [br]
 ## @return The flat container index
-func _get_team_row_index(p_team: int, p_rowIndex: int) -> int:
-	return p_team * C_ChunkingServer.MAP_CHUNK_ROWS + p_rowIndex
+func _get_team_column_index(p_team: int, p_columnIndex: int) -> int:
+	return p_team * C_ChunkingServer.MAP_CHUNK_COLUMNS + p_columnIndex
 
 
 ## Adds an entity to a chunk and cascades its groups upwards while they change. [br]
@@ -369,7 +368,7 @@ func _add_entity_to_chunk(p_id: int, p_chunkId: int) -> void:
 	
 	_chunkGroups[l_chunkIndex] = l_mergedGroups
 	
-	if (_apply_group_to_row(_get_row_index(p_chunkId), l_team, l_groups)):
+	if (_apply_group_to_column(_get_column_index(p_chunkId), l_team, l_groups)):
 		_apply_group_to_map(l_team, l_groups)
 
 
@@ -387,7 +386,7 @@ func _remove_entity_from_chunk(p_id: int, p_chunkId: int) -> void:
 	_apply_count_delta(p_chunkId, l_team, -1)
 	
 	if (_rebuild_chunk_groups(p_chunkId, l_team)):
-		if (_rebuild_row_groups(_get_row_index(p_chunkId), l_team)):
+		if (_rebuild_column_groups(_get_column_index(p_chunkId), l_team)):
 			_rebuild_map_groups(l_team)
 
 
@@ -425,13 +424,13 @@ func _swap_and_pop_entity_slot(p_id: int, p_slot: int) -> void:
 	_entityChunkIndices[p_id] = l_chunkIndices
 
 
-## Writes a count change through to chunk, row and map at once. [br]
+## Writes a count change through to chunk, column and map at once. [br]
 ## @param p_chunkId The chunk the entity was added to or removed from [br]
 ## @param p_team Team whose counts change, a C_ChunkingServer.TEAM value [br]
 ## @param p_delta The change to apply, 1 when adding and -1 when removing
 func _apply_count_delta(p_chunkId: int, p_team: int, p_delta: int) -> void:
 	_chunkCounts[_get_team_chunk_index(p_team, p_chunkId)] += p_delta
-	_rowCounts[_get_team_row_index(p_team, _get_row_index(p_chunkId))] += p_delta
+	_columnCounts[_get_team_column_index(p_team, _get_column_index(p_chunkId))] += p_delta
 	_mapCounts[p_team] += p_delta
 
 
@@ -459,35 +458,35 @@ func _rebuild_chunk_groups(p_chunkId: int, p_team: int) -> bool:
 	return true
 
 
-## Merges a group mask into a row mask — counterpart of the add path. [br]
-## @param p_rowIndex The row to extend [br]
+## Merges a group mask into a column mask — counterpart of the add path. [br]
+## @param p_columnIndex The column to extend [br]
 ## @param p_team Team whose mask is extended, a C_ChunkingServer.TEAM value [br]
 ## @param p_groups The group bits to merge in [br]
 ## @return true if the mask value changed
-func _apply_group_to_row(p_rowIndex: int, p_team: int, p_groups: int) -> bool:
-	var l_rowIndex: int = _get_team_row_index(p_team, p_rowIndex)
-	var l_mergedGroups: int = _rowGroups[l_rowIndex] | p_groups
+func _apply_group_to_column(p_columnIndex: int, p_team: int, p_groups: int) -> bool:
+	var l_columnIndex: int = _get_team_column_index(p_team, p_columnIndex)
+	var l_mergedGroups: int = _columnGroups[l_columnIndex] | p_groups
 	
-	if (l_mergedGroups == _rowGroups[l_rowIndex]):
+	if (l_mergedGroups == _columnGroups[l_columnIndex]):
 		return false
 	
-	_rowGroups[l_rowIndex] = l_mergedGroups
+	_columnGroups[l_columnIndex] = l_mergedGroups
 	return true
 
 
-## Rebuilds a row mask from the chunk masks of that row — counterpart of the remove path. [br]
+## Rebuilds a column mask from the chunk masks of that column — counterpart of the remove path. [br]
 ## Stops as soon as the old value is reached again, because the mask can only shrink here. [br]
-## @param p_rowIndex The row to rebuild [br]
+## @param p_columnIndex The column to rebuild [br]
 ## @param p_team Team whose mask is rebuilt, a C_ChunkingServer.TEAM value [br]
 ## @return true if the mask value changed
-func _rebuild_row_groups(p_rowIndex: int, p_team: int) -> bool:
-	var l_rowIndex: int = _get_team_row_index(p_team, p_rowIndex)
-	var l_oldGroups: int = _rowGroups[l_rowIndex]
+func _rebuild_column_groups(p_columnIndex: int, p_team: int) -> bool:
+	var l_columnIndex: int = _get_team_column_index(p_team, p_columnIndex)
+	var l_oldGroups: int = _columnGroups[l_columnIndex]
 	var l_groups: int = 0
-	var l_firstChunkIndex: int = _get_team_chunk_index(p_team, p_rowIndex * C_ChunkingServer.MAP_CHUNK_COLUMNS)
+	var l_firstChunkIndex: int = _get_team_chunk_index(p_team, p_columnIndex)
 	
-	for l_columnOffset: int in C_ChunkingServer.MAP_CHUNK_COLUMNS:
-		l_groups |= _chunkGroups[l_firstChunkIndex + l_columnOffset]
+	for l_rowOffset: int in C_ChunkingServer.MAP_CHUNK_ROWS:
+		l_groups |= _chunkGroups[l_firstChunkIndex + l_rowOffset * C_ChunkingServer.MAP_CHUNK_COLUMNS]
 		
 		if (l_groups == l_oldGroups):
 			break
@@ -495,7 +494,7 @@ func _rebuild_row_groups(p_rowIndex: int, p_team: int) -> bool:
 	if (l_groups == l_oldGroups):
 		return false
 	
-	_rowGroups[l_rowIndex] = l_groups
+	_columnGroups[l_columnIndex] = l_groups
 	return true
 
 
@@ -506,16 +505,16 @@ func _apply_group_to_map(p_team: int, p_groups: int) -> void:
 	_mapGroups[p_team] |= p_groups
 
 
-## Rebuilds the map mask from all row masks, never from chunks directly. [br]
+## Rebuilds the map mask from all column masks, never from chunks directly. [br]
 ## Stops as soon as the old value is reached again, because the mask can only shrink here. [br]
 ## @param p_team Team whose mask is rebuilt, a C_ChunkingServer.TEAM value
 func _rebuild_map_groups(p_team: int) -> void:
 	var l_oldGroups: int = _mapGroups[p_team]
 	var l_groups: int = 0
-	var l_firstRowIndex: int = _get_team_row_index(p_team, 0)
+	var l_firstColumnIndex: int = _get_team_column_index(p_team, 0)
 	
-	for l_rowOffset: int in C_ChunkingServer.MAP_CHUNK_ROWS:
-		l_groups |= _rowGroups[l_firstRowIndex + l_rowOffset]
+	for l_columnOffset: int in C_ChunkingServer.MAP_CHUNK_COLUMNS:
+		l_groups |= _columnGroups[l_firstColumnIndex + l_columnOffset]
 		
 		if (l_groups == l_oldGroups):
 			return
