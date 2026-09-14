@@ -507,14 +507,14 @@ ul.rules li::marker{color:var(--accent);}
     <span class="k">for</span> l_id: <span class="t">int</span> <span class="k">in</span> _unitIds:
         _chunking.set_position(l_id, _get_movement_target(l_id, p_delta))
     
-    _chunking.end_frame()</div>
+    _chunking.release_removed_ids()</div>
 
     <p class="group-title">Per frame order</p>
     <ol class="seq">
       <li><span class="n">1</span><p>Move whatever moved — <code>set_position()</code> and <code>set_radius()</code> may be called in any order and as often as needed.</p></li>
       <li><span class="n">2</span><p>Run the systems that read the index: targeting, auras, spatial queries. Every mask and count is already correct, there is no rebuild step to trigger.</p></li>
       <li><span class="n">3</span><p>Announce deaths with <code>pre_unregister_entity()</code> while other systems may still need the entity, then remove them with <code>unregister_entity()</code>.</p></li>
-      <li><span class="n">4</span><p>Call <code>end_frame()</code> exactly once, last. Only now do removed ids become available to <code>register_entity()</code> again.</p></li>
+      <li><span class="n">4</span><p>Call <code>release_removed_ids()</code> once, last. Only now do removed ids become available to <code>register_entity()</code> again.</p></li>
     </ol>
 
     <p class="group-title">Asking spatial questions</p>
@@ -576,10 +576,10 @@ ul.rules li::marker{color:var(--accent);}
     </div>
 
     <div class="fn">
-      <div class="fn-head"><span class="fn-name">end_frame</span><span class="tag pub">public</span><span class="tag cost">O(removed this frame)</span></div>
+      <div class="fn-head"><span class="fn-name">release_removed_ids</span><span class="tag pub">public</span><span class="tag cost">O(removed since last call)</span></div>
       <div class="fn-body">
-        <div class="code"><span class="k">func</span> end_frame() -&gt; <span class="t">void</span></div>
-        <p class="fn-note">Moves the pending ids into the free list, clears their flags and drops their module reference. <strong>Call it exactly once per frame, after every other system has run.</strong> Skip it and ids are never recycled; call it mid-frame and an id can be handed out while something still references it.</p>
+        <div class="code"><span class="k">func</span> release_removed_ids() -&gt; <span class="t">void</span></div>
+        <p class="fn-note">Moves the pending ids into the free list, clears their flags and drops their module reference. <strong>Call it once per frame, after every other system that could still hold a removed id has run.</strong> Skip it and ids are never recycled; call it mid-frame and an id can be handed out while something still references it.</p>
       </div>
     </div>
 
@@ -673,7 +673,7 @@ MAP_SIZE           = Vector2(MAP_CHUNK_COLUMNS, MAP_CHUNK_ROWS) * CHUNK_SIZE</di
     <span class="eyebrow">Contract</span>
     <h2>What the caller has to respect</h2>
     <ul class="rules">
-      <li><strong><code>end_frame()</code> once per frame, last.</strong> It is the only thing that recycles ids, and the lock it releases is what makes a queued damage event safe.</li>
+      <li><strong><code>release_removed_ids()</code> once per frame, last.</strong> It is the only thing that recycles ids, and the lock it releases is what makes a queued damage event safe.</li>
       <li><strong>An unregistered id is dead until re-registered.</strong> Do not move it, resize it or query with it — the server does not re-check a caller's id.</li>
       <li><strong>64 groups maximum.</strong> Groups are bits in an <code>int64</code>. Group values are the caller's to define; the server only ORs and ANDs them.</li>
       <li><strong>Teams are array indices.</strong> Pass <code>TEAM</code> values, not arbitrary integers; a third team needs only a new enum entry.</li>

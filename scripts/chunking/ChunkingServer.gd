@@ -5,10 +5,10 @@ class_name ChunkingServer
 
 #region PRIVATE_VARIABLES
 
-## Entity ids that may be reused; only filled by end_frame().
+## Entity ids that may be reused; only filled by release_removed_ids().
 var _freeIds: PackedInt32Array = PackedInt32Array()
 
-## Ids removed during this frame; moved to _freeIds by end_frame().
+## Ids removed since the last release; moved to _freeIds by release_removed_ids().
 var _pendingFreeIds: PackedInt32Array = PackedInt32Array()
 
 ## Module management per entity id; null while the id is free.
@@ -32,7 +32,7 @@ var _entityRadius: PackedFloat32Array = PackedFloat32Array()
 ## 1 while an entity is announced for removal but still fully active.
 var _entityPreUnregistered: PackedByteArray = PackedByteArray()
 
-## 1 while an entity is removed but its id stays locked until end_frame().
+## 1 while an entity is removed but its id stays locked until it is released.
 var _entityUnregistering: PackedByteArray = PackedByteArray()
 
 ## Chunk rectangle an entity covers as (minColumn, minRow, maxColumn, maxRow). [br]
@@ -124,7 +124,7 @@ func pre_unregister_entity(p_id: int) -> void:
 	_entityPreUnregistered[p_id] = 1
 
 
-## Removes an entity from all its chunks and locks its id until end_frame(). [br]
+## Removes an entity from all its chunks and locks its id until it is released. [br]
 ## @param p_id The entity id to remove
 func unregister_entity(p_id: int) -> void:
 	_entityUnregistering[p_id] = 1
@@ -152,9 +152,9 @@ func set_radius(p_id: int, p_radius: float) -> void:
 	_apply_chunk_area(p_id, _compute_chunk_area(_entityPosition[p_id], p_radius))
 
 
-## Closes the frame and releases the ids removed during it for reuse. [br]
-## Has to be called exactly once per frame by the owning system.
-func end_frame() -> void:
+## Hands the ids of removed entities back for reuse and clears their state. [br]
+## Call once after every system that could still hold a removed id has run.
+func release_removed_ids() -> void:
 	for l_id: int in _pendingFreeIds:
 		_entityUnregistering[l_id] = 0
 		_entityPreUnregistered[l_id] = 0
@@ -255,15 +255,25 @@ func _acquire_id() -> int:
 ## @param p_radius Radius of the covered area [br]
 ## @return The rectangle as (minColumn, minRow, maxColumn, maxRow)
 func _compute_chunk_area(p_position: Vector2, p_radius: float) -> Vector4i:
+	var l_extent: Vector2 = Vector2(p_radius, p_radius)
+	return _compute_chunk_area_from_bounds(p_position - l_extent, p_position + l_extent)
+
+
+## Calculates the chunk rectangle an axis aligned box covers, clamped to the map. [br]
+## Entities reach into every chunk their radius touches, so walking this area finds them all. [br]
+## @param p_minCorner Upper left corner of the box [br]
+## @param p_maxCorner Lower right corner of the box [br]
+## @return The rectangle as (minColumn, minRow, maxColumn, maxRow)
+func _compute_chunk_area_from_bounds(p_minCorner: Vector2, p_maxCorner: Vector2) -> Vector4i:
 	var l_chunkSize: float = C_ChunkingServer.CHUNK_SIZE
 	var l_lastColumn: int = C_ChunkingServer.MAP_CHUNK_COLUMNS - 1
 	var l_lastRow: int = C_ChunkingServer.MAP_CHUNK_ROWS - 1
 	
 	return Vector4i(
-		clampi(floori((p_position.x - p_radius) / l_chunkSize), 0, l_lastColumn),
-		clampi(floori((p_position.y - p_radius) / l_chunkSize), 0, l_lastRow),
-		clampi(floori((p_position.x + p_radius) / l_chunkSize), 0, l_lastColumn),
-		clampi(floori((p_position.y + p_radius) / l_chunkSize), 0, l_lastRow))
+		clampi(floori(p_minCorner.x / l_chunkSize), 0, l_lastColumn),
+		clampi(floori(p_minCorner.y / l_chunkSize), 0, l_lastRow),
+		clampi(floori(p_maxCorner.x / l_chunkSize), 0, l_lastColumn),
+		clampi(floori(p_maxCorner.y / l_chunkSize), 0, l_lastRow))
 
 
 ## Lists every chunk inside a chunk rectangle. [br]
