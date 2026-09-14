@@ -401,6 +401,8 @@ ul.rules li::marker{color:var(--accent);}
       </table>
     </div>
 
+    <p class="note-inline">Systems built on top narrow their own queries with <code>_compute_chunk_area_from_bounds()</code>, which turns any axis aligned box into a chunk rectangle — see the <a href="https://claude.ai/code/artifact/7ae2df9a-5771-4e21-828b-c7e355edf7c8">Entity Hit System</a>, which resolves every hit shape through it.</p>
+
     <p class="note-inline"><code>_entityChunkIndices</code> is what makes removal O(1): it records where the entity sits inside each chunk list, so the chunk can swap its last element into that slot and shrink, instead of searching and shifting.</p>
   </section>
 

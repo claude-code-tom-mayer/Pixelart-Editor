@@ -1,0 +1,597 @@
+<title>Entity Hit System</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Literata:ital,opsz,wght@0,18..36,400;0,18..36,500;0,18..36,600;1,18..36,400&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#EEF0EA;
+  --surface:#FFFFFF;
+  --surface-2:#E3E7DD;
+  --ink:#1B2420;
+  --ink-soft:#56635B;
+  --line:#C6CFC0;
+  --accent:#C15A2B;
+  --accent-soft:#EFD9C9;
+  --accent-2:#2B6E6E;
+  --accent-2-soft:#D3E5E3;
+  --code-bg:#1B2420;
+  --code-ink:#E7ECDC;
+  --code-soft:#93A392;
+  --code-accent:#EDA274;
+  --code-accent-2:#7FCFC6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12160F;
+    --surface:#181D16;
+    --surface-2:#20271C;
+    --ink:#E8ECE1;
+    --ink-soft:#A3AFA0;
+    --line:#323C2C;
+    --accent:#E38A56;
+    --accent-soft:#3A2A1D;
+    --accent-2:#63C2B8;
+    --accent-2-soft:#173230;
+    --code-bg:#0B0E08;
+    --code-ink:#DCE6D0;
+    --code-soft:#7C8A78;
+    --code-accent:#F0A878;
+    --code-accent-2:#8AD9CF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12160F;
+  --surface:#181D16;
+  --surface-2:#20271C;
+  --ink:#E8ECE1;
+  --ink-soft:#A3AFA0;
+  --line:#323C2C;
+  --accent:#E38A56;
+  --accent-soft:#3A2A1D;
+  --accent-2:#63C2B8;
+  --accent-2-soft:#173230;
+  --code-bg:#0B0E08;
+  --code-ink:#DCE6D0;
+  --code-soft:#7C8A78;
+  --code-accent:#F0A878;
+  --code-accent-2:#8AD9CF;
+}
+
+*{box-sizing:border-box;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Literata',Georgia,'Times New Roman',serif;
+  font-size:16px;
+  line-height:1.62;
+  padding-inline:20px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.eyebrow,.nav,.meta dt,.tag,.group-title,figcaption,th,.chip,.strip-label{
+  font-family:'Overpass',system-ui,-apple-system,sans-serif;
+}
+code,.mono,.code,table.vars td:nth-child(1),table.vars td:nth-child(2),.sig{
+  font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+h1,h2,h3{text-wrap:balance;margin:0 0 .4em;}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.015em;}
+h2{font-size:1.35rem;font-weight:700;margin-top:0;}
+h3{font-size:1rem;font-weight:700;}
+p{max-width:66ch;margin:0 0 .9em;}
+.prose p:last-child{margin-bottom:0;}
+a{color:var(--accent-2);text-underline-offset:2px;}
+a:focus-visible,.nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+.wrap{max-width:920px;margin-inline:auto;padding-block:28px 80px;}
+
+.nav{
+  position:sticky;top:0;z-index:5;
+  display:flex;gap:2px;overflow-x:auto;
+  background:var(--bg);
+  border-bottom:1px solid var(--line);
+  padding-block:10px;
+  margin-inline:calc(-1 * max(20px, (100vw - 920px)/2));
+  padding-inline:max(20px, (100vw - 920px)/2);
+}
+.nav a{
+  flex:none;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);text-decoration:none;
+  padding:6px 12px;border-radius:99px;border:1px solid transparent;white-space:nowrap;
+}
+.nav a:hover{color:var(--ink);border-color:var(--line);}
+.nav a.active{color:var(--accent);background:var(--accent-soft);border-color:var(--accent-soft);}
+
+.titleblock{
+  margin-top:22px;border:1px solid var(--line);background:var(--surface);
+  border-radius:2px;padding:24px;position:relative;
+}
+.titleblock::before,.titleblock::after{
+  content:"";position:absolute;width:10px;height:10px;border-color:var(--ink-soft);opacity:.5;
+}
+.titleblock::before{top:6px;left:6px;border-top:1px solid;border-left:1px solid;}
+.titleblock::after{top:6px;right:6px;border-top:1px solid;border-right:1px solid;}
+.eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);}
+.titleblock h1{margin-top:.3em;}
+.titleblock .sub{color:var(--ink-soft);font-size:1rem;max-width:58ch;}
+.meta{display:flex;flex-wrap:wrap;gap:22px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--line);}
+.meta div{display:flex;flex-direction:column;gap:2px;}
+.meta dt{font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;}
+.meta dd{margin:0;font-size:.84rem;font-family:'JetBrains Mono',monospace;}
+
+section{margin-top:56px;}
+section > .eyebrow{display:block;margin-bottom:6px;}
+.group-title{
+  font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-soft);margin:30px 0 8px;
+}
+
+.figure-panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:3px;
+  padding:18px 18px 12px;overflow-x:auto;margin-top:16px;
+}
+.figure-panel svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+figcaption{font-size:.8rem;color:var(--ink-soft);margin-top:10px;text-align:center;}
+
+.decisions{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
+.decision{
+  display:grid;grid-template-columns:auto 1fr;gap:14px;
+  padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--accent-2);
+  background:var(--surface);border-radius:2px;
+}
+.decision.warn{border-left-color:var(--accent);}
+.decision .chip{
+  font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent-2);white-space:nowrap;padding-top:3px;
+}
+.decision.warn .chip{color:var(--accent);}
+.decision p{margin:0;max-width:62ch;font-size:.94rem;}
+.decision strong{color:var(--ink);}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--surface);}
+table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:560px;}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+th{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);background:var(--surface-2);font-weight:700;}
+tr:last-child td{border-bottom:none;}
+table.vars td:nth-child(1){color:var(--accent-2);white-space:nowrap;}
+table.vars td:nth-child(2){color:var(--ink-soft);white-space:nowrap;}
+table.num td{font-variant-numeric:tabular-nums;}
+table.num td:nth-child(n+2){font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+td .win{color:var(--accent-2);font-weight:700;}
+
+.fn{border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px;overflow:hidden;}
+.fn-head{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.fn-name{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.9rem;}
+.tag{font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:99px;}
+.tag.pub{background:var(--accent-2-soft);color:var(--accent-2);}
+.tag.cost{background:var(--surface-2);color:var(--ink-soft);}
+.fn-body{padding:14px 16px 16px;display:grid;gap:12px;}
+.fn-note{margin:0;font-size:.9rem;color:var(--ink-soft);max-width:68ch;}
+.fn-note strong{color:var(--ink);font-weight:600;}
+.fn-note + .fn-note{margin-top:-4px;}
+
+.code{
+  background:var(--code-bg);color:var(--code-ink);border-radius:3px;padding:13px 15px;
+  font-size:.78rem;line-height:1.65;overflow-x:auto;white-space:pre;margin:0;
+}
+.code .c{color:var(--code-soft);}
+.code .k{color:var(--code-accent-2);}
+.code .t{color:var(--code-accent);}
+.code .s{color:#B6C98F;}
+
+.strip{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-top:14px;font-size:.74rem;}
+.strip div{padding:10px 12px;flex:1;text-align:center;font-family:'JetBrains Mono',monospace;}
+.strip .t0{background:var(--accent-2-soft);color:var(--accent-2);border-right:1px solid var(--line);}
+.strip .t1{background:var(--accent-soft);color:var(--accent);}
+.strip-label{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;display:block;opacity:.8;font-weight:700;}
+
+ol.seq{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;}
+ol.seq li{display:grid;grid-template-columns:28px 1fr;gap:14px;padding:12px 0;border-top:1px solid var(--line);}
+ol.seq li:first-child{border-top:none;}
+ol.seq .n{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent-2);}
+ol.seq p{margin:0;font-size:.94rem;}
+ul.rules{margin:14px 0 0;padding-left:1.1em;}
+ul.rules li{margin-bottom:.55em;font-size:.94rem;max-width:66ch;}
+ul.rules li::marker{color:var(--accent);}
+
+.note-inline{
+  border-left:3px solid var(--line);padding:2px 0 2px 14px;margin-top:16px;
+  color:var(--ink-soft);font-size:.9rem;
+}
+@media (max-width:640px){
+  h1{font-size:1.55rem;}
+  .titleblock{padding:18px;}
+  .meta{gap:14px;}
+  section{margin-top:44px;}
+}
+@media (prefers-reduced-motion: no-preference){
+  html{scroll-behavior:smooth;}
+}
+</style>
+
+<div class="nav" id="nav">
+  <a href="#overview">Overview</a>
+  <a href="#groups">Group spaces</a>
+  <a href="#pipeline">Pipeline</a>
+  <a href="#silhouette">Silhouette</a>
+  <a href="#shapes">Shapes</a>
+  <a href="#usage">How to use</a>
+  <a href="#api">API</a>
+  <a href="#rules">Rules</a>
+</div>
+
+<div class="wrap">
+
+  <div class="titleblock">
+    <span class="eyebrow">Implementation reference · Godot 4 / GDScript</span>
+    <h1>Entity Hit System</h1>
+    <p class="sub">Area hits resolved through the chunk index: a shape narrows to a handful of chunks, and only what is left gets tested.</p>
+    <div class="meta">
+      <div><dt>Classes</dt><dd>HitServer · C_HitServer · R_HitData</dd></div>
+      <div><dt>Extends</dt><dd><a href="https://claude.ai/code/artifact/a3e26aa9-1e78-458e-889d-d130c52985f3">ChunkingServer</a></dd></div>
+      <div><dt>Shapes</dt><dd>circle · directional rect · cake slice</dd></div>
+      <div><dt>Public API</dt><dd>6 hits · 5 setters</dd></div>
+      <div><dt>State</dt><dd>implemented, not yet parsed in Godot</dd></div>
+    </div>
+  </div>
+
+  <section id="overview">
+    <span class="eyebrow">Overview</span>
+    <h2>A hit is a shape, not a scan</h2>
+    <div class="prose">
+      <p>The <code>HitServer</code> extends the <code>ChunkingServer</code>, so one server holds both the spatial index and the hit side of every entity. A hit never walks the entity list: it turns its shape into an axis aligned box, asks the chunk grid which chunks that box touches, drops every chunk holding no opponent, and only then tests geometry.</p>
+      <p>That narrowing is exact, not approximate. An entity is registered in <strong>every</strong> chunk its radius touches, so any entity whose silhouette reaches into the box is already sitting in one of the chunks being walked. Nothing that a full scan would find can slip through.</p>
+      <p>Each shape comes twice. The plain version collects whatever it finds and is the cheap choice for a simple blast. The <code>_ordered</code> version sorts the targets along an axis that suits the shape, which is what makes a hit limit mean "the nearest three" and lets a stop group end the hit at the first thing that blocks it.</p>
+    </div>
+  </section>
+
+  <section id="groups">
+    <span class="eyebrow">Filtering</span>
+    <h2>Two group spaces that never mix</h2>
+    <div class="prose">
+      <p>The chunking groups and the hit groups answer different questions and live in different bitmasks. Keeping them apart is deliberate: one is about what an entity <em>is</em>, the other about what can physically connect with it.</p>
+    </div>
+
+    <div class="table-wrap" style="margin-top:16px;">
+      <table class="vars">
+        <tr><th>Mask</th><th>Width</th><th>Answers</th></tr>
+        <tr><td>_entityGroups</td><td>int64</td><td>What the entity is — ground, air, armored. Aggregated per chunk, row and map</td></tr>
+        <tr><td>_entityTargetedGroups</td><td>int64</td><td>What it is allowed to go after</td></tr>
+        <tr><td>_entityHitGroups</td><td>int32</td><td>What its hits are made of — projectile, melee, magic</td></tr>
+        <tr><td>_entityHurtGroups</td><td>int32</td><td>What can physically harm it — a ghost simply has no projectile bit</td></tr>
+        <tr><td>_entityStopGroups</td><td>int32</td><td>Which hurt groups end its hit on the target that matches</td></tr>
+      </table>
+    </div>
+
+    <div class="code" style="margin-top:16px;"><span class="c">## A hit connects when the two hit space masks overlap.</span>
+emitter._entityHitGroups &amp; target._entityHurtGroups != 0
+
+<span class="c">## An ordered hit ends on the target that blocks it.</span>
+emitter._entityStopGroups &amp; target._entityHurtGroups != 0</div>
+
+    <p class="note-inline">A shield that stops projectiles is a stop group on the attack, matched against the shield's hurt groups. A ghost immune to arrows simply lacks the projectile bit in its hurt groups — no special case anywhere in the code.</p>
+  </section>
+
+  <section id="pipeline">
+    <span class="eyebrow">Resolution</span>
+    <h2>From shape to dispatch</h2>
+
+    <div class="figure-panel">
+      <figure style="margin:0;">
+        <svg viewBox="0 0 780 300" role="img" aria-label="Pipeline: the shape bounds become a chunk area, chunks without opponents are dropped, the remaining entities pass the cheap filters, then the geometry test, then ordering, the stop group and the hit limit, and finally the payload is dispatched." style="color:var(--ink)">
+          <g font-family="JetBrains Mono, monospace" font-size="10.5">
+            <rect x="10" y="20" width="150" height="46" rx="3" fill="none" stroke="currentColor"/>
+            <text x="85" y="41" text-anchor="middle" fill="currentColor">shape bounds</text>
+            <text x="85" y="56" text-anchor="middle" font-size="9" fill="var(--ink-soft)">min / max corner</text>
+
+            <rect x="180" y="20" width="150" height="46" rx="3" fill="none" stroke="var(--accent-2)"/>
+            <text x="255" y="41" text-anchor="middle" fill="var(--accent-2)">chunk area</text>
+            <text x="255" y="56" text-anchor="middle" font-size="9" fill="var(--ink-soft)">_compute_chunk_area_from_bounds</text>
+
+            <rect x="350" y="20" width="150" height="46" rx="3" fill="none" stroke="var(--accent-2)"/>
+            <text x="425" y="41" text-anchor="middle" fill="var(--accent-2)">drop empty chunks</text>
+            <text x="425" y="56" text-anchor="middle" font-size="9" fill="var(--ink-soft)">no opponent inside</text>
+
+            <rect x="520" y="20" width="150" height="46" rx="3" fill="none" stroke="currentColor"/>
+            <text x="595" y="41" text-anchor="middle" fill="currentColor">cheap filters</text>
+            <text x="595" y="56" text-anchor="middle" font-size="9" fill="var(--ink-soft)">team · flags · groups · band</text>
+
+            <line x1="160" y1="43" x2="176" y2="43" stroke="currentColor" marker-end="url(#hx)"/>
+            <line x1="330" y1="43" x2="346" y2="43" stroke="currentColor" marker-end="url(#hx)"/>
+            <line x1="500" y1="43" x2="516" y2="43" stroke="currentColor" marker-end="url(#hx)"/>
+            <path d="M670,66 L670,90 L85,90 L85,116" fill="none" stroke="currentColor" marker-end="url(#vx)"/>
+
+            <rect x="10" y="120" width="150" height="46" rx="3" fill="none" stroke="currentColor"/>
+            <text x="85" y="141" text-anchor="middle" fill="currentColor">geometry test</text>
+            <text x="85" y="156" text-anchor="middle" font-size="9" fill="var(--ink-soft)">against the real radius</text>
+
+            <rect x="180" y="120" width="150" height="46" rx="3" fill="none" stroke="currentColor"/>
+            <text x="255" y="141" text-anchor="middle" fill="currentColor">order</text>
+            <text x="255" y="156" text-anchor="middle" font-size="9" fill="var(--ink-soft)">ordered variants only</text>
+
+            <rect x="350" y="120" width="150" height="46" rx="3" fill="none" stroke="var(--accent)"/>
+            <text x="425" y="141" text-anchor="middle" fill="var(--accent)">stop group · hit limit</text>
+            <text x="425" y="156" text-anchor="middle" font-size="9" fill="var(--ink-soft)">cuts the list</text>
+
+            <rect x="520" y="120" width="150" height="46" rx="3" fill="none" stroke="var(--accent)"/>
+            <text x="595" y="141" text-anchor="middle" fill="var(--accent)">dispatch hit()</text>
+            <text x="595" y="156" text-anchor="middle" font-size="9" fill="var(--ink-soft)">on each module manager</text>
+
+            <line x1="160" y1="143" x2="176" y2="143" stroke="currentColor" marker-end="url(#hx)"/>
+            <line x1="330" y1="143" x2="346" y2="143" stroke="currentColor" marker-end="url(#hx)"/>
+            <line x1="500" y1="143" x2="516" y2="143" stroke="currentColor" marker-end="url(#hx)"/>
+
+            <rect x="180" y="205" width="490" height="62" rx="3" fill="none" stroke="currentColor" stroke-dasharray="3 3" stroke-opacity=".6"/>
+            <text x="200" y="226" font-family="Overpass,sans-serif" font-size="11" font-weight="700" fill="var(--accent)">Dispatch runs last, on purpose</text>
+            <text x="200" y="244" font-family="Overpass,sans-serif" font-size="10.5" fill="var(--ink-soft)">A module may remove its own entity while taking the hit. Walking a chunk</text>
+            <text x="200" y="259" font-family="Overpass,sans-serif" font-size="10.5" fill="var(--ink-soft)">list at that moment would swap the ground out from under the iteration.</text>
+            <path d="M595,166 L595,201" fill="none" stroke="var(--accent)" marker-end="url(#vacc)"/>
+          </g>
+          <defs>
+            <marker id="hx" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="currentColor"/></marker>
+            <marker id="vx" viewBox="0 0 8 8" refX="4" refY="7" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L4,8 L8,0 Z" fill="currentColor"/></marker>
+            <marker id="vacc" viewBox="0 0 8 8" refX="4" refY="7" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L4,8 L8,0 Z" fill="var(--accent)"/></marker>
+          </defs>
+        </svg>
+        <figcaption>Two of the six steps are pure rejection, and both run before any geometry. The expensive work only ever sees entities that already passed team, flags, groups and the vertical band.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="silhouette">
+    <span class="eyebrow">Geometry</span>
+    <h2>The third axis and the radius profile</h2>
+    <div class="prose">
+      <p>An entity's position is a <code>Vector2</code> with no height in it. Height lives in the <strong>y band</strong>: <code>(bottom, top)</code>, the vertical slice the entity occupies. A hit carries its own band, and the two must overlap before anything else is considered — a low sweep passes under a flying unit without a special case.</p>
+      <p>By default an entity is a cylinder: the same radius at every height. Give it a <strong>radius curve</strong> and it becomes a silhouette — narrow at the feet, wide at the shoulders, narrow again at the head.</p>
+    </div>
+
+    <div class="figure-panel">
+      <figure style="margin:0;">
+        <svg viewBox="0 0 700 280" role="img" aria-label="Left: an entity without a curve is a cylinder of constant radius. Right: a curve maps the percent along the y band to the percent of the radius, giving a silhouette; the hit band's middle selects the height that is sampled." style="color:var(--ink)">
+          <g font-family="JetBrains Mono, monospace" font-size="10">
+            <text x="110" y="22" text-anchor="middle" font-family="Overpass,sans-serif" font-size="11" font-weight="700" fill="var(--ink-soft)">NO CURVE</text>
+            <line x1="40" y1="240" x2="180" y2="240" stroke="currentColor" stroke-opacity=".4"/>
+            <rect x="70" y="70" width="80" height="170" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/>
+            <line x1="70" y1="60" x2="150" y2="60" stroke="var(--accent-2)" marker-start="url(#tick)" marker-end="url(#tick)"/>
+            <text x="110" y="52" text-anchor="middle" fill="var(--accent-2)">full radius</text>
+            <text x="30" y="75" text-anchor="end" fill="var(--ink-soft)">top</text>
+            <text x="30" y="244" text-anchor="end" fill="var(--ink-soft)">bottom</text>
+            <line x1="36" y1="70" x2="36" y2="240" stroke="var(--ink-soft)" stroke-opacity=".6"/>
+
+            <text x="400" y="22" text-anchor="middle" font-family="Overpass,sans-serif" font-size="11" font-weight="700" fill="var(--ink-soft)">WITH RADIUS CURVE</text>
+            <line x1="300" y1="240" x2="500" y2="240" stroke="currentColor" stroke-opacity=".4"/>
+            <path d="M400,70 C378,86 372,100 376,116 C352,128 344,150 348,176 C356,200 362,220 364,240
+                     L436,240 C438,220 444,200 452,176 C456,150 448,128 424,116 C428,100 422,86 400,70 Z"
+                  fill="var(--accent-soft)" stroke="var(--accent)"/>
+            <text x="266" y="75" text-anchor="end" fill="var(--ink-soft)">100%</text>
+            <text x="266" y="244" text-anchor="end" fill="var(--ink-soft)">0%</text>
+            <line x1="272" y1="70" x2="272" y2="240" stroke="var(--ink-soft)" stroke-opacity=".6"/>
+
+            <rect x="300" y="140" width="200" height="26" fill="var(--accent-2)" fill-opacity=".14" stroke="var(--accent-2)" stroke-dasharray="3 3"/>
+            <text x="512" y="150" fill="var(--accent-2)">hit band</text>
+            <text x="512" y="164" font-size="9" fill="var(--ink-soft)">its middle picks the height</text>
+            <line x1="348" y1="153" x2="452" y2="153" stroke="var(--accent)" stroke-width="1.5" marker-start="url(#tick)" marker-end="url(#tick)"/>
+            <circle cx="400" cy="153" r="3" fill="var(--accent)"/>
+            <text x="400" y="192" text-anchor="middle" fill="var(--accent)">radius here</text>
+          </g>
+          <defs>
+            <marker id="tick" viewBox="0 0 6 10" refX="3" refY="5" markerWidth="6" markerHeight="10" orient="auto"><path d="M3,0 L3,10" stroke="currentColor" fill="none"/></marker>
+          </defs>
+        </svg>
+        <figcaption>The curve's x axis is the percent along the y band, its y axis the percent of the radius — both run 0 to 100. The hit's band middle, held inside the target's band, decides which height is sampled.</figcaption>
+      </figure>
+    </div>
+
+    <div class="code" style="margin-top:16px;"><span class="c">## One sample per candidate, never a scan for a maximum.</span>
+l_sampleHeight = clamp(middle of the hit band, band.bottom, band.top)
+l_percent      = (l_sampleHeight - band.bottom) / band height * 100
+l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
+
+    <p class="note-inline">The curve must be authored with domain <strong>0 to 100</strong> and value range <strong>0 to 100</strong>. A curve left on Godot's default 0 to 1 domain clamps to its maximum and silently behaves like a cylinder.</p>
+  </section>
+
+  <section id="shapes">
+    <span class="eyebrow">Shapes</span>
+    <h2>Three shapes, three orderings</h2>
+
+    <div class="figure-panel">
+      <figure style="margin:0;">
+        <svg viewBox="0 0 760 230" role="img" aria-label="The circle is ordered from its center outwards, the directional rect from a chosen one of its four edges, and the cake slice sweeps from its right edge to its left." style="color:var(--ink)">
+          <g font-family="JetBrains Mono, monospace" font-size="10">
+            <circle cx="120" cy="120" r="70" fill="var(--accent-2)" fill-opacity=".10" stroke="var(--accent-2)"/>
+            <circle cx="120" cy="120" r="3" fill="var(--accent-2)"/>
+            <line x1="120" y1="120" x2="190" y2="120" stroke="var(--accent)" marker-end="url(#sh)"/>
+            <text x="120" y="38" text-anchor="middle" font-family="Overpass,sans-serif" font-size="11" font-weight="700">hit_circle</text>
+            <text x="120" y="212" text-anchor="middle" fill="var(--ink-soft)">center outwards</text>
+
+            <rect x="300" y="85" width="150" height="70" fill="var(--accent-2)" fill-opacity=".10" stroke="var(--accent-2)"/>
+            <circle cx="300" cy="120" r="3" fill="var(--accent-2)"/>
+            <line x1="300" y1="120" x2="450" y2="120" stroke="var(--accent)" marker-end="url(#sh)"/>
+            <text x="375" y="38" text-anchor="middle" font-family="Overpass,sans-serif" font-size="11" font-weight="700">hit_directional_rect</text>
+            <text x="296" y="78" text-anchor="middle" font-size="9" fill="var(--ink-soft)">BACK</text>
+            <text x="454" y="78" text-anchor="middle" font-size="9" fill="var(--ink-soft)">FRONT</text>
+            <text x="375" y="176" text-anchor="middle" font-size="9" fill="var(--ink-soft)">RIGHT</text>
+            <text x="375" y="80" text-anchor="middle" font-size="9" fill="var(--ink-soft)">LEFT</text>
+            <text x="375" y="212" text-anchor="middle" fill="var(--ink-soft)">from any of its 4 edges</text>
+
+            <path d="M620,120 L690,85 A78,78 0 0,1 690,155 Z" fill="var(--accent-2)" fill-opacity=".10" stroke="var(--accent-2)"/>
+            <circle cx="620" cy="120" r="3" fill="var(--accent-2)"/>
+            <path d="M686,150 A72,72 0 0,0 686,90" fill="none" stroke="var(--accent)" marker-end="url(#sh)"/>
+            <text x="650" y="38" text-anchor="middle" font-family="Overpass,sans-serif" font-size="11" font-weight="700">hit_cake_slice</text>
+            <text x="650" y="212" text-anchor="middle" fill="var(--ink-soft)">right edge to left</text>
+          </g>
+          <defs>
+            <marker id="sh" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker>
+          </defs>
+        </svg>
+        <figcaption>Orange marks the direction an ordered hit walks its targets in. Each ordering is the one a stop group needs to be meaningful for that shape.</figcaption>
+      </figure>
+    </div>
+
+    <div class="table-wrap" style="margin-top:16px;">
+      <table class="vars">
+        <tr><th>Shape</th><th>Defined by</th><th>Ordered by</th></tr>
+        <tr><td>circle</td><td>origin, radius</td><td>Distance from the origin, nearest first</td></tr>
+        <tr><td>directional rect</td><td>origin at the back edge, direction, length, width</td><td>The chosen <code>RECT_EDGE</code>: BACK, FRONT, LEFT or RIGHT</td></tr>
+        <tr><td>cake slice</td><td>origin at the tip, direction, radius, full angle</td><td>Sweep angle, right edge to left; <code>p_reversed</code> flips it</td></tr>
+      </table>
+    </div>
+
+    <p class="note-inline">The unordered variants do not evaluate stop groups. Without an order, "stops at the first blocker" would mean an arbitrary blocker, so the plain functions simply collect up to the hit limit. Use the ordered variant whenever the emitter has stop groups.</p>
+  </section>
+
+  <section id="usage">
+    <span class="eyebrow">How to use</span>
+    <h2>Arming an entity, then hitting with it</h2>
+    <div class="prose">
+      <p>Registration goes through the inherited <code>register_entity()</code>; the hit side is filled in afterwards with the setters. A recycled id always starts clean — the reset happens inside <code>_acquire_id()</code>, so an entity can never inherit the groups or the profile of whoever held its id before.</p>
+    </div>
+
+    <div class="code" style="margin-top:16px;"><span class="c">## Hit groups: what an attack is made of, and what can be harmed by it.</span>
+<span class="k">const</span> HIT_PROJECTILE: <span class="t">int</span> = 1 &lt;&lt; 0
+<span class="k">const</span> HIT_MELEE: <span class="t">int</span> = 1 &lt;&lt; 1
+<span class="k">const</span> HURT_FLESH: <span class="t">int</span> = 1 &lt;&lt; 0
+<span class="k">const</span> HURT_SHIELD: <span class="t">int</span> = 1 &lt;&lt; 1
+
+<span class="k">var</span> _hits: HitServer = HitServer.new()
+
+
+<span class="c">## Registers an archer and arms its hit side.</span>
+<span class="c">## @param p_position Where the archer spawns</span>
+<span class="c">## @return The registered entity id</span>
+<span class="k">func</span> spawn_archer(p_position: <span class="t">Vector2</span>) -&gt; <span class="t">int</span>:
+    <span class="k">var</span> l_id: <span class="t">int</span> = _hits.register_entity(p_position, 24.0,
+        C_ChunkingServer.TEAM.ATTACKER, GROUP_GROUND, GROUP_GROUND | GROUP_AIR, M_ModuleManager.new())
+    
+    _hits.set_y_band(l_id, <span class="t">Vector2</span>(0.0, 64.0))
+    _hits.set_hurt_groups(l_id, HURT_FLESH)
+    _hits.set_hit_groups(l_id, HIT_PROJECTILE)
+    _hits.set_stop_groups(l_id, HURT_SHIELD)
+    
+    <span class="k">return</span> l_id
+
+
+<span class="c">## Fires one arrow: it pierces until a shield stops it.</span>
+<span class="c">## @param p_id The archer that shoots</span>
+<span class="c">## @param p_origin Where the arrow starts</span>
+<span class="c">## @param p_direction Where the arrow flies</span>
+<span class="c">## @return The impact positions as (x, y, height)</span>
+<span class="k">func</span> shoot(p_id: <span class="t">int</span>, p_origin: <span class="t">Vector2</span>, p_direction: <span class="t">Vector2</span>) -&gt; <span class="t">PackedVector3Array</span>:
+    <span class="k">return</span> _hits.hit_directional_rect_ordered(
+        p_id,
+        p_origin,
+        p_direction,
+        480.0,
+        18.0,
+        <span class="t">Vector2</span>(20.0, 40.0),
+        C_HitServer.UNLIMITED_HITS,
+        C_HitServer.NO_PREFERRED_TARGET,
+        _arrowHitData,
+        C_HitServer.RECT_EDGE.BACK)</div>
+
+    <p class="fn-note" style="margin-top:12px;">Ordered from <code>BACK</code>, so the arrow walks outward from the archer and the first shield it meets ends it — every entity behind that shield is spared.</p>
+  </section>
+
+  <section id="api">
+    <span class="eyebrow">Reference</span>
+    <h2>Public API</h2>
+    <p class="prose">Five setters and six hit functions, on top of everything <code>ChunkingServer</code> already offers.</p>
+
+    <p class="group-title">Setters</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Function</th><th>Sets</th></tr>
+        <tr><td>set_y_band(p_id, p_yBand)</td><td>The vertical extent as (bottom, top)</td></tr>
+        <tr><td>set_hurt_groups(p_id, p_hurtGroups)</td><td>What can physically harm the entity</td></tr>
+        <tr><td>set_hit_groups(p_id, p_hitGroups)</td><td>What its own hits are made of</td></tr>
+        <tr><td>set_stop_groups(p_id, p_stopGroups)</td><td>Which hurt groups end its hits</td></tr>
+        <tr><td>set_radius_curve(p_id, p_curve)</td><td>The radius profile; <code>null</code> restores a constant radius</td></tr>
+      </table>
+    </div>
+
+    <p class="group-title">Hits</p>
+
+    <div class="fn">
+      <div class="fn-head"><span class="fn-name">hit_circle · hit_circle_ordered</span><span class="tag pub">public</span></div>
+      <div class="fn-body">
+        <div class="code"><span class="k">func</span> hit_circle(p_emitterId: <span class="t">int</span>, p_origin: <span class="t">Vector2</span>, p_radius: <span class="t">float</span>, p_hitYBand: <span class="t">Vector2</span>,
+        p_maxHits: <span class="t">int</span>, p_preferredId: <span class="t">int</span>, p_hitData: <span class="t">R_HitData</span>) -&gt; <span class="t">PackedVector3Array</span></div>
+        <p class="fn-note">An explosion or an aura pulse. The ordered variant walks outwards from the center, so a hit limit means the nearest N.</p>
+      </div>
+    </div>
+
+    <div class="fn">
+      <div class="fn-head"><span class="fn-name">hit_directional_rect · hit_directional_rect_ordered</span><span class="tag pub">public</span></div>
+      <div class="fn-body">
+        <div class="code"><span class="k">func</span> hit_directional_rect(p_emitterId: <span class="t">int</span>, p_origin: <span class="t">Vector2</span>, p_direction: <span class="t">Vector2</span>,
+        p_length: <span class="t">float</span>, p_width: <span class="t">float</span>, p_hitYBand: <span class="t">Vector2</span>, p_maxHits: <span class="t">int</span>,
+        p_preferredId: <span class="t">int</span>, p_hitData: <span class="t">R_HitData</span>) -&gt; <span class="t">PackedVector3Array</span>
+
+<span class="c">## The ordered variant takes one more argument:</span>
+        p_startEdge: <span class="t">int</span>   <span class="c"># a C_HitServer.RECT_EDGE value</span></div>
+        <p class="fn-note">A beam, a lance, a piercing shot. <code>p_origin</code> sits at the center of the back edge and the rect extends forward by <code>p_length</code>, <code>p_width</code> wide across.</p>
+      </div>
+    </div>
+
+    <div class="fn">
+      <div class="fn-head"><span class="fn-name">hit_cake_slice · hit_cake_slice_ordered</span><span class="tag pub">public</span></div>
+      <div class="fn-body">
+        <div class="code"><span class="k">func</span> hit_cake_slice(p_emitterId: <span class="t">int</span>, p_origin: <span class="t">Vector2</span>, p_direction: <span class="t">Vector2</span>,
+        p_radius: <span class="t">float</span>, p_angle: <span class="t">float</span>, p_hitYBand: <span class="t">Vector2</span>, p_maxHits: <span class="t">int</span>,
+        p_preferredId: <span class="t">int</span>, p_hitData: <span class="t">R_HitData</span>) -&gt; <span class="t">PackedVector3Array</span>
+
+<span class="c">## The ordered variant takes one more argument:</span>
+        p_reversed: <span class="t">bool</span>   <span class="c"># sweep left to right instead</span></div>
+        <p class="fn-note">A sword swing or a cone. <code>p_angle</code> is the full opening angle in radians, centered on the direction. A target is caught by the wedge itself or by either straight edge.</p>
+      </div>
+    </div>
+
+    <p class="group-title">Shared arguments</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Argument</th><th>Meaning</th></tr>
+        <tr><td>p_emitterId</td><td>The entity the hit belongs to; its team, hit groups and stop groups drive everything</td></tr>
+        <tr><td>p_hitYBand</td><td>Vertical extent of the hit; must overlap a target's band</td></tr>
+        <tr><td>p_maxHits</td><td>Upper number of targets, or <code>C_HitServer.UNLIMITED_HITS</code></td></tr>
+        <tr><td>p_preferredId</td><td>Checked before the chunk walk when <code>p_maxHits</code> is 1, else <code>C_HitServer.NO_PREFERRED_TARGET</code></td></tr>
+        <tr><td>p_hitData</td><td>The <code>R_HitData</code> handed to every module manager that is hit</td></tr>
+        <tr><td><em>returns</em></td><td><code>PackedVector3Array</code> of impacts as (x, y, height), on the target's silhouette facing the origin</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section id="rules">
+    <span class="eyebrow">Contract</span>
+    <h2>What the caller has to respect</h2>
+    <ul class="rules">
+      <li><strong>Only the other team is ever hit.</strong> There is no friendly fire path and no flag to enable one.</li>
+      <li><strong>Announced entities are skipped.</strong> An entity marked by <code>pre_unregister_entity()</code> takes no more hits — that is what the flag is for.</li>
+      <li><strong>A preferred target needs a hit limit of exactly 1.</strong> Anything else logs a warning and runs as a normal hit.</li>
+      <li><strong>Radius curves run 0 to 100 on both axes.</strong> A curve on the default domain behaves like no curve at all.</li>
+      <li><strong>Hit groups are 32 bit and separate from the chunking groups.</strong> Do not reuse the group bits of the chunk masks here.</li>
+      <li><strong>A module may kill its own entity inside <code>hit()</code>.</strong> That is safe, because dispatch happens after the target list is closed.</li>
+    </ul>
+
+    <p class="group-title">Verification</p>
+    <div class="prose" style="margin-top:8px;">
+      <p>The resolution logic was fuzz-tested against a brute-force reference: 40 worlds × 120 hits across all three shapes, comparing the chunk-narrowed result with a scan of every entity alive. No misses, no duplicates, and team, flag, group and band filters correct in every case; hit limits, sort orders and stop-group cuts were checked separately on top.</p>
+      <p>That validates the algorithm, not the GDScript. Nothing here has been through the Godot parser yet, so the first run in the editor is still the real test.</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav a[href^="#"]'));
+  var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  if(!('IntersectionObserver' in window)) return;
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        var id = '#' + e.target.id;
+        links.forEach(function(a){ a.classList.toggle('active', a.getAttribute('href') === id); });
+      }
+    });
+  }, { rootMargin: '-35% 0px -60% 0px' });
+  sections.forEach(function(s){ if(s) obs.observe(s); });
+})();
+</script>
