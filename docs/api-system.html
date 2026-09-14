@@ -1,0 +1,457 @@
+<title>Entity Api Server</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Literata:ital,opsz,wght@0,18..36,400;0,18..36,500;0,18..36,600;1,18..36,400&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#EEF0EA;
+  --surface:#FFFFFF;
+  --surface-2:#E3E7DD;
+  --ink:#1B2420;
+  --ink-soft:#56635B;
+  --line:#C6CFC0;
+  --accent:#C15A2B;
+  --accent-soft:#EFD9C9;
+  --accent-2:#2B6E6E;
+  --accent-2-soft:#D3E5E3;
+  --code-bg:#1B2420;
+  --code-ink:#E7ECDC;
+  --code-soft:#93A392;
+  --code-accent:#EDA274;
+  --code-accent-2:#7FCFC6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12160F;
+    --surface:#181D16;
+    --surface-2:#20271C;
+    --ink:#E8ECE1;
+    --ink-soft:#A3AFA0;
+    --line:#323C2C;
+    --accent:#E38A56;
+    --accent-soft:#3A2A1D;
+    --accent-2:#63C2B8;
+    --accent-2-soft:#173230;
+    --code-bg:#0B0E08;
+    --code-ink:#DCE6D0;
+    --code-soft:#7C8A78;
+    --code-accent:#F0A878;
+    --code-accent-2:#8AD9CF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12160F;
+  --surface:#181D16;
+  --surface-2:#20271C;
+  --ink:#E8ECE1;
+  --ink-soft:#A3AFA0;
+  --line:#323C2C;
+  --accent:#E38A56;
+  --accent-soft:#3A2A1D;
+  --accent-2:#63C2B8;
+  --accent-2-soft:#173230;
+  --code-bg:#0B0E08;
+  --code-ink:#DCE6D0;
+  --code-soft:#7C8A78;
+  --code-accent:#F0A878;
+  --code-accent-2:#8AD9CF;
+}
+
+*{box-sizing:border-box;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Literata',Georgia,'Times New Roman',serif;
+  font-size:16px;
+  line-height:1.62;
+  padding-inline:20px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.eyebrow,.nav,.meta dt,.tag,.group-title,figcaption,th,.chip,.strip-label{
+  font-family:'Overpass',system-ui,-apple-system,sans-serif;
+}
+code,.mono,.code,table.vars td:nth-child(1),table.vars td:nth-child(2),.sig{
+  font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+h1,h2,h3{text-wrap:balance;margin:0 0 .4em;}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.015em;}
+h2{font-size:1.35rem;font-weight:700;margin-top:0;}
+h3{font-size:1rem;font-weight:700;}
+p{max-width:66ch;margin:0 0 .9em;}
+.prose p:last-child{margin-bottom:0;}
+a{color:var(--accent-2);text-underline-offset:2px;}
+a:focus-visible,.nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+.wrap{max-width:920px;margin-inline:auto;padding-block:28px 80px;}
+
+.nav{
+  position:sticky;top:0;z-index:5;
+  display:flex;gap:2px;overflow-x:auto;
+  background:var(--bg);
+  border-bottom:1px solid var(--line);
+  padding-block:10px;
+  margin-inline:calc(-1 * max(20px, (100vw - 920px)/2));
+  padding-inline:max(20px, (100vw - 920px)/2);
+}
+.nav a{
+  flex:none;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);text-decoration:none;
+  padding:6px 12px;border-radius:99px;border:1px solid transparent;white-space:nowrap;
+}
+.nav a:hover{color:var(--ink);border-color:var(--line);}
+.nav a.active{color:var(--accent);background:var(--accent-soft);border-color:var(--accent-soft);}
+
+.titleblock{
+  margin-top:22px;border:1px solid var(--line);background:var(--surface);
+  border-radius:2px;padding:24px;position:relative;
+}
+.titleblock::before,.titleblock::after{
+  content:"";position:absolute;width:10px;height:10px;border-color:var(--ink-soft);opacity:.5;
+}
+.titleblock::before{top:6px;left:6px;border-top:1px solid;border-left:1px solid;}
+.titleblock::after{top:6px;right:6px;border-top:1px solid;border-right:1px solid;}
+.eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);}
+.titleblock h1{margin-top:.3em;}
+.titleblock .sub{color:var(--ink-soft);font-size:1rem;max-width:58ch;}
+.meta{display:flex;flex-wrap:wrap;gap:22px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--line);}
+.meta div{display:flex;flex-direction:column;gap:2px;}
+.meta dt{font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;}
+.meta dd{margin:0;font-size:.84rem;font-family:'JetBrains Mono',monospace;}
+
+section{margin-top:56px;}
+section > .eyebrow{display:block;margin-bottom:6px;}
+.group-title{
+  font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-soft);margin:30px 0 8px;
+}
+
+.figure-panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:3px;
+  padding:18px 18px 12px;overflow-x:auto;margin-top:16px;
+}
+.figure-panel svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+figcaption{font-size:.8rem;color:var(--ink-soft);margin-top:10px;text-align:center;}
+
+.decisions{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
+.decision{
+  display:grid;grid-template-columns:auto 1fr;gap:14px;
+  padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--accent-2);
+  background:var(--surface);border-radius:2px;
+}
+.decision.warn{border-left-color:var(--accent);}
+.decision .chip{
+  font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent-2);white-space:nowrap;padding-top:3px;
+}
+.decision.warn .chip{color:var(--accent);}
+.decision p{margin:0;max-width:62ch;font-size:.94rem;}
+.decision strong{color:var(--ink);}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--surface);}
+table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:560px;}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+th{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);background:var(--surface-2);font-weight:700;}
+tr:last-child td{border-bottom:none;}
+table.vars td:nth-child(1){color:var(--accent-2);white-space:nowrap;}
+table.vars td:nth-child(2){color:var(--ink-soft);white-space:nowrap;}
+table.num td{font-variant-numeric:tabular-nums;}
+table.num td:nth-child(n+2){font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+td .win{color:var(--accent-2);font-weight:700;}
+
+.fn{border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px;overflow:hidden;}
+.fn-head{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.fn-name{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.9rem;}
+.tag{font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:99px;}
+.tag.pub{background:var(--accent-2-soft);color:var(--accent-2);}
+.tag.cost{background:var(--surface-2);color:var(--ink-soft);}
+.fn-body{padding:14px 16px 16px;display:grid;gap:12px;}
+.fn-note{margin:0;font-size:.9rem;color:var(--ink-soft);max-width:68ch;}
+.fn-note strong{color:var(--ink);font-weight:600;}
+.fn-note + .fn-note{margin-top:-4px;}
+
+.code{
+  background:var(--code-bg);color:var(--code-ink);border-radius:3px;padding:13px 15px;
+  font-size:.78rem;line-height:1.65;overflow-x:auto;white-space:pre;margin:0;
+}
+.code .c{color:var(--code-soft);}
+.code .k{color:var(--code-accent-2);}
+.code .t{color:var(--code-accent);}
+.code .s{color:#B6C98F;}
+
+.strip{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-top:14px;font-size:.74rem;}
+.strip div{padding:10px 12px;flex:1;text-align:center;font-family:'JetBrains Mono',monospace;}
+.strip .t0{background:var(--accent-2-soft);color:var(--accent-2);border-right:1px solid var(--line);}
+.strip .t1{background:var(--accent-soft);color:var(--accent);}
+.strip-label{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;display:block;opacity:.8;font-weight:700;}
+
+ol.seq{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;}
+ol.seq li{display:grid;grid-template-columns:28px 1fr;gap:14px;padding:12px 0;border-top:1px solid var(--line);}
+ol.seq li:first-child{border-top:none;}
+ol.seq .n{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent-2);}
+ol.seq p{margin:0;font-size:.94rem;}
+ul.rules{margin:14px 0 0;padding-left:1.1em;}
+ul.rules li{margin-bottom:.55em;font-size:.94rem;max-width:66ch;}
+ul.rules li::marker{color:var(--accent);}
+
+.note-inline{
+  border-left:3px solid var(--line);padding:2px 0 2px 14px;margin-top:16px;
+  color:var(--ink-soft);font-size:.9rem;
+}
+@media (max-width:640px){
+  h1{font-size:1.55rem;}
+  .titleblock{padding:18px;}
+  .meta{gap:14px;}
+  section{margin-top:44px;}
+}
+@media (prefers-reduced-motion: no-preference){
+  html{scroll-behavior:smooth;}
+}
+</style>
+
+<div class="nav" id="nav">
+  <a href="#overview">Overview</a>
+  <a href="#shape">Shape</a>
+  <a href="#registration">Registration</a>
+  <a href="#usage">How to use</a>
+  <a href="#api">API</a>
+  <a href="#rules">Rules</a>
+</div>
+
+<div class="wrap">
+
+  <div class="titleblock">
+    <span class="eyebrow">Implementation reference · Godot 4 / GDScript</span>
+    <h1>Entity Api Server</h1>
+    <p class="sub">One index, one id, one door. Entities talk to this server; it splits every call out to the server that owns it.</p>
+    <div class="meta">
+      <div><dt>Classes</dt><dd>ApiServer · R_EntityData</dd></div>
+      <div><dt>Extends</dt><dd>ChunkingServer</dd></div>
+      <div><dt>Owns</dt><dd>HitServer · TargetingServer</dd></div>
+      <div><dt>Registration</dt><dd>one call, one id</dd></div>
+      <div><dt>State</dt><dd>implemented, not yet parsed in Godot</dd></div>
+    </div>
+  </div>
+
+  <section id="overview">
+    <span class="eyebrow">Overview</span>
+    <h2>Why this server exists</h2>
+    <div class="prose">
+      <p>GDScript has single inheritance. If the hit server and the targeting server each extended the chunk index, each would carry <strong>its own index and its own id space</strong> — entity 7 in one would be a different entity from 7 in the other, every position would have to be pushed twice, and no id could be passed between systems.</p>
+      <p>The api server fixes that by being the index. It extends <code>ChunkingServer</code>, so it holds the chunks and the shared entity slots itself, and it constructs the other servers with a reference back to itself. There is exactly one index, one id space, and one place an entity talks to.</p>
+    </div>
+  </section>
+
+  <section id="shape">
+    <span class="eyebrow">Architecture</span>
+    <h2>One index, servers beside it</h2>
+
+    <div class="figure-panel">
+      <figure style="margin:0;">
+        <svg viewBox="0 0 760 360" role="img" aria-label="The api server extends the chunking server and owns a hit server and a targeting server, both of which hold a reference back to the shared index and keep only their own per entity data." style="color:var(--ink)">
+          <g font-family="JetBrains Mono, monospace" font-size="11">
+            <rect x="240" y="16" width="280" height="104" rx="3" fill="none" stroke="var(--accent-2)" stroke-width="1.6"/>
+            <text x="380" y="40" text-anchor="middle" font-weight="700" fill="var(--accent-2)">ApiServer</text>
+            <text x="380" y="58" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">extends ChunkingServer</text>
+            <line x1="264" y1="70" x2="496" y2="70" stroke="var(--line)" stroke-dasharray="2 3"/>
+            <text x="380" y="88" text-anchor="middle" font-size="10">the chunk index itself</text>
+            <text x="380" y="105" text-anchor="middle" font-size="10">entityPosition · entityTeam · …</text>
+
+            <path d="M310,120 L310,168 L160,168 L160,204" fill="none" stroke="currentColor" marker-end="url(#down)"/>
+            <path d="M450,120 L450,168 L600,168 L600,204" fill="none" stroke="currentColor" marker-end="url(#down)"/>
+            <text x="196" y="160" font-family="Overpass,sans-serif" font-size="10" fill="var(--ink-soft)">owns</text>
+            <text x="540" y="160" font-family="Overpass,sans-serif" font-size="10" fill="var(--ink-soft)">owns</text>
+
+            <rect x="34" y="208" width="252" height="92" rx="3" fill="none" stroke="currentColor"/>
+            <text x="160" y="230" text-anchor="middle" font-weight="700">HitServer</text>
+            <text x="160" y="250" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">_entityModules · _entityYBand</text>
+            <text x="160" y="265" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">hurt · hit · stop groups</text>
+            <text x="160" y="286" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">_radiiCurves</text>
+
+            <rect x="474" y="208" width="252" height="92" rx="3" fill="none" stroke="currentColor"/>
+            <text x="600" y="230" text-anchor="middle" font-weight="700">TargetingServer</text>
+            <text x="600" y="250" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">_entityTarget · _targetersOf</text>
+            <text x="600" y="265" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">_entityTargetedGroups · flags</text>
+            <text x="600" y="286" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">search · flee · hit range</text>
+
+            <path d="M286,254 L340,254" fill="none" stroke="var(--accent)" stroke-dasharray="3 3" marker-end="url(#right)"/>
+            <path d="M474,254 L420,254" fill="none" stroke="var(--accent)" stroke-dasharray="3 3" marker-end="url(#right)"/>
+            <rect x="340" y="236" width="80" height="36" rx="3" fill="none" stroke="var(--accent)"/>
+            <text x="380" y="252" text-anchor="middle" font-size="9.5" fill="var(--accent)">_chunking</text>
+            <text x="380" y="265" text-anchor="middle" font-size="9.5" fill="var(--accent)">reads only</text>
+
+            <text x="380" y="330" text-anchor="middle" font-family="Overpass,sans-serif" font-size="10.5" fill="var(--ink-soft)">Both read the shared slots directly — a property lookup, never a function call per candidate.</text>
+          </g>
+          <defs>
+            <marker id="down" viewBox="0 0 8 8" refX="4" refY="7" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L4,8 L8,0 Z" fill="currentColor"/></marker>
+            <marker id="right" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker>
+          </defs>
+        </svg>
+        <figcaption>The api server <em>is</em> the index. The other two keep only their own per entity data and read the shared slots through one reference.</figcaption>
+      </figure>
+    </div>
+
+    <div class="decisions">
+      <div class="decision">
+        <span class="chip">Ownership</span>
+        <p><strong>Each server holds only what it uses.</strong> Module references live in the hit server because only it dispatches; targeted groups live in the targeting server because only it searches. The index keeps what it needs to place things in space and nothing else.</p>
+      </div>
+      <div class="decision">
+        <span class="chip">Access</span>
+        <p><strong>Shared slots are public, bookkeeping is private.</strong> <code>entityPosition</code>, <code>entityTeam</code>, <code>chunkCounts</code> and the rest are read directly by the servers on top. The cascade internals — <code>_chunkGroups</code>, <code>_entityChunkIndices</code>, the free list — stay private to the index.</p>
+      </div>
+      <div class="decision">
+        <span class="chip">Cost</span>
+        <p><strong>No accessor calls in any hot loop.</strong> A search or a hit reads <code>_chunking.entityPosition[id]</code> — a property lookup plus an array index. Going through getters would have put a GDScript function call on every candidate, which is the most expensive thing in the language.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="registration">
+    <span class="eyebrow">Lifecycle</span>
+    <h2>One call, split three ways</h2>
+    <div class="prose">
+      <p>An entity is described once, by an <code>R_EntityData</code> that an archetype can share. The api server takes it apart and gives each server exactly its own part — no server ever sees another's setup.</p>
+    </div>
+
+    <div class="code" style="margin-top:16px;"><span class="c">## Everything one archetype of entity needs to exist, across all servers.</span>
+<span class="k">class_name</span> R_EntityData
+
+@export <span class="k">var</span> radius: <span class="t">float</span>                     <span class="c"># -> chunk index</span>
+@export <span class="k">var</span> groups: <span class="t">int</span>                       <span class="c"># -> chunk index</span>
+@export <span class="k">var</span> hitProfile: <span class="t">R_HitProfile</span>          <span class="c"># -> hit server</span>
+@export <span class="k">var</span> targetingData: <span class="t">R_TargetingData</span>    <span class="c"># -> targeting server</span></div>
+
+    <ol class="seq">
+      <li><span class="n">1</span><p><code>create_entity()</code> calls the inherited <code>register_entity()</code>, which takes an id and places the entity in every chunk its radius covers.</p></li>
+      <li><span class="n">2</span><p>That same id goes to <code>HitServer.register()</code> with the module manager and the hit profile, and to <code>TargetingServer.register()</code> with the targeting data. Each grows or resets its own slot.</p></li>
+      <li><span class="n">3</span><p><code>pre_unregister_entity()</code> marks the entity and tells the targeting server, so everyone aiming at it starts looking elsewhere while it is still alive.</p></li>
+      <li><span class="n">4</span><p><code>unregister_entity()</code> unlinks it from the targeting graph, then removes it from every chunk. Its id is locked, not free.</p></li>
+      <li><span class="n">5</span><p><code>release_removed_ids()</code> lets the hit server drop the module reference and the radius curve slot, then hands the ids back for reuse.</p></li>
+    </ol>
+
+    <p class="note-inline">A recycled id can never inherit anything: the index overwrites its slots on registration, and both servers reset theirs in <code>_ensure_slot()</code> before writing the new setup.</p>
+  </section>
+
+  <section id="usage">
+    <span class="eyebrow">How to use</span>
+    <h2>A round, from spawn to frame end</h2>
+
+    <div class="code" style="margin-top:16px;"><span class="c">## Drives one battle through the single entry point.</span>
+<span class="k">extends</span> Node
+<span class="k">class_name</span> Battlefield
+
+<span class="c">## The one server every entity of this battle talks to.</span>
+<span class="k">var</span> _api: ApiServer = ApiServer.new()
+
+<span class="c">## Ids of the units currently alive.</span>
+<span class="k">var</span> _unitIds: PackedInt32Array = PackedInt32Array()
+
+
+<span class="c">## Spawns one unit of an archetype.</span>
+<span class="c">## @param p_position Where it spawns</span>
+<span class="c">## @param p_team Which side it fights for</span>
+<span class="c">## @param p_entityData The archetype to build it from</span>
+<span class="c">## @return The registered entity id</span>
+<span class="k">func</span> spawn(p_position: <span class="t">Vector2</span>, p_team: <span class="t">int</span>, p_entityData: <span class="t">R_EntityData</span>) -&gt; <span class="t">int</span>:
+    <span class="k">var</span> l_id: <span class="t">int</span> = _api.create_entity(p_position, p_team, M_ModuleManager.new(), p_entityData)
+    _unitIds.append(l_id)
+    
+    <span class="k">return</span> l_id
+
+
+<span class="c">## Runs one tick of the battle.</span>
+<span class="c">## @param p_delta Time since the last physics step</span>
+<span class="k">func</span> _physics_process(p_delta: <span class="t">float</span>) -&gt; <span class="t">void</span>:
+    <span class="k">for</span> l_id: <span class="t">int</span> <span class="k">in</span> _unitIds:
+        <span class="k">var</span> l_state: <span class="t">int</span> = _api.update_entity(l_id)
+        
+        <span class="k">if</span> (l_state == C_TargetingServer.STATE.SEARCH):
+            _api.search_target(l_id)
+        
+        _api.set_position(l_id, _step_towards(l_id, _api.get_target_position(l_id), p_delta))
+    
+    _api.release_removed_ids()</div>
+
+    <p class="fn-note" style="margin-top:12px;">The entity never touches a sub-server. Searching is triggered by the entity itself, so the work can later be spread across ticks without changing anything here.</p>
+  </section>
+
+  <section id="api">
+    <span class="eyebrow">Reference</span>
+    <h2>What the api server offers</h2>
+
+    <p class="group-title">Its own — lifecycle across every server</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Function</th><th>Does</th></tr>
+        <tr><td>create_entity(p_position, p_team, p_module, p_entityData)</td><td>Registers everywhere, returns the shared id</td></tr>
+        <tr><td>pre_unregister_entity(p_id)</td><td>Marks it and frees its targeters</td></tr>
+        <tr><td>unregister_entity(p_id)</td><td>Unlinks targeting, then removes it from the index</td></tr>
+        <tr><td>release_removed_ids()</td><td>Lets every server drop what it held, then recycles the ids</td></tr>
+      </table>
+    </div>
+
+    <p class="group-title">Inherited from the chunk index</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Function</th><th>Does</th></tr>
+        <tr><td>set_position(p_id, p_position)</td><td>Moves an entity; skips the work when its chunks do not change</td></tr>
+        <tr><td>set_radius(p_id, p_radius)</td><td>Resizes it through the same delta path</td></tr>
+        <tr><td>chunk_has_group · column_has_group · map_has_group</td><td>O(1) group presence at each level</td></tr>
+        <tr><td>has_opponent_in_chunk · has_opponent_in_column</td><td>O(1) count checks, invisible entities included</td></tr>
+      </table>
+    </div>
+
+    <p class="group-title">Forwarded — hit</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Function</th><th>Does</th></tr>
+        <tr><td>hit_circle · hit_circle_ordered</td><td>Explosion or aura pulse</td></tr>
+        <tr><td>hit_directional_rect · …_ordered</td><td>Beam, lance, piercing shot</td></tr>
+        <tr><td>hit_cake_slice · …_ordered</td><td>Sword swing or cone</td></tr>
+        <tr><td>set_y_band · set_hurt_groups · set_hit_groups · set_stop_groups · set_radius_curve</td><td>Change the hit side during a round</td></tr>
+      </table>
+    </div>
+
+    <p class="group-title">Forwarded — targeting</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Function</th><th>Does</th></tr>
+        <tr><td>update_entity(p_id)</td><td>Cheap per tick state step; returns the state</td></tr>
+        <tr><td>search_target(p_id)</td><td>The scan, triggered by the entity</td></tr>
+        <tr><td>get_target_position(p_id)</td><td>Where movement should head</td></tr>
+        <tr><td>get_state · get_target · get_targeters</td><td>Plain reads</td></tr>
+        <tr><td>drop_targeters(p_id)</td><td>Forces everyone aiming here to search again</td></tr>
+        <tr><td>set_invisible · set_targets_invisible · set_focused · set_ignores_focus</td><td>Flags, during a round</td></tr>
+        <tr><td>set_search_chunks · set_flee_chunks · set_hit_range · set_priority_targeted_groups</td><td>Ranges and groups, during a round</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section id="rules">
+    <span class="eyebrow">Contract</span>
+    <h2>What the caller has to respect</h2>
+    <ul class="rules">
+      <li><strong>Entities talk to the api server only.</strong> The sub-servers are private on purpose — reaching past the facade is how two id spaces come back.</li>
+      <li><strong>Everything is set at registration.</strong> The setters exist for changes during a round, not for building an entity in pieces.</li>
+      <li><strong>An <code>R_EntityData</code> is an archetype.</strong> Share one per unit type; the servers copy the values into their own arrays, so nothing is aliased.</li>
+      <li><strong><code>release_removed_ids()</code> once per frame, last.</strong> It is the only thing that recycles ids, and it is where the hit server drops module references.</li>
+      <li><strong>Public slots on the index are read only for everyone but the index.</strong> Writing <code>entityPosition</code> directly skips the chunk update and corrupts the grid — use <code>set_position()</code>.</li>
+    </ul>
+  </section>
+
+</div>
+
+<script>
+(function(){
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav a[href^="#"]'));
+  var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  if(!('IntersectionObserver' in window)) return;
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        var id = '#' + e.target.id;
+        links.forEach(function(a){ a.classList.toggle('active', a.getAttribute('href') === id); });
+      }
+    });
+  }, { rootMargin: '-35% 0px -60% 0px' });
+  sections.forEach(function(s){ if(s) obs.observe(s); });
+})();
+</script>
