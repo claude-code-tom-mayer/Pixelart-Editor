@@ -23,17 +23,24 @@ const FLAG_IGNORES_FOCUS: int = 1 << 3
 ## Stored as the target of an entity that has none.
 const NO_TARGET: int = -1
 
-## The x every team retreats towards; attackers hold the left side, defenders the right one.
-const TEAM_BASE_X: PackedFloat32Array = PackedFloat32Array([0.0, 4096.0])
-
-## The x every team marches towards while it has no target — the opposing base.
-const TEAM_MARCH_X: PackedFloat32Array = PackedFloat32Array([4096.0, 0.0])
-
 ## How close to its own base x an entity has to be before it stops fleeing.
 const BASE_REACHED_EPSILON: float = 32.0
 
 ## What a diagonal chunk step costs against a straight one.
 const DIAGONAL_CHUNK_COST: float = 1.45
+
+#endregion
+
+#region DERIVED_CONSTANTS
+
+## The x every team retreats towards; attackers hold the left side, defenders the right one.
+static var TEAM_BASE_X: PackedFloat32Array
+
+## The x every team marches towards while it has no target — the opposing base.
+static var TEAM_MARCH_X: PackedFloat32Array
+
+## The direction a team marches in along x; 1 towards a larger x, -1 towards a smaller one.
+static var TEAM_FORWARD_SIGN: PackedInt32Array
 
 #endregion
 
@@ -53,5 +60,21 @@ const WEIGHT_CROWDING: float = 1.5
 
 ## Score added when the candidate already targets the searcher.
 const WEIGHT_MUTUAL: float = 4.0
+
+#endregion
+
+#region LIFECYCLE
+
+## Pins the bases to the two x edges of the chunk grid, once on class load. [br]
+## Reading C_ChunkingServer here also loads it first, so its own grid is already derived.
+static func _static_init() -> void:
+	var l_rightEdge: float = C_ChunkingServer.MAP_SIZE.x
+	
+	TEAM_BASE_X = PackedFloat32Array([0.0, l_rightEdge])
+	TEAM_MARCH_X = PackedFloat32Array([l_rightEdge, 0.0])
+	TEAM_FORWARD_SIGN = PackedInt32Array([1, -1])
+	
+	assert(TEAM_BASE_X.size() == C_ChunkingServer.TEAM_COUNT,
+		"C_TargetingServer: every team needs a base x and a march x.")
 
 #endregion

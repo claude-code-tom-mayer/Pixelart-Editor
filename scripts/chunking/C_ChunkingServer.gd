@@ -20,6 +20,9 @@ const CONFIGURED_CHUNK_ROWS: int = 32
 ## Tolerance against float error when deriving the chunk counts from the map size.
 const COVERAGE_EPSILON: float = 0.0001
 
+## Stored as the outermost occupied column of a team that holds no entity at all.
+const NO_COLUMN: int = -1
+
 #endregion
 
 #region DERIVED_CONSTANTS

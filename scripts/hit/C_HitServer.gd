@@ -20,4 +20,7 @@ const NO_CURVE: int = -1
 ## Upper end of both curve axes; radius curves run from 0 to 100 in x and y.
 const CURVE_PERCENT_MAX: float = 100.0
 
+## Smallest capacity a reused hit buffer grows to, so short hits stop reallocating early.
+const BUFFER_MIN_CAPACITY: int = 16
+
 #endregion

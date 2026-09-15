@@ -1,9 +1,12 @@
-extends ChunkingServer
+extends RefCounted
 ## The one path entities talk to; owns the chunk index and the servers built on it. [br]
 ## Registration happens here once and hands every server only the part it needs.
 class_name ApiServer
 
 #region PRIVATE_VARIABLES
+
+## Chunk index every server reads; owned here and never handed out to the outside.
+var _chunking: ChunkingServer = null
 
 ## Resolves area hits against the shared chunk index.
 var _hits: HitServer = null
@@ -11,16 +14,23 @@ var _hits: HitServer = null
 ## Picks and holds targets against the shared chunk index.
 var _targeting: TargetingServer = null
 
+## Every server that keeps a slot per entity id, in the order the lifecycle walks them. [br]
+## Adding a server here is enough for it to see every removal.
+var _servers: Array[A_EntityServer] = []
+
 #endregion
 
 #region LIFECYCLE
 
-## Builds the servers on top of the chunk index this server provides itself.
+## Builds the chunk index and the servers that read it. [br]
+## The servers only ever know the index, never this one, so nothing here keeps itself alive.
 func _init() -> void:
-	super()
+	_chunking = ChunkingServer.new()
+	_hits = HitServer.new(_chunking)
+	_targeting = TargetingServer.new(_chunking)
 	
-	_hits = HitServer.new(self)
-	_targeting = TargetingServer.new(self)
+	_servers.append(_hits)
+	_servers.append(_targeting)
 
 #endregion
 
@@ -34,7 +44,7 @@ func _init() -> void:
 ## @return The assigned entity id
 func create_entity(p_position: Vector2, p_team: int, p_module: M_ModuleManager,
 		p_entityData: R_EntityData) -> int:
-	var l_id: int = register_entity(p_position, p_entityData.radius, p_team, p_entityData.groups)
+	var l_id: int = _chunking.register_entity(p_position, p_entityData.radius, p_team, p_entityData.groups)
 	
 	_hits.register(l_id, p_module, p_entityData.hitProfile)
 	_targeting.register(l_id, p_entityData.targetingData)
@@ -45,23 +55,46 @@ func create_entity(p_position: Vector2, p_team: int, p_module: M_ModuleManager,
 ## Announces an entity for removal and lets every server react to it. [br]
 ## @param p_id The entity id to mark
 func pre_unregister_entity(p_id: int) -> void:
-	super(p_id)
-	_targeting.on_pre_unregister(p_id)
+	_chunking.pre_unregister_entity(p_id)
+	
+	for l_server: A_EntityServer in _servers:
+		l_server.on_pre_unregister(p_id)
 
 
 ## Removes an entity from the index and from every server on top of it. [br]
+## Does nothing for an id that is already removed. [br]
 ## @param p_id The entity id to remove
 func unregister_entity(p_id: int) -> void:
-	_targeting.on_unregister(p_id)
-	super(p_id)
+	if (_chunking.is_unregistering(p_id)):
+		return
+	
+	for l_server: A_EntityServer in _servers:
+		l_server.on_unregister(p_id)
+	
+	_chunking.unregister_entity(p_id)
 
 
 ## Lets every server drop what it holds for the removed ids, then releases them.
 func release_removed_ids() -> void:
-	for l_id: int in pendingFreeIds:
-		_hits.release_entity(l_id)
+	for l_id: int in _chunking.get_pending_free_ids():
+		for l_server: A_EntityServer in _servers:
+			l_server.release_entity(l_id)
 	
-	super()
+	_chunking.release_removed_ids()
+
+
+## Moves an entity and updates only the chunks it entered or left. [br]
+## @param p_id The entity id to move [br]
+## @param p_position The new position
+func set_position(p_id: int, p_position: Vector2) -> void:
+	_chunking.set_position(p_id, p_position)
+
+
+## Resizes an entity and updates only the chunks it entered or left. [br]
+## @param p_id The entity id to resize [br]
+## @param p_radius The new effect radius
+func set_radius(p_id: int, p_radius: float) -> void:
+	_chunking.set_radius(p_id, p_radius)
 
 #endregion
 
@@ -161,7 +194,7 @@ func get_target(p_id: int) -> int:
 	return _targeting.get_target(p_id)
 
 
-## Returns everyone targeting an entity; the array is live, treat it as read only. [br]
+## Returns everyone targeting an entity as a snapshot of the moment it is asked. [br]
 ## @param p_id The entity to read [br]
 ## @return The ids currently targeting it
 func get_targeters(p_id: int) -> PackedInt32Array:
@@ -221,7 +254,7 @@ func set_flee_chunks(p_id: int, p_fleeChunks: int) -> void:
 
 ## Sets the real distance at which the entity enters combat. [br]
 ## @param p_id The entity to change [br]
-## @param p_hitRange The distance, squared internally
+## @param p_hitRange The distance to the silhouette of the target
 func set_hit_range(p_id: int, p_hitRange: float) -> void:
 	_targeting.set_hit_range(p_id, p_hitRange)
 
