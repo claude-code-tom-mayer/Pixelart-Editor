@@ -116,3 +116,64 @@ when whole loops cross the boundary at once.
 - Rust standalone: `rustc -O src/kernel.rs`.
 - Rust GDExtension: `src/gdext_lib.rs` + `src/gdext_Cargo.toml`, gdext git master.
 - All three natives in one run: `src/BenchAll.gd`.
+
+---
+
+## How big is the gap really? (follow up)
+
+The first numbers here compared C++ against a **naive** GDScript kernel, one that
+called a helper per column and per chunk. That flattered C++. Two corrections
+were measured afterwards.
+
+### 1. Hand optimised GDScript closes part of it
+
+`src/KernelGDOpt.gd` is the same kernel with the three has() helpers inlined, the
+two-team case specialised, and every read only column hoisted into a local.
+Identical checksums.
+
+| entities | GD naive | GD optimised | C++ | naive/opt | opt vs C++ |
+|---------:|---------:|-------------:|----:|----------:|-----------:|
+| 500  | 19.31 us | 8.67 us  | 0.166 | 2.23x | **52x** |
+| 1000 | 23.09 us | 12.66 us | 0.358 | 1.82x | **35x** |
+| 3000 | 39.82 us | 29.40 us | 0.799 | 1.35x | **37x** |
+| 5000 | 54.66 us | 42.97 us | 1.166 | 1.27x | **37x** |
+
+### 2. The hit path is memory bound, and the gap is much smaller there
+
+`src/hit_core.h` and `src/HitGD.gd` resolve one hit per entity per frame from a
+fixed mix that holds at every entity count: 60% single target (maxHits 1,
+ordered), 30% capped area (maxHits 5, ordered), 10% uncapped blast (unordered,
+triple radius). Entities occupy every chunk their radius touches. Checksums match
+at every count.
+
+| entities | GDScript | C++ | speedup |
+|---------:|---------:|----:|--------:|
+| 500   | 1.43 ms   | 0.032 ms | 44.2x |
+| 1000  | 4.20 ms   | 0.255 ms | 16.5x |
+| 3000  | 30.06 ms  | 2.278 ms | 13.2x |
+| 10000 | 326.64 ms | 27.17 ms | **12.0x** |
+
+### 3. A whole frame, N searches plus N hits
+
+| entities | GDScript (opt) | C++ | speedup |
+|---------:|---------------:|----:|--------:|
+| 500   | 6.47 ms    | 0.115 ms | **56x** |
+| 1000  | 17.58 ms   | 0.627 ms | **28x** |
+| 3000  | 112.06 ms  | 4.590 ms | **24x** |
+| 10000 | 1127.02 ms | 47.57 ms | **24x** |
+
+**So the honest number is 24x to 56x, not 100x.** Three things explain the
+spread:
+
+- GDScript is a **bytecode interpreter**, not a JIT. There is no native code
+  generation, so the per operation overhead never goes away. C# in Godot *is*
+  JIT compiled, which is why published GDScript-vs-C# figures are much smaller
+  than GDScript-vs-C++ ones.
+- The gap is largest where the work is small and the interpreter overhead
+  dominates (500 entities), and shrinks as the working set grows and both
+  languages become memory bound (10000 entities, hit path).
+- This kernel spends **100% of its time in the language** and never calls the
+  engine. Most game code does not: node access, physics and rendering run in the
+  engine's own C++ whatever language called them, which is why typical
+  comparisons show far less. These servers happen to be the unusual case where
+  the language really is the bottleneck.
