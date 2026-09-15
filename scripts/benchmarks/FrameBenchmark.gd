@@ -132,8 +132,9 @@ func _run_pass(p_count: int) -> void:
 ## @return The assigned entity ids
 func _build_world(p_api: ApiServer, p_count: int, p_random: RandomNumberGenerator) -> PackedInt32Array:
 	var l_ids: PackedInt32Array = PackedInt32Array()
-	var l_width: float = C_ChunkingServer.MAP_SIZE.x
-	var l_height: float = C_ChunkingServer.MAP_SIZE.y
+	var l_mapSize: Vector2 = C_ChunkingServer.get_map_size()
+	var l_width: float = l_mapSize.x
+	var l_height: float = l_mapSize.y
 	_positions = PackedVector2Array()
 	
 	var l_hitProfile: R_HitProfile = R_HitProfile.new()
@@ -170,9 +171,10 @@ func _build_world(p_api: ApiServer, p_count: int, p_random: RandomNumberGenerato
 ## @return The position for this frame
 func _get_drifted_position(p_id: int, p_random: RandomNumberGenerator) -> Vector2:
 	var l_position: Vector2 = _positions[p_id]
+	var l_mapSize: Vector2 = C_ChunkingServer.get_map_size()
 	
 	return Vector2(
-		clampf(l_position.x + p_random.randf_range(-FRAME_DRIFT, FRAME_DRIFT), 0.0, C_ChunkingServer.MAP_SIZE.x - 1.0),
-		clampf(l_position.y + p_random.randf_range(-FRAME_DRIFT, FRAME_DRIFT), 0.0, C_ChunkingServer.MAP_SIZE.y - 1.0))
+		clampf(l_position.x + p_random.randf_range(-FRAME_DRIFT, FRAME_DRIFT), 0.0, l_mapSize.x - 1.0),
+		clampf(l_position.y + p_random.randf_range(-FRAME_DRIFT, FRAME_DRIFT), 0.0, l_mapSize.y - 1.0))
 
 #endregion

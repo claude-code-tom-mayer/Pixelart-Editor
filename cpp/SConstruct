@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+# Builds the entity servers as a GDExtension. Expects godot-cpp beside this file.
+import os
+
+env = SConscript("godot-cpp/SConstruct")
+
+env.Append(CPPPATH=["src/"])
+sources = Glob("src/*.cpp") + Glob("src/*/*.cpp")
+
+if env["platform"] == "macos":
+    library = env.SharedLibrary(
+        "bin/libentityservers.{}.{}.framework/libentityservers.{}.{}".format(
+            env["platform"], env["target"], env["platform"], env["target"]),
+        source=sources)
+else:
+    library = env.SharedLibrary(
+        "bin/libentityservers{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+        source=sources)
+
+Default(library)
