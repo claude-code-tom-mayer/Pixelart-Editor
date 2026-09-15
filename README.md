@@ -1,7 +1,8 @@
-# The entity servers in C++
+# Entity servers — C++ / GDScript mix
 
-This branch is the same system as the GDScript branch, with the **servers** rewritten as
-a C++ GDExtension. The data resources and the module manager stay GDScript.
+This branch is the same system as the GDScript branch (`claude/affectionate-shannon-mvac7l`),
+with the **servers** rewritten as a C++ GDExtension. The data resources and the module
+manager stay GDScript, so this is a **mix**, not a full C++ port.
 
 Everything below was verified on Godot **4.7.1-stable**.
 
@@ -163,31 +164,52 @@ Deviations, all forced by the language:
 
 ---
 
-## 6. Measured
+## 6. Measured: full GDScript against this mix
 
-Same benchmark, same seed, same world, on an Intel Xeon @2.8GHz, Godot 4.7.1 headless.
-N entities and N single target hits per frame, 150 searches per frame.
+Both branches, same benchmark, same seed, same world, back to back in one session on an
+Intel Xeon @2.8GHz, Godot 4.7.1 headless. N entities and N single target hits per frame,
+150 searches per frame, simulation only with no rendering.
 
-| entities | GDScript ms | C++ ms | speedup | hits landed |
+| entities | full GDScript | C++ servers + GDScript data | speedup | sim-only FPS |
 |---:|---:|---:|---:|---:|
-| 300 | 8.56 | **0.39** | 21.9x | 14 / 14 |
-| 500 | 13.77 | **0.52** | 26.5x | 25 / 25 |
-| 750 | 15.59 | **0.76** | 20.5x | 47 / 47 |
-| 1000 | 21.36 | **1.05** | 20.3x | 93 / 93 |
-| 3000 | 89.33 | **3.76** | 23.8x | 584 / 584 |
-| 5000 | 210.90 | **7.54** | 28.0x | 1200 / 1200 |
-| 10000 | 730.74 | **22.96** | 31.8x | 3085 / 3085 |
+| 300 | 8.12 ms | **0.36 ms** | **22.6x** | 123 -> 2778 |
+| 500 | 11.00 ms | **0.58 ms** | **19.0x** | 91 -> 1724 |
+| 750 | 14.98 ms | **0.83 ms** | **18.0x** | 67 -> 1205 |
+| 1000 | 21.63 ms | **1.16 ms** | **18.6x** | 46 -> 862 |
+| 3000 | 94.84 ms | **4.10 ms** | **23.1x** | 11 -> 244 |
+| 5000 | 201.32 ms | **7.94 ms** | **25.4x** | 5 -> 126 |
+| 10000 | 728.87 ms | **24.36 ms** | **29.9x** | 1 -> 41 |
 
-The hits landed column is the equivalence check: both branches land exactly the same hits
-on exactly the same entities at every count, so this is a pure cost change.
+Both branches land **exactly the same hits on exactly the same entities** at every count
+(14, 25, 47, 93, 584, 1200, 3085), which is the equivalence check: this is a pure cost
+change, not a behaviour change.
 
-Run it yourself with:
+### Where the mix wins, and where the boundary holds it back
 
-```bash
-godot --headless --script res://scripts/benchmarks/FrameBenchmark.gd
-```
+Per phase at 1000 entities. This is the useful table, because it shows that the speedup is
+not uniform — it depends on how much of each phase is really C++.
 
----
+| phase | full GDScript | this branch | speedup | what crosses the boundary |
+|---|---:|---:|---:|---|
+| `set_position` | 2.66 ms | 0.53 ms | **5x** | 1000 calls in, and the caller's own movement maths stays GDScript |
+| `update_entity` | 1.80 ms | 0.06 ms | **30x** | 1000 calls in |
+| `get_target_position` | 1.31 ms | 0.04 ms | **33x** | 1000 calls in |
+| `search_target` | 9.52 ms | 0.15 ms | **63x** | 150 calls in, everything else is C++ |
+| `hit_circle_ordered` | 6.33 ms | 0.39 ms | **16x** | 1000 calls in, and 93 calls back out to `M_ModuleManager.hit()` |
+
+Read it this way:
+
+- **Search gets 63x** because a search is one call in and then thousands of operations that
+  never leave C++. This is the phase the port was for.
+- **Hits only get 16x** because every landed hit calls back into GDScript. That return trip
+  is the expensive direction, and it caps what the port can do here.
+- **Movement only gets 5x** because the benchmark computes the new position in GDScript and
+  the server only stores it. In a real game that maths is yours, so the shape holds: the more
+  work you leave on the GDScript side of a call, the less the C++ side matters.
+
+The lesson is the general one for a mix: **move whole loops across, not single operations.**
+A server method that does a lot per call pays for itself many times over; one that does
+almost nothing per call is dominated by the call itself.
 
 ## 7. Things that will bite you
 
