@@ -616,8 +616,7 @@ func _push_hit(p_id: int, p_key: float, p_position: Vector3) -> void:
 
 
 ## Collects every entity of another team that a hit in this area could reach. [br]
-## Skips whole columns and then whole chunks that hold no opponent, and stamps every entity it looks
-## at, so one spanning several chunks is gathered exactly once. [br]
+## Skips empty columns and chunks, and stamps every entity so one is gathered exactly once. [br]
 ## @param p_emitterId The entity the hit comes from [br]
 ## @param p_minCorner Upper left corner of the shape bounds [br]
 ## @param p_maxCorner Lower right corner of the shape bounds [br]
@@ -875,8 +874,7 @@ func _get_nearest_hit() -> int:
 
 
 ## Fills _hitOrder with the hit indices sorted ascending by key. [br]
-## Insertion sort into the reused buffer; hits per shape stay small, so the quadratic worst case
-## only shows up on an area hit that accepts dozens of targets at once.
+## Insertion sort; only an area hit accepting dozens of targets reaches its quadratic case.
 func _build_hit_order() -> void:
 	if (_hitOrder.size() < _hitCount):
 		_hitOrder.resize(_hitCount)
