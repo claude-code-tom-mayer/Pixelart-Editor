@@ -58,38 +58,51 @@ assumed.
 | 3000     | 43.223   | 0.751 | 0.852 | 1.035 |
 | 5000     | 55.180   | 1.149 | 1.272 | 1.520 |
 
-### Inside Godot (what you would actually ship)
+### Inside Godot (what you would actually ship, us per search)
 
-| entities | GDScript | C++ GDExtension | speedup | C# | speedup |
-|---------:|---------:|----------------:|--------:|---:|--------:|
-| 500      | 18.7 us  | 0.173 us | 108x | 0.524 us | 36x |
-| 1000     | 23.2 us  | 0.371 us |  63x | 0.601 us | 37x |
-| 3000     | 38.5 us  | 0.755 us |  51x | 1.070 us | 36x |
-| 5000     | 53.5 us  | 1.145 us |  47x | 1.603 us | 35x |
+All three native ports and GDScript return the same checksum in the same process.
 
-### Boundary cost — one trivial call from GDScript
+| entities | GDScript | C++ GDExt | vs GD | Rust GDExt | vs GD | C# | vs GD |
+|---------:|---------:|----------:|------:|-----------:|------:|---:|------:|
+| 500      | 18.86 | 0.174 | **108x** | 0.204 | 93x | 0.524 | 36x |
+| 1000     | 23.02 | 0.358 | **64x**  | 0.385 | 60x | 0.601 | 37x |
+| 3000     | 38.40 | 0.769 | **50x**  | 0.866 | 44x | 1.070 | 36x |
+| 5000     | 53.87 | 1.133 | **48x**  | 1.325 | 41x | 1.603 | 35x |
+
+C# was measured in the same kernel in a separate process (the .NET build of the
+engine), so its column is comparable in magnitude but not same-run.
+
+### Boundary cost - one trivial call from GDScript
 
 | direction | ns per call |
 |-----------|------------:|
-| GDScript -> GDScript    | 132 |
-| GDScript -> C++ GDExtension | **36** |
-| GDScript -> C#          | **375** |
+| GDScript -> GDScript         | 138 |
+| GDScript -> C++ GDExtension  | **36** |
+| GDScript -> Rust GDExtension | **45** |
+| GDScript -> C#               | **375** |
 
-Measured over 2,000,000 calls, loop overhead included in all three, so they are
+Measured over 2,000,000 calls, loop overhead included in all of them, so they are
 comparable to each other.
 
-**This is the result that decides the design.** Calling into a C++ GDExtension is
-*cheaper than calling GDScript from GDScript* — native bound methods skip the
-GDScript VM's call machinery. Calling into C# is roughly three times more
-expensive than staying in GDScript, so a C# port only pays off if whole loops
-move across at once; per-entity calls into C# would lose.
+**This is the result that decides the design.** Calling into a C++ or Rust
+GDExtension is *cheaper than calling GDScript from GDScript* - native bound
+methods skip the GDScript VM's call machinery. There is no binding tax to design
+around; per-entity calls into native code are fine. Calling into C# is about
+three times more expensive than staying in GDScript, so a C# port only pays off
+when whole loops cross the boundary at once.
 
-### Rust
+### Toolchain notes
 
-The standalone Rust port matches C++ to within about 5%. Building it as a
-*GDExtension* was not possible here: godot-rust (gdext) 0.4.5 fails to generate
-bindings for the Godot 4.7.1 API. `src/gdext_lib.rs` is the wrapper that would be
-used once gdext supports 4.7.
+- **godot-rust**: the released gdext 0.4.5 cannot generate bindings for Godot
+  4.7.1 (`Parameter 'mode_flags' ... can only replace int with enum`). Git master
+  (0.5.5) works. `src/gdext_Cargo.toml` pins what was used, with the
+  `api-custom-json` feature and `GODOT4_GDEXTENSION_JSON` pointing at the
+  engine's own `--dump-extension-api` output.
+- **godot-cpp** has no 4.6 or 4.7 branch; master built fine against the same
+  dumped API.
+- **C#**: the editor loads the **Debug** assembly, so set `<Optimize>true</Optimize>`
+  or the measurement is of unoptimised IL. Godot also refuses to instantiate C#
+  scripts if only a Release build exists - it hangs rather than reporting it.
 
 ## Reproducing
 
@@ -101,3 +114,5 @@ used once gdext supports 4.7.
   editor loads the **Debug** assembly, so set `<Optimize>true</Optimize>` or the
   measurement is of unoptimised IL.
 - Rust standalone: `rustc -O src/kernel.rs`.
+- Rust GDExtension: `src/gdext_lib.rs` + `src/gdext_Cargo.toml`, gdext git master.
+- All three natives in one run: `src/BenchAll.gd`.
