@@ -11,10 +11,12 @@ class_name R_EntityData
 ## Bitmask of the groups the entity belongs to.
 @export var groups: int = 0
 
-## Band, groups and radius profile the hit server needs.
+## Band, groups and radius profile the hit server needs. [br]
+## Leaving it empty registers the entity on the default profile and reports it.
 @export var hitProfile: R_HitProfile = null
 
-## Groups, ranges and flags the targeting server needs.
+## Groups, ranges and flags the targeting server needs. [br]
+## Leaving it empty registers the entity on the default setup and reports it.
 @export var targetingData: R_TargetingData = null
 
 #endregion

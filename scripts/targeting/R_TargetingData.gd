@@ -14,7 +14,8 @@ class_name R_TargetingData
 ## A targeter closer than this many chunks makes the entity flee.
 @export var fleeChunks: int = 2
 
-## Real distance at which the entity switches from approaching to combat.
+## Real distance at which the entity switches from approaching to combat. [br]
+## Measured to the silhouette of the target, so its radius is added on top.
 @export var hitRange: float = 64.0
 
 ## Bitmask of the groups the entity goes after before considering the normal ones.
