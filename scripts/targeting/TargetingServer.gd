@@ -492,14 +492,18 @@ func _scan_ring(p_ring: int) -> void:
 
 
 ## Scores every center that sits in one chunk and keeps the best of each category. [br]
-## Only centers are listed here, so an entity spanning several chunks is still seen exactly once. [br]
+## Only centers hang in this chain, so an entity spanning several chunks is still seen exactly once. [br]
 ## @param p_chunkId The chunk to open
 func _scan_chunk(p_chunkId: int) -> void:
 	if (not _chunking.chunk_has_opponent_group(p_chunkId, _searchTeam, _searchGroups)):
 		return
 	
-	for l_candidateId: int in _chunking._centersInChunk[p_chunkId]:
+	var l_candidateId: int = _chunking._centerHead[p_chunkId]
+	while (l_candidateId != C_ChunkingServer.NO_ENTITY):
+		var l_nextId: int = _chunking._centerNext[l_candidateId]
+		
 		if (not _can_target(l_candidateId)):
+			l_candidateId = l_nextId
 			continue
 		
 		var l_score: float = _score_candidate(l_candidateId)
@@ -508,12 +512,11 @@ func _scan_chunk(p_chunkId: int) -> void:
 			if (_is_better(l_score, l_candidateId, _searchBestPriorityScore, _searchBestPriorityId)):
 				_searchBestPriorityScore = l_score
 				_searchBestPriorityId = l_candidateId
-			
-			continue
-		
-		if (_is_better(l_score, l_candidateId, _searchBestNormalScore, _searchBestNormalId)):
+		elif (_is_better(l_score, l_candidateId, _searchBestNormalScore, _searchBestNormalId)):
 			_searchBestNormalScore = l_score
 			_searchBestNormalId = l_candidateId
+		
+		l_candidateId = l_nextId
 
 
 ## Compares a candidate against the best one so far, the lower id winning a tie. [br]

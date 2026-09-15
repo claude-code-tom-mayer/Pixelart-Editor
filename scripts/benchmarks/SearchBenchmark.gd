@@ -66,8 +66,8 @@ func _run_pass(p_count: int) -> void:
 		l_chunking.set_position(l_id, l_position + Vector2(l_random.randf_range(-8.0, 8.0), l_random.randf_range(-8.0, 8.0)))
 	
 	var l_moveTime: float = (Time.get_ticks_usec() - l_moveStart) / 1000.0
-	var l_centerEntries: int = _count_entries(l_chunking._centersInChunk)
-	var l_touchedEntries: int = _count_entries(l_chunking._entitiesInChunk)
+	var l_centerEntries: int = p_count
+	var l_touchedEntries: int = _count_memberships(l_chunking)
 	
 	print("%8d | %8.2f | %9.2f | %13.2f | %7.2f | %7d | %7d" % [p_count, l_buildTime, l_searchTime,
 		l_searchTime * 1000.0 / p_count, l_moveTime, l_centerEntries, l_touchedEntries])
@@ -100,14 +100,18 @@ func _register_entity(p_chunking: ChunkingServer, p_targeting: TargetingServer, 
 	return l_id
 
 
-## Counts how many entries all chunk lists hold together. [br]
-## @param p_lists The per chunk lists to count [br]
-## @return The total number of entries
-func _count_entries(p_lists: Array[PackedInt32Array]) -> int:
+## Counts how many chunk memberships all entities hold together. [br]
+## @param p_chunking The index to walk [br]
+## @return The total number of memberships
+func _count_memberships(p_chunking: ChunkingServer) -> int:
 	var l_total: int = 0
 	
-	for l_list: PackedInt32Array in p_lists:
-		l_total += l_list.size()
+	for l_chunkId: int in C_ChunkingServer.CHUNK_COUNT:
+		var l_slot: int = p_chunking._chunkHead[l_chunkId]
+		
+		while (l_slot != C_ChunkingServer.NO_SLOT):
+			l_total += 1
+			l_slot = p_chunking._slotChunkNext[l_slot]
 	
 	return l_total
 

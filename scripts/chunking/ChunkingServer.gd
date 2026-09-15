@@ -35,12 +35,22 @@ var _entityCenterColumn: PackedInt32Array = PackedInt32Array()
 ## Row of the center chunk of an entity; flat mirror for the targeting hot loop.
 var _entityCenterRow: PackedInt32Array = PackedInt32Array()
 
-## Entity ids per chunk; an entity is listed in every chunk its radius touches.
-var _entitiesInChunk: Array[PackedInt32Array] = []
+## First membership slot of every chunk, or C_ChunkingServer.NO_SLOT while it is empty. [br]
+## Walk a chunk with: slot = _chunkHead[c]; while slot != NO_SLOT: ... slot = _slotChunkNext[slot]
+var _chunkHead: PackedInt32Array = PackedInt32Array()
 
-## Entity ids per chunk, listed only in the one chunk their center sits in. [br]
-## Lets the targeting server walk an area without ever seeing the same entity twice.
-var _centersInChunk: Array[PackedInt32Array] = []
+## Entity every membership slot belongs to; the id a chunk walk reads out.
+var _slotEntity: PackedInt32Array = PackedInt32Array()
+
+## Next membership slot inside the chain of the same chunk.
+var _slotChunkNext: PackedInt32Array = PackedInt32Array()
+
+## First entity whose center sits in a chunk, or C_ChunkingServer.NO_ENTITY while none does. [br]
+## Walk it with: id = _centerHead[c]; while id != NO_ENTITY: ... id = _centerNext[id]
+var _centerHead: PackedInt32Array = PackedInt32Array()
+
+## Next entity inside the center chain of its chunk.
+var _centerNext: PackedInt32Array = PackedInt32Array()
 
 ## Entity count per team and chunk, addressed by _get_team_chunk_index().
 var _chunkCounts: PackedInt32Array = PackedInt32Array()
@@ -59,19 +69,30 @@ var _pendingFreeIds: PackedInt32Array = PackedInt32Array()
 ## Lets set_position() and set_radius() drop out before touching any chunk.
 var _entityChunkArea: Array[Vector4i] = []
 
-## All chunks an entity currently stands in, per entity id.
-var _entityChunkIds: Array[PackedInt32Array] = []
-
 ## Entity ids that may be reused; only filled by release_removed_ids().
 var _freeIds: PackedInt32Array = PackedInt32Array()
 
-## Slot of the entity inside _entitiesInChunk, parallel to _entityChunkIds. [br]
-## Makes removal from a chunk an O(1) swap-and-pop.
-var _entityChunkIndices: Array[PackedInt32Array] = []
+## First membership slot of every entity, or C_ChunkingServer.NO_SLOT while it stands nowhere. [br]
+## Walking this chain lists every chunk one entity currently stands in.
+var _entitySlotHead: PackedInt32Array = PackedInt32Array()
 
-## Slot of the entity inside the center list of its center chunk. [br]
-## Makes moving a center between chunks an O(1) swap-and-pop.
-var _entityCenterIndex: PackedInt32Array = PackedInt32Array()
+## Chunk every membership slot belongs to.
+var _slotChunk: PackedInt32Array = PackedInt32Array()
+
+## Previous membership slot inside the chain of the same chunk; makes unlinking O(1).
+var _slotChunkPrev: PackedInt32Array = PackedInt32Array()
+
+## Next membership slot inside the chain of the same entity.
+var _slotEntityNext: PackedInt32Array = PackedInt32Array()
+
+## Previous membership slot inside the chain of the same entity; makes unlinking O(1).
+var _slotEntityPrev: PackedInt32Array = PackedInt32Array()
+
+## Membership slots that may be handed out again.
+var _freeSlots: PackedInt32Array = PackedInt32Array()
+
+## Previous entity inside the center chain of its chunk; makes unlinking O(1).
+var _centerPrev: PackedInt32Array = PackedInt32Array()
 
 ## Group bitmask per team and chunk, addressed by _get_team_chunk_index().
 var _chunkGroups: PackedInt64Array = PackedInt64Array()
@@ -135,12 +156,10 @@ func _init() -> void:
 	_teamMinColumn.fill(C_ChunkingServer.NO_COLUMN)
 	_teamMaxColumn.fill(C_ChunkingServer.NO_COLUMN)
 	
-	_entitiesInChunk.resize(_chunkCount)
-	_centersInChunk.resize(_chunkCount)
-	
-	for l_chunkId: int in _chunkCount:
-		_entitiesInChunk[l_chunkId] = PackedInt32Array()
-		_centersInChunk[l_chunkId] = PackedInt32Array()
+	_chunkHead.resize(_chunkCount)
+	_centerHead.resize(_chunkCount)
+	_chunkHead.fill(C_ChunkingServer.NO_SLOT)
+	_centerHead.fill(C_ChunkingServer.NO_ENTITY)
 
 #endregion
 
@@ -192,9 +211,11 @@ func unregister_entity(p_id: int) -> void:
 	
 	_entityUnregistering[p_id] = 1
 	
-	var l_chunkIds: PackedInt32Array = _entityChunkIds[p_id].duplicate()
-	for l_chunkId: int in l_chunkIds:
-		_remove_entity_from_chunk(p_id, l_chunkId)
+	var l_slot: int = _entitySlotHead[p_id]
+	while (l_slot != C_ChunkingServer.NO_SLOT):
+		var l_nextSlot: int = _slotEntityNext[l_slot]
+		_remove_slot_from_chunk(l_slot)
+		l_slot = l_nextSlot
 	
 	_remove_center_from_chunk(p_id)
 	_pendingFreeIds.append(p_id)
@@ -446,12 +467,12 @@ func _acquire_id() -> int:
 	_entityPreUnregistered.append(0)
 	_entityUnregistering.append(0)
 	_entityChunkArea.append(Vector4i.ZERO)
-	_entityChunkIds.append(PackedInt32Array())
-	_entityChunkIndices.append(PackedInt32Array())
+	_entitySlotHead.append(C_ChunkingServer.NO_SLOT)
 	_entityCenterChunk.append(C_ChunkingServer.NO_COLUMN)
 	_entityCenterColumn.append(0)
 	_entityCenterRow.append(0)
-	_entityCenterIndex.append(0)
+	_centerNext.append(C_ChunkingServer.NO_ENTITY)
+	_centerPrev.append(C_ChunkingServer.NO_ENTITY)
 	
 	return _entityTeam.size() - 1
 
@@ -468,24 +489,49 @@ func _compute_chunk_area(p_position: Vector2, p_radius: float) -> Vector4i:
 
 ## Moves an entity onto a new chunk rectangle, touching only the chunks it entered or left. [br]
 ## Returns at once while the rectangle is unchanged, which is the common case when moving. [br]
+## Both sides are rectangles, so telling them apart is a bounds test per chunk, never a search. [br]
 ## @param p_id The entity id to update [br]
 ## @param p_area The new rectangle as (minColumn, minRow, maxColumn, maxRow)
 func _apply_chunk_area(p_id: int, p_area: Vector4i) -> void:
-	if (p_area == _entityChunkArea[p_id]):
+	var l_oldArea: Vector4i = _entityChunkArea[p_id]
+	
+	if (p_area == l_oldArea):
 		return
 	
 	_entityChunkArea[p_id] = p_area
 	
-	var l_newChunkIds: PackedInt32Array = collect_chunks_in_area(p_area)
-	var l_oldChunkIds: PackedInt32Array = _entityChunkIds[p_id].duplicate()
+	var l_slot: int = _entitySlotHead[p_id]
+	while (l_slot != C_ChunkingServer.NO_SLOT):
+		var l_nextSlot: int = _slotEntityNext[l_slot]
+		
+		if (not _is_chunk_in_area(_slotChunk[l_slot], p_area)):
+			_remove_slot_from_chunk(l_slot)
+		
+		l_slot = l_nextSlot
 	
-	for l_chunkId: int in l_oldChunkIds:
-		if (not l_newChunkIds.has(l_chunkId)):
-			_remove_entity_from_chunk(p_id, l_chunkId)
+	for l_row: int in range(p_area.y, p_area.w + 1):
+		var l_rowOffset: int = l_row * _chunkColumns
+		var l_rowIsNew: bool = l_row < l_oldArea.y or l_row > l_oldArea.w
+		
+		for l_column: int in range(p_area.x, p_area.z + 1):
+			if (l_rowIsNew or l_column < l_oldArea.x or l_column > l_oldArea.z):
+				_add_entity_to_chunk(p_id, l_rowOffset + l_column)
+
+
+## Checks whether a chunk lies inside a chunk rectangle. [br]
+## @param p_chunkId The chunk to place [br]
+## @param p_area The rectangle as (minColumn, minRow, maxColumn, maxRow) [br]
+## @return true if the chunk is part of the rectangle
+func _is_chunk_in_area(p_chunkId: int, p_area: Vector4i) -> bool:
+	var l_column: int = p_chunkId % _chunkColumns
 	
-	for l_chunkId: int in l_newChunkIds:
-		if (not l_oldChunkIds.has(l_chunkId)):
-			_add_entity_to_chunk(p_id, l_chunkId)
+	if (l_column < p_area.x or l_column > p_area.z):
+		return false
+	
+	@warning_ignore("integer_division")
+	var l_row: int = p_chunkId / _chunkColumns
+	
+	return l_row >= p_area.y and l_row <= p_area.w
 
 
 ## Moves the center of an entity into the chunk its position falls into. [br]
@@ -502,17 +548,20 @@ func _apply_center_chunk(p_id: int, p_position: Vector2) -> void:
 	
 	_remove_center_from_chunk(p_id)
 	
-	var l_centers: PackedInt32Array = _centersInChunk[l_chunkId]
-	_entityCenterIndex[p_id] = l_centers.size()
-	l_centers.append(p_id)
-	_centersInChunk[l_chunkId] = l_centers
+	var l_head: int = _centerHead[l_chunkId]
+	_centerPrev[p_id] = C_ChunkingServer.NO_ENTITY
+	_centerNext[p_id] = l_head
 	
+	if (l_head != C_ChunkingServer.NO_ENTITY):
+		_centerPrev[l_head] = p_id
+	
+	_centerHead[l_chunkId] = p_id
 	_entityCenterChunk[p_id] = l_chunkId
 	_entityCenterColumn[p_id] = l_column
 	_entityCenterRow[p_id] = l_row
 
 
-## Drops the center of an entity out of its chunk by swap-and-pop. [br]
+## Unlinks the center of an entity from the chain of its chunk. [br]
 ## @param p_id The entity whose center is removed
 func _remove_center_from_chunk(p_id: int) -> void:
 	var l_chunkId: int = _entityCenterChunk[p_id]
@@ -520,34 +569,47 @@ func _remove_center_from_chunk(p_id: int) -> void:
 	if (l_chunkId == C_ChunkingServer.NO_COLUMN):
 		return
 	
-	var l_centers: PackedInt32Array = _centersInChunk[l_chunkId]
-	var l_slot: int = _entityCenterIndex[p_id]
-	var l_lastSlot: int = l_centers.size() - 1
-	var l_movedId: int = l_centers[l_lastSlot]
+	var l_next: int = _centerNext[p_id]
+	var l_prev: int = _centerPrev[p_id]
 	
-	l_centers[l_slot] = l_movedId
-	l_centers.resize(l_lastSlot)
-	_centersInChunk[l_chunkId] = l_centers
-	_entityCenterIndex[l_movedId] = l_slot
+	if (l_prev == C_ChunkingServer.NO_ENTITY):
+		_centerHead[l_chunkId] = l_next
+	else:
+		_centerNext[l_prev] = l_next
+	
+	if (l_next != C_ChunkingServer.NO_ENTITY):
+		_centerPrev[l_next] = l_prev
 	
 	_entityCenterChunk[p_id] = C_ChunkingServer.NO_COLUMN
 
 
 ## Adds an entity to a chunk and cascades its groups upwards while they change. [br]
+## Links one membership slot into the chain of the chunk and of the entity; no list is ever copied. [br]
 ## @param p_id The entity id to add [br]
 ## @param p_chunkId The target chunk
 func _add_entity_to_chunk(p_id: int, p_chunkId: int) -> void:
-	var l_chunkEntities: PackedInt32Array = _entitiesInChunk[p_chunkId]
-	var l_chunkIds: PackedInt32Array = _entityChunkIds[p_id]
-	var l_chunkIndices: PackedInt32Array = _entityChunkIndices[p_id]
+	var l_slot: int = _acquire_slot()
 	
-	l_chunkIds.append(p_chunkId)
-	l_chunkIndices.append(l_chunkEntities.size())
-	l_chunkEntities.append(p_id)
+	_slotEntity[l_slot] = p_id
+	_slotChunk[l_slot] = p_chunkId
 	
-	_entityChunkIds[p_id] = l_chunkIds
-	_entityChunkIndices[p_id] = l_chunkIndices
-	_entitiesInChunk[p_chunkId] = l_chunkEntities
+	var l_chunkHead: int = _chunkHead[p_chunkId]
+	_slotChunkPrev[l_slot] = C_ChunkingServer.NO_SLOT
+	_slotChunkNext[l_slot] = l_chunkHead
+	
+	if (l_chunkHead != C_ChunkingServer.NO_SLOT):
+		_slotChunkPrev[l_chunkHead] = l_slot
+	
+	_chunkHead[p_chunkId] = l_slot
+	
+	var l_entityHead: int = _entitySlotHead[p_id]
+	_slotEntityPrev[l_slot] = C_ChunkingServer.NO_SLOT
+	_slotEntityNext[l_slot] = l_entityHead
+	
+	if (l_entityHead != C_ChunkingServer.NO_SLOT):
+		_slotEntityPrev[l_entityHead] = l_slot
+	
+	_entitySlotHead[p_id] = l_slot
 	
 	var l_team: int = _entityTeam[p_id]
 	var l_groups: int = _entityGroups[p_id]
@@ -565,58 +627,63 @@ func _add_entity_to_chunk(p_id: int, p_chunkId: int) -> void:
 		_apply_group_to_map(l_team, l_groups)
 
 
-## Removes an entity from a chunk and rebuilds the masks upwards while they change. [br]
-## @param p_id The entity id to remove [br]
-## @param p_chunkId The source chunk
-func _remove_entity_from_chunk(p_id: int, p_chunkId: int) -> void:
-	var l_slot: int = _entityChunkIds[p_id].find(p_chunkId)
-	assert(l_slot != -1, "ChunkingServer: _remove_entity_from_chunk() got a chunk the entity is not in.")
+## Unlinks one membership slot and rebuilds the masks upwards while they change. [br]
+## Unlinking is a fixed number of integer writes, whatever the chunk holds. [br]
+## @param p_slot The membership slot to drop
+func _remove_slot_from_chunk(p_slot: int) -> void:
+	var l_id: int = _slotEntity[p_slot]
+	var l_chunkId: int = _slotChunk[p_slot]
 	
-	var l_indexInChunk: int = _entityChunkIndices[p_id][l_slot]
+	var l_next: int = _slotChunkNext[p_slot]
+	var l_prev: int = _slotChunkPrev[p_slot]
 	
-	_swap_and_pop_chunk_entity(p_chunkId, l_indexInChunk)
-	_swap_and_pop_entity_slot(p_id, l_slot)
+	if (l_prev == C_ChunkingServer.NO_SLOT):
+		_chunkHead[l_chunkId] = l_next
+	else:
+		_slotChunkNext[l_prev] = l_next
 	
-	var l_team: int = _entityTeam[p_id]
-	_apply_count_delta(p_chunkId, l_team, -1)
+	if (l_next != C_ChunkingServer.NO_SLOT):
+		_slotChunkPrev[l_next] = l_prev
 	
-	if (_rebuild_chunk_groups(p_chunkId, l_team)):
-		if (_rebuild_column_groups(_get_column_index(p_chunkId), l_team)):
+	l_next = _slotEntityNext[p_slot]
+	l_prev = _slotEntityPrev[p_slot]
+	
+	if (l_prev == C_ChunkingServer.NO_SLOT):
+		_entitySlotHead[l_id] = l_next
+	else:
+		_slotEntityNext[l_prev] = l_next
+	
+	if (l_next != C_ChunkingServer.NO_SLOT):
+		_slotEntityPrev[l_next] = l_prev
+	
+	_freeSlots.append(p_slot)
+	
+	var l_team: int = _entityTeam[l_id]
+	_apply_count_delta(l_chunkId, l_team, -1)
+	
+	if (_rebuild_chunk_groups(l_chunkId, l_team)):
+		if (_rebuild_column_groups(_get_column_index(l_chunkId), l_team)):
 			_rebuild_map_groups(l_team)
 
 
-## Drops one slot out of a chunk list and repairs the index of the moved entity. [br]
-## @param p_chunkId The chunk to shrink [br]
-## @param p_indexInChunk The slot the last entry is moved into
-func _swap_and_pop_chunk_entity(p_chunkId: int, p_indexInChunk: int) -> void:
-	var l_chunkEntities: PackedInt32Array = _entitiesInChunk[p_chunkId]
-	var l_lastIndex: int = l_chunkEntities.size() - 1
-	var l_movedId: int = l_chunkEntities[l_lastIndex]
+## Takes a free membership slot or appends a fresh one to every slot column. [br]
+## @return The slot the next membership is stored under
+func _acquire_slot() -> int:
+	var l_lastFreeIndex: int = _freeSlots.size() - 1
 	
-	l_chunkEntities[p_indexInChunk] = l_movedId
-	l_chunkEntities.resize(l_lastIndex)
-	_entitiesInChunk[p_chunkId] = l_chunkEntities
+	if (l_lastFreeIndex >= 0):
+		var l_reusedSlot: int = _freeSlots[l_lastFreeIndex]
+		_freeSlots.resize(l_lastFreeIndex)
+		return l_reusedSlot
 	
-	var l_movedIndices: PackedInt32Array = _entityChunkIndices[l_movedId]
-	l_movedIndices[_entityChunkIds[l_movedId].find(p_chunkId)] = p_indexInChunk
-	_entityChunkIndices[l_movedId] = l_movedIndices
-
-
-## Drops one chunk entry out of an entity by swap-and-pop. [br]
-## @param p_id The entity to shrink [br]
-## @param p_slot The entry the last one is moved into
-func _swap_and_pop_entity_slot(p_id: int, p_slot: int) -> void:
-	var l_chunkIds: PackedInt32Array = _entityChunkIds[p_id]
-	var l_chunkIndices: PackedInt32Array = _entityChunkIndices[p_id]
-	var l_lastSlot: int = l_chunkIds.size() - 1
+	_slotEntity.append(0)
+	_slotChunk.append(0)
+	_slotChunkNext.append(C_ChunkingServer.NO_SLOT)
+	_slotChunkPrev.append(C_ChunkingServer.NO_SLOT)
+	_slotEntityNext.append(C_ChunkingServer.NO_SLOT)
+	_slotEntityPrev.append(C_ChunkingServer.NO_SLOT)
 	
-	l_chunkIds[p_slot] = l_chunkIds[l_lastSlot]
-	l_chunkIndices[p_slot] = l_chunkIndices[l_lastSlot]
-	l_chunkIds.resize(l_lastSlot)
-	l_chunkIndices.resize(l_lastSlot)
-	
-	_entityChunkIds[p_id] = l_chunkIds
-	_entityChunkIndices[p_id] = l_chunkIndices
+	return _slotEntity.size() - 1
 
 
 ## Writes a count change through to chunk, column and map and keeps the column span current. [br]
@@ -688,12 +755,17 @@ func _rebuild_chunk_groups(p_chunkId: int, p_team: int) -> bool:
 	var l_oldGroups: int = _chunkGroups[l_chunkIndex]
 	var l_groups: int = 0
 	
-	for l_id: int in _entitiesInChunk[p_chunkId]:
+	var l_slot: int = _chunkHead[p_chunkId]
+	while (l_slot != C_ChunkingServer.NO_SLOT):
+		var l_id: int = _slotEntity[l_slot]
+		
 		if (_entityTeam[l_id] == p_team):
 			l_groups |= _entityGroups[l_id]
 			
 			if (l_groups == l_oldGroups):
 				break
+		
+		l_slot = _slotChunkNext[l_slot]
 	
 	if (l_groups == l_oldGroups):
 		return false

@@ -23,6 +23,12 @@ const COVERAGE_EPSILON: float = 0.0001
 ## Stored as the outermost occupied column of a team that holds no entity at all.
 const NO_COLUMN: int = -1
 
+## Stored as a membership link that points nowhere, in every chunk and entity chain.
+const NO_SLOT: int = -1
+
+## Stored as a center link that points nowhere, in every center chain.
+const NO_ENTITY: int = -1
+
 #endregion
 
 #region DERIVED_CONSTANTS

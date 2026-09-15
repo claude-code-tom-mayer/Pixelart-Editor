@@ -26,8 +26,12 @@ var _entityCurveIndex: PackedInt32Array = PackedInt32Array()
 ## Hit query that last looked at an entity; turns the candidate dedup into one compare.
 var _entityVisitStamp: PackedInt32Array = PackedInt32Array()
 
-## Radius profile per curve slot; x is the percent along the y band, y the percent of the radius.
+## Curve stored in every slot; kept only to recognise it again and to free the slot.
 var _radiiCurves: Array[Curve] = []
+
+## Every curve slot baked into C_HitServer.CURVE_SAMPLE_COUNT samples, one block per slot. [br]
+## A hit reads two floats and interpolates, instead of calling into the Curve object.
+var _curveSamples: PackedFloat32Array = PackedFloat32Array()
 
 ## Slot every stored curve sits in, so one archetype never fills more than one slot.
 var _curveSlotOf: Dictionary[Curve, int] = {}
@@ -538,17 +542,31 @@ func _acquire_curve_slot(p_curve: Curve) -> int:
 	
 	if (l_lastFreeIndex >= 0):
 		l_curveIndex = _freeCurveIndices[l_lastFreeIndex]
-		_freeCurveIndices.remove_at(l_lastFreeIndex)
+		_freeCurveIndices.resize(l_lastFreeIndex)
 		_radiiCurves[l_curveIndex] = p_curve
 	else:
 		l_curveIndex = _radiiCurves.size()
 		_radiiCurves.append(p_curve)
 		_curveUsers.append(0)
+		_curveSamples.resize(_radiiCurves.size() * C_HitServer.CURVE_SAMPLE_COUNT)
 	
 	_curveUsers[l_curveIndex] = 0
 	_curveSlotOf[p_curve] = l_curveIndex
+	_bake_curve_samples(l_curveIndex, p_curve)
 	
 	return l_curveIndex
+
+
+## Reads a curve into the flat sample block of its slot, once when the slot is taken. [br]
+## @param p_curveIndex The slot to fill [br]
+## @param p_curve The profile to read
+func _bake_curve_samples(p_curveIndex: int, p_curve: Curve) -> void:
+	var l_base: int = p_curveIndex * C_HitServer.CURVE_SAMPLE_COUNT
+	var l_lastSample: float = C_HitServer.CURVE_SAMPLE_COUNT - 1
+	
+	for l_sample: int in C_HitServer.CURVE_SAMPLE_COUNT:
+		var l_percent: float = l_sample / l_lastSample * C_HitServer.CURVE_PERCENT_MAX
+		_curveSamples[l_base + l_sample] = p_curve.sample_baked(l_percent)
 
 
 ## Gives the curve slot of an entity back, and frees the slot once nobody uses it. [br]
@@ -624,7 +642,11 @@ func _gather_chunk_candidates(p_emitterId: int, p_minCorner: Vector2, p_maxCorne
 			if (not _chunking.has_opponent_in_chunk(l_chunkId, l_emitterTeam)):
 				continue
 			
-			for l_id: int in _chunking._entitiesInChunk[l_chunkId]:
+			var l_slot: int = _chunking._chunkHead[l_chunkId]
+			while (l_slot != C_ChunkingServer.NO_SLOT):
+				var l_id: int = _chunking._slotEntity[l_slot]
+				l_slot = _chunking._slotChunkNext[l_slot]
+				
 				if (_entityVisitStamp[l_id] == l_stamp):
 					continue
 				
@@ -690,7 +712,7 @@ func _get_sample_height(p_id: int, p_hitYBand: Vector2) -> float:
 	return clampf((p_hitYBand.x + p_hitYBand.y) * 0.5, l_band.x, l_band.y)
 
 
-## Reads the radius a target offers at one height from its profile. [br]
+## Reads the radius a target offers at one height from the baked samples of its profile. [br]
 ## Entities without a profile keep their full radius over the whole height. [br]
 ## @param p_id The entity that is hit [br]
 ## @param p_sampleHeight The height the hit lands at [br]
@@ -708,8 +730,14 @@ func _get_effective_radius(p_id: int, p_sampleHeight: float) -> float:
 	if (l_height <= 0.0):
 		return l_radius
 	
-	var l_percent: float = (p_sampleHeight - l_band.x) / l_height * C_HitServer.CURVE_PERCENT_MAX
-	return l_radius * _radiiCurves[l_curveIndex].sample_baked(l_percent) / C_HitServer.CURVE_PERCENT_MAX
+	var l_lastSample: int = C_HitServer.CURVE_SAMPLE_COUNT - 1
+	var l_position: float = clampf((p_sampleHeight - l_band.x) / l_height, 0.0, 1.0) * l_lastSample
+	var l_sample: int = mini(int(l_position), l_lastSample - 1)
+	var l_base: int = l_curveIndex * C_HitServer.CURVE_SAMPLE_COUNT + l_sample
+	var l_low: float = _curveSamples[l_base]
+	var l_percent: float = l_low + (_curveSamples[l_base + 1] - l_low) * (l_position - l_sample)
+	
+	return l_radius * l_percent / C_HitServer.CURVE_PERCENT_MAX
 
 
 ## Places the impact on the silhouette of the target, facing the origin of the hit. [br]
