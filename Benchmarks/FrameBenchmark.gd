@@ -3,12 +3,7 @@ class_name FrameBenchmark
 ## Times one simulation frame per entity count, split into the phases a frame really runs. [br]
 ## Run it headless through its scene: godot --headless res://Benchmarks/FrameBenchmark.tscn
 
-#region EXPORTS_AND_VARS
-
-## Position per entity id, kept here so the benchmark never reads server internals.
-var _positions: PackedVector2Array = PackedVector2Array()
-
-# Cached constants, assigned once in _init().
+#region CACHED_VARS
 
 ## Cached C_FrameBenchmark.ENTITY_COUNTS.
 var ENTITY_COUNTS: Array[int]
@@ -48,6 +43,13 @@ var TEAM_COUNT: int
 
 ## Cached C_HitServer.NO_PREFERRED_TARGET.
 var NO_PREFERRED_TARGET: int
+
+#endregion
+
+#region EXPORTS_AND_VARS
+
+## Position per entity id, kept here so the benchmark never reads server internals.
+var _positions: PackedVector2Array = PackedVector2Array()
 
 #endregion
 

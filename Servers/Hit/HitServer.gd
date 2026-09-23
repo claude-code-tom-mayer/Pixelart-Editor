@@ -2,6 +2,34 @@ extends Node
 ## Autoload that resolves area hits through the chunk index, so only entities near the shape are tested. [br]
 ## Hit and hurt groups decide whether a hit connects at all, stop groups end it at the first blocker.
 
+#region CACHED_VARS
+
+## Cached C_ChunkingServer.MAP_CHUNK_COLUMNS; the candidate gather reads it constantly.
+var MAP_CHUNK_COLUMNS: int
+
+## Cached C_ChunkingServer.NO_SLOT.
+var NO_SLOT: int
+
+## Cached C_HitServer.NO_CURVE.
+var NO_CURVE: int
+
+## Cached C_HitServer.CURVE_SAMPLE_COUNT.
+var CURVE_SAMPLE_COUNT: int
+
+## Cached C_HitServer.CURVE_PERCENT_MAX.
+var CURVE_PERCENT_MAX: float
+
+## Cached C_HitServer.BUFFER_MIN_CAPACITY.
+var BUFFER_MIN_CAPACITY: int
+
+## Cached C_HitServer.NO_PREFERRED_TARGET.
+var NO_PREFERRED_TARGET: int
+
+## Cached C_HitServer.UNLIMITED_HITS.
+var UNLIMITED_HITS: int
+
+#endregion
+
 #region EXPORTS_AND_VARS
 
 ## Module management per entity id; receives every hit that connects with it.
@@ -75,32 +103,6 @@ var _hitOrder: PackedInt32Array = PackedInt32Array()
 ## Counter handed to every gather, so stamps of earlier hits can never collide.
 var _visitStamp: int = 0
 
-# Cached constants, assigned once in _init().
-
-## Cached C_ChunkingServer.MAP_CHUNK_COLUMNS; the candidate gather reads it constantly.
-var MAP_CHUNK_COLUMNS: int
-
-## Cached C_ChunkingServer.NO_SLOT.
-var NO_SLOT: int
-
-## Cached C_HitServer.NO_CURVE.
-var NO_CURVE: int
-
-## Cached C_HitServer.CURVE_SAMPLE_COUNT.
-var CURVE_SAMPLE_COUNT: int
-
-## Cached C_HitServer.CURVE_PERCENT_MAX.
-var CURVE_PERCENT_MAX: float
-
-## Cached C_HitServer.BUFFER_MIN_CAPACITY.
-var BUFFER_MIN_CAPACITY: int
-
-## Cached C_HitServer.NO_PREFERRED_TARGET.
-var NO_PREFERRED_TARGET: int
-
-## Cached C_HitServer.UNLIMITED_HITS.
-var UNLIMITED_HITS: int
-
 #endregion
 
 #region LIFECYCLE_AND_METHODS
@@ -108,8 +110,8 @@ var UNLIMITED_HITS: int
 ## Follows the id lifecycle of the ChunkingServer autoload, which is loaded before this one. [br]
 ## Runs before any entity can register, so every id the index hands out gets a slot here.
 func _ready() -> void:
-	ChunkingServer.entity_slot_appended.connect(_append_slot)
-	ChunkingServer.entity_released.connect(_reset_slot)
+	ChunkingServer.s_entitySlotAppended.connect(_append_slot)
+	ChunkingServer.s_entityReleased.connect(_reset_slot)
 	
 	MAP_CHUNK_COLUMNS = C_ChunkingServer.MAP_CHUNK_COLUMNS
 	NO_SLOT = C_ChunkingServer.NO_SLOT
@@ -507,7 +509,7 @@ func _test_cake_slice(p_emitterId: int, p_origin: Vector2, p_direction: Vector2,
 
 
 ## Appends one fresh slot to every column of this server. [br]
-## Connected to ChunkingServer.entity_slot_appended, so ids of both servers always match. [br]
+## Connected to ChunkingServer.s_entitySlotAppended, so ids of both servers always match. [br]
 ## @param p_id The id the slot is appended for
 @warning_ignore("unused_parameter")
 func _append_slot(p_id: int) -> void:
@@ -521,7 +523,7 @@ func _append_slot(p_id: int) -> void:
 
 
 ## Clears one slot once its id is handed back, so a reused id inherits nothing. [br]
-## Connected to ChunkingServer.entity_released. [br]
+## Connected to ChunkingServer.s_entityReleased. [br]
 ## @param p_id The entity slot to reset
 func _reset_slot(p_id: int) -> void:
 	_entityModules[p_id] = null

@@ -2,6 +2,64 @@ extends Node
 ## Autoload that picks and holds a target per entity and reports where it should move. [br]
 ## Searches are chunk counted and event driven: a target is only ever lost, never re-checked.
 
+#region CACHED_VARS
+
+## Cached C_ChunkingServer.MAP_CHUNK_COLUMNS; the ring scan reads it constantly.
+var MAP_CHUNK_COLUMNS: int
+
+## Cached C_ChunkingServer.MAP_CHUNK_ROWS.
+var MAP_CHUNK_ROWS: int
+
+## Cached C_ChunkingServer.NO_ENTITY.
+var NO_ENTITY: int
+
+## Cached C_TargetingServer.NO_TARGET.
+var NO_TARGET: int
+
+## Cached C_TargetingServer.FLAG_INVISIBLE.
+var FLAG_INVISIBLE: int
+
+## Cached C_TargetingServer.FLAG_TARGETS_INVISIBLE.
+var FLAG_TARGETS_INVISIBLE: int
+
+## Cached C_TargetingServer.FLAG_HAS_FOCUS.
+var FLAG_HAS_FOCUS: int
+
+## Cached C_TargetingServer.FLAG_IGNORES_FOCUS.
+var FLAG_IGNORES_FOCUS: int
+
+## Cached C_TargetingServer.BASE_REACHED_EPSILON.
+var BASE_REACHED_EPSILON: float
+
+## Cached C_TargetingServer.DIAGONAL_CHUNK_COST.
+var DIAGONAL_CHUNK_COST: float
+
+## Cached C_TargetingServer.TEAM_BASE_X.
+var TEAM_BASE_X: PackedFloat32Array
+
+## Cached C_TargetingServer.TEAM_MARCH_X.
+var TEAM_MARCH_X: PackedFloat32Array
+
+## Cached C_TargetingServer.TEAM_FORWARD_SIGN.
+var TEAM_FORWARD_SIGN: PackedInt32Array
+
+## Cached C_TargetingServer.WEIGHT_CLOSENESS.
+var WEIGHT_CLOSENESS: float
+
+## Cached C_TargetingServer.WEIGHT_FOCUS.
+var WEIGHT_FOCUS: float
+
+## Cached C_TargetingServer.WEIGHT_BEHIND.
+var WEIGHT_BEHIND: float
+
+## Cached C_TargetingServer.WEIGHT_CROWDING.
+var WEIGHT_CROWDING: float
+
+## Cached C_TargetingServer.WEIGHT_MUTUAL.
+var WEIGHT_MUTUAL: float
+
+#endregion
+
 #region EXPORTS_AND_VARS
 
 ## Bitmask of the groups an entity may go after.
@@ -76,62 +134,6 @@ var _searchBestNormalId: int = C_TargetingServer.NO_TARGET
 ## Score of the best normal candidate so far.
 var _searchBestNormalScore: float = 0.0
 
-# Cached constants, assigned once in _init().
-
-## Cached C_ChunkingServer.MAP_CHUNK_COLUMNS; the ring scan reads it constantly.
-var MAP_CHUNK_COLUMNS: int
-
-## Cached C_ChunkingServer.MAP_CHUNK_ROWS.
-var MAP_CHUNK_ROWS: int
-
-## Cached C_ChunkingServer.NO_ENTITY.
-var NO_ENTITY: int
-
-## Cached C_TargetingServer.NO_TARGET.
-var NO_TARGET: int
-
-## Cached C_TargetingServer.FLAG_INVISIBLE.
-var FLAG_INVISIBLE: int
-
-## Cached C_TargetingServer.FLAG_TARGETS_INVISIBLE.
-var FLAG_TARGETS_INVISIBLE: int
-
-## Cached C_TargetingServer.FLAG_HAS_FOCUS.
-var FLAG_HAS_FOCUS: int
-
-## Cached C_TargetingServer.FLAG_IGNORES_FOCUS.
-var FLAG_IGNORES_FOCUS: int
-
-## Cached C_TargetingServer.BASE_REACHED_EPSILON.
-var BASE_REACHED_EPSILON: float
-
-## Cached C_TargetingServer.DIAGONAL_CHUNK_COST.
-var DIAGONAL_CHUNK_COST: float
-
-## Cached C_TargetingServer.TEAM_BASE_X.
-var TEAM_BASE_X: PackedFloat32Array
-
-## Cached C_TargetingServer.TEAM_MARCH_X.
-var TEAM_MARCH_X: PackedFloat32Array
-
-## Cached C_TargetingServer.TEAM_FORWARD_SIGN.
-var TEAM_FORWARD_SIGN: PackedInt32Array
-
-## Cached C_TargetingServer.WEIGHT_CLOSENESS.
-var WEIGHT_CLOSENESS: float
-
-## Cached C_TargetingServer.WEIGHT_FOCUS.
-var WEIGHT_FOCUS: float
-
-## Cached C_TargetingServer.WEIGHT_BEHIND.
-var WEIGHT_BEHIND: float
-
-## Cached C_TargetingServer.WEIGHT_CROWDING.
-var WEIGHT_CROWDING: float
-
-## Cached C_TargetingServer.WEIGHT_MUTUAL.
-var WEIGHT_MUTUAL: float
-
 #endregion
 
 #region LIFECYCLE_AND_METHODS
@@ -139,10 +141,10 @@ var WEIGHT_MUTUAL: float
 ## Follows the id lifecycle of the ChunkingServer autoload, which is loaded before this one. [br]
 ## Runs before any entity can register, so every id the index hands out gets a slot here.
 func _ready() -> void:
-	ChunkingServer.entity_slot_appended.connect(_append_slot)
-	ChunkingServer.entity_pre_unregistered.connect(drop_targeters)
-	ChunkingServer.entity_unregistered.connect(_unlink_entity)
-	ChunkingServer.entity_released.connect(_reset_slot)
+	ChunkingServer.s_entitySlotAppended.connect(_append_slot)
+	ChunkingServer.s_entityPreUnregistered.connect(drop_targeters)
+	ChunkingServer.s_entityUnregistered.connect(_unlink_entity)
+	ChunkingServer.s_entityReleased.connect(_reset_slot)
 	
 	MAP_CHUNK_COLUMNS = C_ChunkingServer.MAP_CHUNK_COLUMNS
 	MAP_CHUNK_ROWS = C_ChunkingServer.MAP_CHUNK_ROWS
@@ -212,7 +214,7 @@ func search_target(p_id: int) -> int:
 
 
 ## Makes every entity that targets this one drop it and look for something else. [br]
-## Also runs on ChunkingServer.entity_pre_unregistered, so an announced entity is let go at once. [br]
+## Also runs on ChunkingServer.s_entityPreUnregistered, so an announced entity is let go at once. [br]
 ## @param p_id The entity that is no longer worth targeting
 func drop_targeters(p_id: int) -> void:
 	var l_targeters: PackedInt32Array = _targetersOf[p_id].duplicate()
@@ -331,7 +333,7 @@ func get_targeters(p_id: int) -> PackedInt32Array:
 
 
 ## Unlinks a removed entity from both sides of the targeting graph. [br]
-## Connected to ChunkingServer.entity_unregistered. [br]
+## Connected to ChunkingServer.s_entityUnregistered. [br]
 ## @param p_id The entity that was removed
 func _unlink_entity(p_id: int) -> void:
 	_drop_target(p_id)
@@ -339,7 +341,7 @@ func _unlink_entity(p_id: int) -> void:
 
 
 ## Appends one fresh slot to every column of this server. [br]
-## Connected to ChunkingServer.entity_slot_appended, so ids of both servers always match. [br]
+## Connected to ChunkingServer.s_entitySlotAppended, so ids of both servers always match. [br]
 ## @param p_id The id the slot is appended for
 @warning_ignore("unused_parameter")
 func _append_slot(p_id: int) -> void:
@@ -356,7 +358,7 @@ func _append_slot(p_id: int) -> void:
 
 
 ## Clears one slot once its id is handed back, so a reused id inherits no target or flag. [br]
-## Connected to ChunkingServer.entity_released. [br]
+## Connected to ChunkingServer.s_entityReleased. [br]
 ## @param p_id The entity slot to reset
 func _reset_slot(p_id: int) -> void:
 	_entityTargetedGroups[p_id] = 0

@@ -1,93 +1,173 @@
-# GDScript Coding Rules
+# GDScript / Godot Project Style Guide
 
-Reference for writing GDScript in this project. Follow all of this by default; do not ask before applying it.
+## General
 
-## Naming & Typing
+- Always use static typing. Only exceptions: `var rs = RenderingServer` and cached autoload references (see Caching).
+- Write clean, modular code. Prefer composition (Modules, `M_` prefix) over deep inheritance where possible.
+- Use custom Resources (`class_name` with `R_` prefix) for any reusable/exchangeable data.
+- When referencing file paths, always use a uid (`uid://...`), never a raw `res://` path.
+- When referencing nodes in the same scene tree, always use unique names (`%NodeName`), never relative NodePaths.
+- When using `RenderingServer`, alias once: `var rs = RenderingServer`, then use `rs` for all following calls in that scope.
+- Godot editor location: `C:\Users\morit\Documents\Godot_v4.7.1-stable_win64.exe`
 
-- Functions: `snake_case`, starting lowercase.
-- Function parameters: prefixed `p_`, then camelCase (e.g. `p_dataStorage`).
-- Local variables (declared inside a function): prefixed `l_`, then camelCase (e.g. `l_requiredBits`).
-- Private variables and private functions: prefixed `_`, then camelCase for variables (e.g. `_activeSortKey`); functions stay `snake_case` after the `_` (e.g. `_apply_filter`).
-- Constants and enum values: fully `UPPER_CASE`.
-- Class names: PascalCase (e.g. `R_ProgressPathDataStorage`).
-  - Custom Resources: prefix `R_`.
-  - Abstract classes: prefix `A_`.
-  - Abstract Resources: prefix `A_R_`.
-  - Global / static (singleton-style) classes: prefix `G_`.
-  - Modules (plug-and-work into entities): prefix `M_`.
-  - Constants/enums scoped to one system: `C_[SystemName]`.
-- Always use static typing. The only exception: `var rs = RenderingServer`.
-- In every class, `extends` comes before `class_name`.
-- When using `RenderingServer`, alias it once as `var rs = RenderingServer` and use `rs` from then on.
-- When referencing paths, always use a `uid`.
-- When referencing nodes within the same tree, always use unique names.
-- Use `@export` for values meant to be tweaked easily (e.g. in the inspector); everything else stays a plain typed variable.
+## Folder Structure
+
+- PascalCase folder names, e.g. `res://Entities/Player/`, `res://UI/ProgressBar/`.
+- Scripts live in the folder of the system/scene they belong to, not in one global "scripts" dump.
+
+## File Naming
+
+| File type | Convention | Example |
+|---|---|---|
+| Script (`.gd`) | Matches `class_name` exactly, including its prefix | `R_MilestoneData` → `R_MilestoneData.gd` |
+| Scene (`.tscn`) | PascalCase matching the root node's script class | `MainMenu.gd` → `MainMenu.tscn` |
+| Custom Resource (`.tres`) | Matches the `R_` class name exactly | `R_MilestoneData` → `R_MilestoneData.tres` |
+| Native/engine resource (Theme, StyleBox, AnimationLibrary, etc.) | PascalCase describing purpose, with `R_` prefix added when feasible | `R_MainMenuTheme.tres`, `R_ButtonHoverStyle.tres` |
+| Shader (`.gdshader`) | PascalCase like a class name, with `S_` prefix | `S_WaterEffect.gdshader` |
+
+If multiple instances of the same custom Resource class exist, append a descriptive suffix:
+`R_MilestoneData_Fire.tres`, `R_MilestoneData_Ice.tres`.
+
+## Class Prefixes (`class_name`)
+
+| Kind | Prefix | Example |
+|---|---|---|
+| Regular class | none | `PascalCase` |
+| Custom Resource | `R_` | `R_MilestoneData` |
+| Abstract class | `A_` | `A_Weapon` |
+| Abstract Resource | `A_R_` | `A_R_ItemData` |
+| Utility class (never a Node, NOT an autoload; a helper used statically or per instance, static-only whenever possible) | `U_` | `U_MathUtils`, `U_TouchInput` |
+| Module (plug-and-play component) | `M_` | `M_Health` |
+| Constants container for one system | `C_[SystemName]` | `C_Inventory` |
+| Shader "class" | `S_` | (see File Naming above) |
+| Autoload / Singleton | `G_` — **only** for autoloads | Project Settings autoload name: `G_AudioManager`, file: `G_AudioManager.gd` |
+| Inner/nested class (defined inside another class file) | none | `class Entry:` |
+
+> **Note:** Do not also declare `class_name` on an autoload script — this conflicts with the autoload's global name. The `G_` prefix is used for the Autoload's name in Project Settings and the script's file name only.
+
+Every class file order: `extends` line first, then `class_name` line, then the class's doc comment, then the body.
+
+## Variables
+
+Baseline casing for **all** variables (member, export, onready, local, parameter) is `camelCase` starting lowercase. Only a scope prefix goes in front of that camelCase name.
+
+| Kind | Rule | Example |
+|---|---|---|
+| Member variable (public, not exported/private) | camelCase, no prefix | `currentHealth` |
+| `@export` variable | camelCase, no prefix | `@export var maxSpeed: float` |
+| `@onready` variable | follows normal public/private rules, no special prefix | `@onready var healthBar: ProgressBar` / `@onready var _internalTimer: Timer` (if private) |
+| Private variable | `_` + camelCase | `_currentTarget` |
+| Function parameter | `p_` + camelCase | `p_newValue`, `p_dataStorage` |
+| Local variable (inside a function) | `l_` + camelCase | `l_currentIndex`, `l_milestone` |
+| Local constant (inside a function) | `l_` + UPPER_CASE | `l_MAX_RETRIES` |
+| Class-level constant | UPPER_CASE, no prefix | `MAX_HEALTH` |
+| Static variable | no extra prefix, normal rules apply | `static var instance` (private: `static var _cache`) |
+
+**Booleans (any scope):** `is`/`has`/`can` directly followed by the rest, no underscore after it, placed after any scope prefix:
+`isActive`, `p_isValid`, `l_hasCollided`, `_isReady`, `canJump`
+
+## Functions
+
+- `snake_case`, starting with a lowercase letter: `func handle_release()`
+- Private function: `_` + snake_case → `func _handle_input()`
+- Static function: no extra prefix → `static func create_default()`
+- Parameters always follow the `p_` + camelCase variable rule above.
+
+## Enums & Constants
+
+| Kind | Rule | Example |
+|---|---|---|
+| Enum type name | UPPER_CASE_WITH_UNDERSCORES | `enum MOVEMENT_STATE { IDLE, RUNNING }` |
+| Enum values | UPPER_CASE | `IDLE`, `RUNNING` |
+| Class-level const | UPPER_CASE | `const MAX_HEALTH = 100` |
+| Local const | `l_` + UPPER_CASE | `const l_MAX_RETRIES = 3` |
+
+All constants belonging to one system are grouped into a single `C_[SystemName]` class (file name matches exactly, e.g. `C_Inventory.gd`).
+
+## Caching
+
+Cache constants from `C_` classes and autoload references into member variables on init (`_init()`) to prevent repeated global name lookups.
+
+- Cached constant: statically typed, keeps the constant's UPPER_CASE name, assigned once in `_init()` and never changed afterwards.
+- Cached autoload reference: untyped (an autoload can't be used as a type, only its value), follows the normal variable rules, named after the autoload without `G_`.
+- Enum constants are not cached.
+
+```gdscript
+## Cached C_TouchInput.CLICK_DEADZONE.
+var CLICK_DEADZONE: float
+## Cached G_AudioManager autoload.
+var _audioManager
+
+func _init() -> void:
+	CLICK_DEADZONE = C_TouchInput.CLICK_DEADZONE
+	_audioManager = G_AudioManager
+```
+
+## Signals
+
+- `s_` prefix + camelCase: `signal s_healthChanged(p_newValue: int)`
+- Signal parameters follow the same `p_` + camelCase rule as function parameters.
+- Every signal gets a short doc comment (see Documentation).
+
+## Nodes, Scenes, Groups, Input, Animation
+
+- Node names in the scene tree: PascalCase, descriptive of role. `HealthBar`, `AttackTimer`
+- Always reference same-tree nodes via unique names (`%NodeName`), never relative NodePaths.
+- Node groups: never raw strings — store as an UPPER_CASE constant inside the relevant `C_[SystemName]` class and reference that constant. e.g. `add_to_group(C_Enemy.GROUP_ENEMIES)`
+- Input Map action names: `snake_case` → `"move_left"`, `"ui_confirm_purchase"`
+- AnimationPlayer track names: `camelCase` → `"idle"`, `"runLeft"`, `"attackCombo1"`
+
+## Shaders
+
+- File naming: see File Naming above (`S_` prefix, PascalCase).
+- Uniform / varying variables: camelCase, no prefix. `uniform float waveSpeed;` `varying vec3 worldPos;`
+- Documentation and section-comment rules apply the same as GDScript (see below), **except**: `#region`/`#endregion` is not supported by the Shader editor, so use a plain, unclosed comment line as a section marker instead:
+
+```glsl
+// UNIFORMS
+uniform float waveSpeed;
+
+// FUNCTIONS
+void vertex() { ... }
+```
 
 ## Documentation
 
-- Every class, function, and class-variable gets a short doc comment. Local (`l_`) variables do not need one.
-- Description is at most 2 lines — state what it is/does, not how.
-- Prefix every doc line with `##`. Append `[br]` to a line only if another doc line follows it (never on the last line of a block).
-- Use `@param <name> ...` and `@return ...` tags after the description for functions that need them.
-- Keep documentation minimal but immediately understandable — skip filler, skip restating the type name.
-
-Example:
+- Every class, function, class-variable, `@export` variable, signal, and enum gets a doc comment directly above it, using `##` lines with `[br]` appended to every line that needs a break.
+- Keep it as short as possible — 2 lines is a **hard maximum** for the plain description, not a target. Shorter is always better as long as it stays clearly descriptive.
+- For functions, list parameters and return value below the description using `@param` and `@return`, one per line, each ending in `[br]` (these are additional to, not counted within, the 2-line cap):
 
 ```gdscript
-## Will detect a click and return the milestone to collect to the ProgressBar. [br]
-## If the click is invalid or the milestone can´t be collected, invalidates the click. [br]
-## @param p_position The position of the click to get the correct milestone [br]
-## @param p_dataStorage The data to check, if a milestone can be collected [br]
-## @return The milestone, which has to be collected or null
+## Detects a click and returns the milestone to collect. [br]
+## @param p_position The click position. [br]
+## @param p_dataStorage The data to validate the milestone against. [br]
+## @return The milestone to collect, or null.
 func handle_release(p_position: Vector2, p_dataStorage: R_ProgressPathDataStorage) -> R_MilestoneData:
-	var l_milestone: R_MilestoneData = null
-
-	if (pressedMilestone):
-		if (milestoneRects.find_key(pressedMilestone).has_point(p_position)):
-			if (on_milestone_clicked(pressedMilestone, p_dataStorage)):
-				l_milestone = pressedMilestone
-
-		invalidate_press()
-
-	return l_milestone
 ```
 
-## File & Code Organization
+## Regions (GDScript files)
 
-- Organize scripts in clear folder structures: a script lives where it is used.
-- Use `#region REGION_NAME` / `#endregion` blocks to group related declarations (e.g. `PRIVATE_VARIABLES`, `LIFECYCLE`, `ABSTRACT_METHODS`, `PUBLIC_METHODS`, `PRIVATE_METHODS`).
-- Use custom Resources (`R_...`) for data that should be reusable and exchangeable — not raw fields duplicated across scripts.
-- Make code modular wherever reasonable.
+Use this fixed, ordered set of `#region` blocks in every script; skip any that don't apply:
 
-## Clean Code / Minimalism
+```gdscript
+#region SIGNALS
+#endregion
 
-- Do not add a layer (a Resource wrapper, an extra base class, an extra enum file, a helper singleton, …) unless it adds real capability. More files is not more correct — a smaller design that does the same job is the better one.
-- If two or more classes need the identical data or logic, move it up into one shared parent class instead of duplicating it — this applies to whole fields/arrays, not just methods.
-- Do not build a multi-entry structure (array, dictionary) for state that can only ever hold one active value at a time — use a plain scalar field instead.
-- A concept that only one class owns or cares about (e.g. a small enum) is declared inside that class, not split out into its own top-level file.
-- Exit a loop as soon as the result is decided (`return`/`break`) instead of scanning the rest of the data once the answer is already known.
-- No speculative flexibility: don't add parameters, branches, or config for a case nothing in the project currently needs.
+#region ENUMS_AND_CONSTANTS
+#endregion
 
-## Abstract Classes
+#region CACHED_VARS
+#endregion
 
-- Abstract classes/Resources are prefixed `A_` / `A_R_` and marked with `@abstract` directly above the `extends` line.
-- An abstract method is declared with `@abstract` directly above it and has no body:
-  ```gdscript
-  @abstract
-  func _get_enum() -> Dictionary
-  ```
-- When an abstract class extends another abstract class and does not itself implement an inherited abstract method, it must re-declare that method as `@abstract` in its own body too. Abstractness is not automatically inherited down the chain in GDScript — every class that leaves a method unimplemented must repeat the `@abstract` declaration for it, all the way down to the last class before a concrete implementation is provided.
+#region EXPORTS_AND_VARS
+#endregion
 
-## Explanatory Naming
+#region LIFECYCLE_AND_METHODS
+#endregion
 
-- A name must say what the thing is or does. If a reader can't tell from the identifier alone, rename it — don't rely on a comment to compensate for a vague name.
-- Avoid filler/ambiguous qualifiers (e.g. "typed", "data", "info", "helper") when a more specific word exists (e.g. `_get_valid_children()` over `_get_children_typed()`).
-- Documentation should explain the *why*/role, not restate the signature — e.g. explicitly call out when a field or class is dual-purpose (used differently depending on which subclass/role holds it), since that's the part a name alone can't convey.
+#region MISC
+#endregion
+```
 
-## PackedArrays & Bit/Value Comparisons
-
-- For fixed, per-enum-key data, use a `Packed*Array` (`PackedByteArray`, `PackedStringArray`, `PackedFloat32Array`, …) with one slot per enum entry — not `Array`/`Dictionary`. Size and fill it once, from `<Enum>.keys()`/`<Enum>.values()`, typically in `_init()`.
-- Build a `PackedStringArray` of enum key names (`PackedStringArray(<Enum>.keys())`) to identify which enum a container was built from, and use it to validate that two instances are compatible before comparing their values.
-- `Packed*Array` equality (`==`/`!=`) is an element-wise value comparison in GDScript, not a reference/identity comparison — safe to use directly as a cheap compatibility check. Still check size (or rely on `!=` for size+content together) before indexing either array, to avoid an out-of-bounds read.
-- To check that a set of properties satisfies a set of requirements, compare with a bitwise AND against the required bitmask (`current & required == required`) per entry, rather than a Dictionary/lookup-based rule engine.
-- Prefer merging a "same identity" check (e.g. per-index key-name comparison) into the same loop that already walks the array for the value comparison, instead of a separate up-front pass, when both checks iterate the same indices anyway.
+- `CACHED_VARS` holds the member variables cached in `_init()` (see Caching) — cached `C_` constants and cached autoload references. Keep them out of `EXPORTS_AND_VARS`.
+- `MISC` is the catch-all for anything that doesn't belong in any of the other regions. Keep it last, and prefer fitting content into a more specific region whenever one applies.

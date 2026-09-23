@@ -4,10 +4,7 @@ class_name A_ExpEntityServer
 ## Base of every server that keeps one slot per entity id beside the chunk index. [br]
 ## Owns the slot protocol and the cached grid values, so no server repeats either.
 
-#region EXPORTS_AND_VARS
-
-## Chunk index and shared entity columns this server reads; never points back at the api server.
-var _chunking: ExpChunkingServer = null
+#region CACHED_VARS
 
 ## Cached C_ChunkingServer.MAP_CHUNK_COLUMNS; the search loops read it constantly.
 var MAP_CHUNK_COLUMNS: int
@@ -23,6 +20,13 @@ var CHUNK_SIZE: float
 
 ## Cached C_ChunkingServer.TEAM_COUNT.
 var TEAM_COUNT: int
+
+#endregion
+
+#region EXPORTS_AND_VARS
+
+## Chunk index and shared entity columns this server reads; never points back at the api server.
+var _chunking: ExpChunkingServer = null
 
 #endregion
 

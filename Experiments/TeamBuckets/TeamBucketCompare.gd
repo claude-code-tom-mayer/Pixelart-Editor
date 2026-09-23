@@ -3,9 +3,7 @@ class_name TeamBucketCompare
 ## Compares one shared centre bucket per chunk against one per team and chunk. [br]
 ## Run it headless: godot --headless --script res://Experiments/TeamBuckets/TeamBucketCompare.gd
 
-#region EXPORTS_AND_VARS
-
-# Cached constants, assigned once in _init().
+#region CACHED_VARS
 
 ## Cached C_TeamBucketCompare.ENTITY_COUNTS.
 var ENTITY_COUNTS: Array[int]

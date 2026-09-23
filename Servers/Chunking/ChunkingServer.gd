@@ -5,16 +5,16 @@ extends Node
 #region SIGNALS
 
 ## A fresh id was handed out for the first time; servers append one slot for it.
-signal entity_slot_appended(p_id: int)
+signal s_entitySlotAppended(p_id: int)
 
 ## An entity was announced for removal but is still fully active.
-signal entity_pre_unregistered(p_id: int)
+signal s_entityPreUnregistered(p_id: int)
 
 ## An entity was removed from the index; its id stays locked until it is released.
-signal entity_unregistered(p_id: int)
+signal s_entityUnregistered(p_id: int)
 
 ## The id of a removed entity is handed back for reuse; servers clear their slot of it.
-signal entity_released(p_id: int)
+signal s_entityReleased(p_id: int)
 
 #endregion
 
@@ -223,7 +223,7 @@ func register_entity(p_position: Vector2, p_radius: float, p_team: int, p_groups
 ## @param p_id The entity id to mark
 func pre_unregister_entity(p_id: int) -> void:
 	_entityPreUnregistered[p_id] = 1
-	entity_pre_unregistered.emit(p_id)
+	s_entityPreUnregistered.emit(p_id)
 
 
 ## Removes an entity from all its chunks and locks its id until it is released. [br]
@@ -234,7 +234,7 @@ func unregister_entity(p_id: int) -> void:
 		return
 	
 	_entityUnregistering[p_id] = 1
-	entity_unregistered.emit(p_id)
+	s_entityUnregistered.emit(p_id)
 	
 	var l_slot: int = _entitySlotHead[p_id]
 	while (l_slot != NO_SLOT):
@@ -271,7 +271,7 @@ func release_removed_ids() -> void:
 		_entityUnregistering[l_id] = 0
 		_entityPreUnregistered[l_id] = 0
 		_freeIds.append(l_id)
-		entity_released.emit(l_id)
+		s_entityReleased.emit(l_id)
 	
 	_pendingFreeIds.clear()
 
@@ -480,7 +480,7 @@ func _acquire_id() -> int:
 	_centerPrev.append(NO_ENTITY)
 	
 	var l_id: int = _entityTeam.size() - 1
-	entity_slot_appended.emit(l_id)
+	s_entitySlotAppended.emit(l_id)
 	
 	return l_id
 

@@ -3,6 +3,58 @@ class_name ExpTargetingServer
 ## Picks and holds a target per entity and reports where it should move. [br]
 ## Searches are chunk counted and event driven: a target is only ever lost, never re-checked.
 
+#region CACHED_VARS
+
+## Cached C_ChunkingServer.NO_ENTITY.
+var NO_ENTITY: int
+
+## Cached C_TargetingServer.NO_TARGET.
+var NO_TARGET: int
+
+## Cached C_TargetingServer.FLAG_INVISIBLE.
+var FLAG_INVISIBLE: int
+
+## Cached C_TargetingServer.FLAG_TARGETS_INVISIBLE.
+var FLAG_TARGETS_INVISIBLE: int
+
+## Cached C_TargetingServer.FLAG_HAS_FOCUS.
+var FLAG_HAS_FOCUS: int
+
+## Cached C_TargetingServer.FLAG_IGNORES_FOCUS.
+var FLAG_IGNORES_FOCUS: int
+
+## Cached C_TargetingServer.BASE_REACHED_EPSILON.
+var BASE_REACHED_EPSILON: float
+
+## Cached C_TargetingServer.DIAGONAL_CHUNK_COST.
+var DIAGONAL_CHUNK_COST: float
+
+## Cached C_TargetingServer.TEAM_BASE_X.
+var TEAM_BASE_X: PackedFloat32Array
+
+## Cached C_TargetingServer.TEAM_MARCH_X.
+var TEAM_MARCH_X: PackedFloat32Array
+
+## Cached C_TargetingServer.TEAM_FORWARD_SIGN.
+var TEAM_FORWARD_SIGN: PackedInt32Array
+
+## Cached C_TargetingServer.WEIGHT_CLOSENESS.
+var WEIGHT_CLOSENESS: float
+
+## Cached C_TargetingServer.WEIGHT_FOCUS.
+var WEIGHT_FOCUS: float
+
+## Cached C_TargetingServer.WEIGHT_BEHIND.
+var WEIGHT_BEHIND: float
+
+## Cached C_TargetingServer.WEIGHT_CROWDING.
+var WEIGHT_CROWDING: float
+
+## Cached C_TargetingServer.WEIGHT_MUTUAL.
+var WEIGHT_MUTUAL: float
+
+#endregion
+
 #region EXPORTS_AND_VARS
 
 ## Bitmask of the groups an entity may go after.
@@ -76,56 +128,6 @@ var _searchBestNormalId: int = C_TargetingServer.NO_TARGET
 
 ## Score of the best normal candidate so far.
 var _searchBestNormalScore: float = 0.0
-
-# Cached constants, assigned once in _init().
-
-## Cached C_ChunkingServer.NO_ENTITY.
-var NO_ENTITY: int
-
-## Cached C_TargetingServer.NO_TARGET.
-var NO_TARGET: int
-
-## Cached C_TargetingServer.FLAG_INVISIBLE.
-var FLAG_INVISIBLE: int
-
-## Cached C_TargetingServer.FLAG_TARGETS_INVISIBLE.
-var FLAG_TARGETS_INVISIBLE: int
-
-## Cached C_TargetingServer.FLAG_HAS_FOCUS.
-var FLAG_HAS_FOCUS: int
-
-## Cached C_TargetingServer.FLAG_IGNORES_FOCUS.
-var FLAG_IGNORES_FOCUS: int
-
-## Cached C_TargetingServer.BASE_REACHED_EPSILON.
-var BASE_REACHED_EPSILON: float
-
-## Cached C_TargetingServer.DIAGONAL_CHUNK_COST.
-var DIAGONAL_CHUNK_COST: float
-
-## Cached C_TargetingServer.TEAM_BASE_X.
-var TEAM_BASE_X: PackedFloat32Array
-
-## Cached C_TargetingServer.TEAM_MARCH_X.
-var TEAM_MARCH_X: PackedFloat32Array
-
-## Cached C_TargetingServer.TEAM_FORWARD_SIGN.
-var TEAM_FORWARD_SIGN: PackedInt32Array
-
-## Cached C_TargetingServer.WEIGHT_CLOSENESS.
-var WEIGHT_CLOSENESS: float
-
-## Cached C_TargetingServer.WEIGHT_FOCUS.
-var WEIGHT_FOCUS: float
-
-## Cached C_TargetingServer.WEIGHT_BEHIND.
-var WEIGHT_BEHIND: float
-
-## Cached C_TargetingServer.WEIGHT_CROWDING.
-var WEIGHT_CROWDING: float
-
-## Cached C_TargetingServer.WEIGHT_MUTUAL.
-var WEIGHT_MUTUAL: float
 
 #endregion
 
