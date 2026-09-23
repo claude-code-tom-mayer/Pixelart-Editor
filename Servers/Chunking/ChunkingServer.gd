@@ -1,7 +1,6 @@
-extends RefCounted
-class_name ChunkingServer
-## Owns the entity ids and sorts entities into square chunks, columns and one map aggregate. [br]
-## Servers built on top read the index directly and follow the id lifecycle through its signals.
+extends Node
+## Autoload that owns the entity ids and sorts entities into square chunks, columns and one map aggregate. [br]
+## HitServer and TargetingServer read the index directly and follow the id lifecycle through its signals.
 
 #region SIGNALS
 

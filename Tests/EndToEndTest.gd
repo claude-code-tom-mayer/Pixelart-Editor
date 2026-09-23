@@ -1,18 +1,12 @@
-extends SceneTree
+extends Node
 class_name EndToEndTest
-## Drives entities through the chunking, hit and targeting servers the way the game does. [br]
-## Run it headless: godot --headless --script res://Tests/EndToEndTest.gd
+## Drives entities through the chunking, hit and targeting autoloads the way the game does. [br]
+## Run it headless through its scene: godot --headless res://Tests/EndToEndTest.tscn
 
 #region EXPORTS_AND_VARS
 
-## Chunk index of the running check; hands out the id every entity uses on all servers.
-var _chunking: ChunkingServer = null
-
-## Hit server of the running check.
-var _hits: HitServer = null
-
-## Targeting server of the running check.
-var _targeting: TargetingServer = null
+## Every id the running check registered; removed again before the next check starts.
+var _liveIds: PackedInt32Array = PackedInt32Array()
 
 ## Hit groups every armed entity carries and can be harmed by.
 var _hitProfile: R_HitProfile = null
@@ -33,8 +27,9 @@ var _checkCount: int = 0
 
 #region LIFECYCLE_AND_METHODS
 
-## Runs every check, prints a summary and quits with a non zero code on failure.
-func _init() -> void:
+## Runs every check, prints a summary and quits with a non zero code on failure. [br]
+## Runs as the main scene, so the server autoloads are already loaded.
+func _ready() -> void:
 	_hitProfile = R_HitProfile.new()
 	_hitProfile.hurtGroups = 0b1
 	_hitProfile.hitGroups = 0b1
@@ -50,18 +45,30 @@ func _init() -> void:
 	_check_removal_lifecycle()
 	_check_id_reuse()
 	_check_partial_registration()
-	_check_server_lifetime()
 
 	print("")
 	print("%d of %d checks passed" % [_checkCount - _failureCount, _checkCount])
-	quit(1 if _failureCount > 0 else 0)
+	get_tree().quit(1 if _failureCount > 0 else 0)
 
 
-## Builds a fresh chunk index with both servers on top of it.
-func _build_servers() -> void:
-	_chunking = ChunkingServer.new()
-	_hits = HitServer.new(_chunking)
-	_targeting = TargetingServer.new(_chunking)
+## Removes every entity of the previous check, so each check starts on empty servers.
+func _clear_world() -> void:
+	for l_id: int in _liveIds:
+		ChunkingServer.unregister_entity(l_id)
+	
+	ChunkingServer.release_removed_ids()
+	_liveIds.clear()
+
+
+## Registers an entity on the index only and remembers it for _clear_world(). [br]
+## @param p_position Start position [br]
+## @param p_team Team, a C_ChunkingServer.TEAM value [br]
+## @return The id the entity uses on every server
+func _register(p_position: Vector2, p_team: int) -> int:
+	var l_id: int = ChunkingServer.register_entity(p_position, 24.0, p_team, 0b1)
+	_liveIds.append(l_id)
+	
+	return l_id
 
 
 ## Registers one entity on all three servers, the way an entity does on spawn. [br]
@@ -70,9 +77,9 @@ func _build_servers() -> void:
 ## @param p_module Module management that receives its hits [br]
 ## @return The id the entity uses on every server
 func _spawn(p_position: Vector2, p_team: int, p_module: M_ModuleManager) -> int:
-	var l_id: int = _chunking.register_entity(p_position, 24.0, p_team, 0b1)
-	_hits.register(l_id, p_module, _hitProfile)
-	_targeting.register(l_id, _targetingData)
+	var l_id: int = _register(p_position, p_team)
+	HitServer.register(l_id, p_module, _hitProfile)
+	TargetingServer.register(l_id, _targetingData)
 
 	return l_id
 
@@ -82,7 +89,7 @@ func _spawn(p_position: Vector2, p_team: int, p_module: M_ModuleManager) -> int:
 ## @param p_origin Where the hit is centered [br]
 ## @return How many targets the hit landed on
 func _hit_at(p_emitterId: int, p_origin: Vector2) -> int:
-	return _hits.hit_circle(p_emitterId, p_origin, 32.0, Vector2(0.0, 64.0),
+	return HitServer.hit_circle(p_emitterId, p_origin, 32.0, Vector2(0.0, 64.0),
 		C_HitServer.UNLIMITED_HITS, C_HitServer.NO_PREFERRED_TARGET, _hitData).size()
 
 
@@ -102,33 +109,33 @@ func _expect(p_isMet: bool, p_description: String) -> void:
 ## Search, approach, combat and flee between two entities of opposing teams.
 func _check_targeting_flow() -> void:
 	print("targeting flow")
-	_build_servers()
+	_clear_world()
 
 	var l_attacker: int = _spawn(Vector2(1000.0, 2000.0), C_ChunkingServer.TEAM.ATTACKER, M_ModuleManager.new())
 	var l_defender: int = _spawn(Vector2(1100.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER, M_ModuleManager.new())
 
 	_expect(l_attacker != l_defender, "every entity gets its own id")
-	_expect(_targeting.update_entity(l_attacker) == C_TargetingServer.STATE.SEARCH, "a fresh entity searches")
-	_expect(_targeting.search_target(l_attacker) == l_defender, "the attacker finds the defender")
-	_expect(_targeting.get_targeters(l_defender) == PackedInt32Array([l_attacker]), "the defender knows its targeter")
-	_expect(_targeting.update_entity(l_attacker) == C_TargetingServer.STATE.APPROACH, "out of hit range means approach")
-	_expect(_targeting.get_target_position(l_attacker) == Vector2(1100.0, 2000.0), "approaching heads for the target")
+	_expect(TargetingServer.update_entity(l_attacker) == C_TargetingServer.STATE.SEARCH, "a fresh entity searches")
+	_expect(TargetingServer.search_target(l_attacker) == l_defender, "the attacker finds the defender")
+	_expect(TargetingServer.get_targeters(l_defender) == PackedInt32Array([l_attacker]), "the defender knows its targeter")
+	_expect(TargetingServer.update_entity(l_attacker) == C_TargetingServer.STATE.APPROACH, "out of hit range means approach")
+	_expect(TargetingServer.get_target_position(l_attacker) == Vector2(1100.0, 2000.0), "approaching heads for the target")
 
-	_chunking.set_position(l_attacker, Vector2(1050.0, 2000.0))
-	_expect(_targeting.update_entity(l_attacker) == C_TargetingServer.STATE.COMBAT, "a move from the index reaches targeting")
+	ChunkingServer.set_position(l_attacker, Vector2(1050.0, 2000.0))
+	_expect(TargetingServer.update_entity(l_attacker) == C_TargetingServer.STATE.COMBAT, "a move from the index reaches targeting")
 
-	_expect(_targeting.update_entity(l_defender) == C_TargetingServer.STATE.FLEE, "a close targeter makes the defender flee")
-	_expect(_targeting.get_target_position(l_defender).x == C_ChunkingServer.MAP_SIZE.x, "fleeing heads for the own base")
+	_expect(TargetingServer.update_entity(l_defender) == C_TargetingServer.STATE.FLEE, "a close targeter makes the defender flee")
+	_expect(TargetingServer.get_target_position(l_defender).x == C_ChunkingServer.MAP_SIZE.x, "fleeing heads for the own base")
 
-	_targeting.set_invisible(l_defender, true)
-	_expect(_targeting.get_target(l_attacker) == C_TargetingServer.NO_TARGET, "turning invisible drops the targeter")
-	_expect(_targeting.search_target(l_attacker) == C_TargetingServer.NO_TARGET, "an invisible entity cannot be found")
+	TargetingServer.set_invisible(l_defender, true)
+	_expect(TargetingServer.get_target(l_attacker) == C_TargetingServer.NO_TARGET, "turning invisible drops the targeter")
+	_expect(TargetingServer.search_target(l_attacker) == C_TargetingServer.NO_TARGET, "an invisible entity cannot be found")
 
 
 ## Hits land on opponents only, pass the modules the payload and respect the groups.
 func _check_hits() -> void:
 	print("hits")
-	_build_servers()
+	_clear_world()
 
 	var l_attackerModule: M_ModuleManager = M_ModuleManager.new()
 	var l_defenderModule: M_ModuleManager = M_ModuleManager.new()
@@ -141,52 +148,52 @@ func _check_hits() -> void:
 	_expect(l_attackerModule.hitCount == 0, "a hit never lands on its emitter")
 	_expect(l_ally != l_attacker, "an ally was placed right beside the emitter")
 
-	_chunking.set_position(l_defender, Vector2(1500.0, 2000.0))
+	ChunkingServer.set_position(l_defender, Vector2(1500.0, 2000.0))
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0, "a target moved out of reach is not hit")
 
-	_chunking.set_position(l_defender, Vector2(1040.0, 2000.0))
-	_hits.set_hurt_groups(l_defender, 0b10)
+	ChunkingServer.set_position(l_defender, Vector2(1040.0, 2000.0))
+	HitServer.set_hurt_groups(l_defender, 0b10)
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0, "a hit without a matching hurt group does not connect")
 
-	_hits.set_hurt_groups(l_defender, 0b1)
-	_hits.set_y_band(l_defender, Vector2(200.0, 300.0))
+	HitServer.set_hurt_groups(l_defender, 0b1)
+	HitServer.set_y_band(l_defender, Vector2(200.0, 300.0))
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0, "a hit below the band of the target misses")
 
 
 ## Announcing and removing an entity ends every link to it on both servers.
 func _check_removal_lifecycle() -> void:
 	print("removal lifecycle")
-	_build_servers()
+	_clear_world()
 
 	var l_defenderModule: M_ModuleManager = M_ModuleManager.new()
 	var l_attacker: int = _spawn(Vector2(1000.0, 2000.0), C_ChunkingServer.TEAM.ATTACKER, M_ModuleManager.new())
 	var l_defender: int = _spawn(Vector2(1040.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER, l_defenderModule)
 
-	_targeting.search_target(l_attacker)
-	_targeting.search_target(l_defender)
-	_chunking.pre_unregister_entity(l_defender)
+	TargetingServer.search_target(l_attacker)
+	TargetingServer.search_target(l_defender)
+	ChunkingServer.pre_unregister_entity(l_defender)
 
-	_expect(_targeting.get_target(l_attacker) == C_TargetingServer.NO_TARGET, "announcing an entity drops its targeters")
-	_expect(_targeting.search_target(l_attacker) == C_TargetingServer.NO_TARGET, "an announced entity cannot be found")
+	_expect(TargetingServer.get_target(l_attacker) == C_TargetingServer.NO_TARGET, "announcing an entity drops its targeters")
+	_expect(TargetingServer.search_target(l_attacker) == C_TargetingServer.NO_TARGET, "an announced entity cannot be found")
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0 and l_defenderModule.hitCount == 0, "an announced entity cannot be hit")
-	_expect(_targeting.get_target(l_defender) == l_attacker, "an announced entity keeps acting until it is removed")
+	_expect(TargetingServer.get_target(l_defender) == l_attacker, "an announced entity keeps acting until it is removed")
 
-	_chunking.unregister_entity(l_defender)
-	_expect(_targeting.get_targeters(l_attacker).is_empty(), "removing an entity drops its own target")
+	ChunkingServer.unregister_entity(l_defender)
+	_expect(TargetingServer.get_targeters(l_attacker).is_empty(), "removing an entity drops its own target")
 
-	_chunking.unregister_entity(l_defender)
-	_chunking.release_removed_ids()
-	_chunking.release_removed_ids()
+	ChunkingServer.unregister_entity(l_defender)
+	ChunkingServer.release_removed_ids()
+	ChunkingServer.release_removed_ids()
 
-	var l_first: int = _chunking.register_entity(Vector2(3000.0, 2000.0), 24.0, C_ChunkingServer.TEAM.DEFENDER, 0b1)
-	var l_second: int = _chunking.register_entity(Vector2(3000.0, 2000.0), 24.0, C_ChunkingServer.TEAM.DEFENDER, 0b1)
+	var l_first: int = _register(Vector2(3000.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER)
+	var l_second: int = _register(Vector2(3000.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER)
 	_expect(l_first == l_defender and l_second != l_defender, "a double removal frees the id only once")
 
 
 ## A reused id starts clean on every server.
 func _check_id_reuse() -> void:
 	print("id reuse")
-	_build_servers()
+	_clear_world()
 
 	var l_curve: Curve = Curve.new()
 	l_curve.add_point(Vector2(0.0, 100.0))
@@ -196,65 +203,41 @@ func _check_id_reuse() -> void:
 	var l_defender: int = _spawn(Vector2(1040.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER, M_ModuleManager.new())
 	var l_decoy: int = _spawn(Vector2(1060.0, 2000.0), C_ChunkingServer.TEAM.ATTACKER, M_ModuleManager.new())
 
-	_hits.set_radius_curve(l_defender, l_curve)
-	_targeting.set_focused(l_defender, true)
-	_targeting.search_target(l_defender)
-	_targeting.search_target(l_attacker)
+	HitServer.set_radius_curve(l_defender, l_curve)
+	TargetingServer.set_focused(l_defender, true)
+	TargetingServer.search_target(l_defender)
+	TargetingServer.search_target(l_attacker)
 
-	_chunking.pre_unregister_entity(l_defender)
-	_chunking.unregister_entity(l_defender)
-	_chunking.release_removed_ids()
+	ChunkingServer.pre_unregister_entity(l_defender)
+	ChunkingServer.unregister_entity(l_defender)
+	ChunkingServer.release_removed_ids()
 
 	var l_reusedModule: M_ModuleManager = M_ModuleManager.new()
-	var l_reused: int = _chunking.register_entity(Vector2(1040.0, 2000.0), 24.0, C_ChunkingServer.TEAM.DEFENDER, 0b1)
+	var l_reused: int = _register(Vector2(1040.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER)
 
 	_expect(l_reused == l_defender, "the released id is handed out again")
-	_expect(_targeting.get_target(l_reused) == C_TargetingServer.NO_TARGET, "a reused id holds no target")
-	_expect(_targeting.get_targeters(l_reused).is_empty(), "a reused id has no targeters")
-	_expect(_targeting.get_state(l_reused) == C_TargetingServer.STATE.SEARCH, "a reused id starts searching")
+	_expect(TargetingServer.get_target(l_reused) == C_TargetingServer.NO_TARGET, "a reused id holds no target")
+	_expect(TargetingServer.get_targeters(l_reused).is_empty(), "a reused id has no targeters")
+	_expect(TargetingServer.get_state(l_reused) == C_TargetingServer.STATE.SEARCH, "a reused id starts searching")
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0, "a reused id is not hittable before it registers a hit side")
 
-	_hits.register(l_reused, l_reusedModule, _hitProfile)
-	_targeting.register(l_reused, _targetingData)
+	HitServer.register(l_reused, l_reusedModule, _hitProfile)
+	TargetingServer.register(l_reused, _targetingData)
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 1 and l_reusedModule.hitCount == 1, "the reused id is hit once it registers")
-	_expect(_targeting.search_target(l_decoy) == l_reused, "the reused id can be targeted again")
+	_expect(TargetingServer.search_target(l_decoy) == l_reused, "the reused id can be targeted again")
 
 
 ## An entity only needs the servers it uses; the index alone never makes it hittable.
 func _check_partial_registration() -> void:
 	print("partial registration")
-	_build_servers()
+	_clear_world()
 
 	var l_attacker: int = _spawn(Vector2(1000.0, 2000.0), C_ChunkingServer.TEAM.ATTACKER, M_ModuleManager.new())
-	var l_obstacle: int = _chunking.register_entity(Vector2(1040.0, 2000.0), 24.0, C_ChunkingServer.TEAM.DEFENDER, 0b1)
+	var l_obstacle: int = _register(Vector2(1040.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER)
 
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0, "an entity without a hit side is never hit")
-	_expect(_targeting.search_target(l_attacker) == l_obstacle, "an entity only on the index can still be targeted")
-	_expect(_targeting.update_entity(l_obstacle) == C_TargetingServer.STATE.SEARCH, "an unregistered side answers with defaults")
+	_expect(TargetingServer.search_target(l_attacker) == l_obstacle, "an entity only on the index can still be targeted")
+	_expect(TargetingServer.update_entity(l_obstacle) == C_TargetingServer.STATE.SEARCH, "an unregistered side answers with defaults")
 
-
-## The index never keeps a server alive, and a freed server stops listening to it.
-func _check_server_lifetime() -> void:
-	print("server lifetime")
-	_build_servers()
-
-	var l_chunkingRef: WeakRef = weakref(_chunking)
-	var l_hitsRef: WeakRef = weakref(_hits)
-
-	_hits = null
-	_expect(l_hitsRef.get_ref() == null, "dropping the hit server frees it")
-
-	var l_attacker: int = _chunking.register_entity(Vector2(1000.0, 2000.0), 24.0, C_ChunkingServer.TEAM.ATTACKER, 0b1)
-	_targeting.register(l_attacker, _targetingData)
-	_chunking.unregister_entity(l_attacker)
-	_chunking.release_removed_ids()
-	_expect(_chunking.register_entity(Vector2.ZERO, 24.0, C_ChunkingServer.TEAM.ATTACKER, 0b1) == l_attacker,
-		"the index keeps working without the hit server")
-
-	_chunking = null
-	_expect(l_chunkingRef.get_ref() != null, "a server keeps the index it reads alive")
-
-	_targeting = null
-	_expect(l_chunkingRef.get_ref() == null, "the index is freed with the last server")
 
 #endregion

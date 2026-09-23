@@ -1,21 +1,12 @@
-extends SceneTree
+extends Node
 class_name FrameBenchmark
 ## Times one simulation frame per entity count, split into the phases a frame really runs. [br]
-## Run it headless: godot --headless --script res://Benchmarks/FrameBenchmark.gd
+## Run it headless through its scene: godot --headless res://Benchmarks/FrameBenchmark.tscn
 
 #region EXPORTS_AND_VARS
 
-## Position of every entity, kept here so the benchmark never reads server internals.
+## Position per entity id, kept here so the benchmark never reads server internals.
 var _positions: PackedVector2Array = PackedVector2Array()
-
-## Chunk index of the running pass; hands out the id every entity uses on all servers.
-var _chunking: ChunkingServer = null
-
-## Hit server of the running pass.
-var _hits: HitServer = null
-
-## Targeting server of the running pass.
-var _targeting: TargetingServer = null
 
 # Cached constants, assigned once in _init().
 
@@ -62,8 +53,9 @@ var NO_PREFERRED_TARGET: int
 
 #region LIFECYCLE_AND_METHODS
 
-## Caches the configuration, runs every pass and prints one table, then quits.
-func _init() -> void:
+## Caches the configuration, runs every pass and prints one table, then quits. [br]
+## Runs as the main scene, so the server autoloads are already loaded.
+func _ready() -> void:
 	ENTITY_COUNTS = C_FrameBenchmark.ENTITY_COUNTS
 	FRAME_COUNT = C_FrameBenchmark.FRAME_COUNT
 	SEARCH_BUDGET = C_FrameBenchmark.SEARCH_BUDGET
@@ -89,16 +81,13 @@ func _init() -> void:
 	print("Simulation only, single threaded, no rendering. One single target hit per entity per frame.")
 	print("Search budget: %d entities per frame, so each one re-searches every N/%d frames."
 		% [SEARCH_BUDGET, SEARCH_BUDGET])
-	quit()
+	get_tree().quit()
 
 
-## Builds a world of two fronts and times the phases of one frame in it. [br]
+## Builds a world of two fronts, times the phases of one frame in it and removes it again. [br]
+## The servers are autoloads shared by every pass, so each pass leaves them empty. [br]
 ## @param p_count How many entities the pass registers
 func _run_pass(p_count: int) -> void:
-	_chunking = ChunkingServer.new()
-	_hits = HitServer.new(_chunking)
-	_targeting = TargetingServer.new(_chunking)
-	
 	var l_random: RandomNumberGenerator = RandomNumberGenerator.new()
 	l_random.seed = 11
 	
@@ -120,28 +109,28 @@ func _run_pass(p_count: int) -> void:
 		var l_start: int = Time.get_ticks_usec()
 		for l_id: int in l_ids:
 			_positions[l_id] = _get_drifted_position(l_id, l_random)
-			_chunking.set_position(l_id, _positions[l_id])
+			ChunkingServer.set_position(l_id, _positions[l_id])
 		l_moveTime += Time.get_ticks_usec() - l_start
 		
 		l_start = Time.get_ticks_usec()
 		for l_id: int in l_ids:
-			_targeting.update_entity(l_id)
+			TargetingServer.update_entity(l_id)
 		l_updateTime += Time.get_ticks_usec() - l_start
 		
 		l_start = Time.get_ticks_usec()
 		for l_id: int in l_ids:
-			_targeting.get_target_position(l_id)
+			TargetingServer.get_target_position(l_id)
 		l_positionTime += Time.get_ticks_usec() - l_start
 		
 		l_start = Time.get_ticks_usec()
 		for l_step: int in l_budget:
-			_targeting.search_target(l_ids[(l_cursor + l_step) % p_count])
+			TargetingServer.search_target(l_ids[(l_cursor + l_step) % p_count])
 		l_searchTime += Time.get_ticks_usec() - l_start
 		l_cursor = (l_cursor + l_budget) % p_count
 		
 		l_start = Time.get_ticks_usec()
 		for l_id: int in l_ids:
-			l_landed += _hits.hit_circle_ordered(l_id, _positions[l_id], HIT_RADIUS, HIT_Y_BAND,
+			l_landed += HitServer.hit_circle_ordered(l_id, _positions[l_id], HIT_RADIUS, HIT_Y_BAND,
 				1, NO_PREFERRED_TARGET, l_hitData).size()
 		l_hitTime += Time.get_ticks_usec() - l_start
 	
@@ -153,6 +142,11 @@ func _run_pass(p_count: int) -> void:
 		l_positionTime / 1000.0 / l_frames, l_searchTime / 1000.0 / l_frames,
 		l_hitTime / 1000.0 / l_frames, l_total, 1000.0 / maxf(l_total, 0.001),
 		int(l_landed / l_frames)])
+	
+	for l_id: int in l_ids:
+		ChunkingServer.unregister_entity(l_id)
+	
+	ChunkingServer.release_removed_ids()
 
 
 ## Registers two fronts facing each other along x on all three servers, armed so their hits connect. [br]
@@ -163,7 +157,7 @@ func _build_world(p_count: int, p_random: RandomNumberGenerator) -> PackedInt32A
 	var l_ids: PackedInt32Array = PackedInt32Array()
 	var l_width: float = MAP_SIZE.x
 	var l_height: float = MAP_SIZE.y
-	_positions = PackedVector2Array()
+	_positions.resize(p_count)
 	
 	var l_hitProfile: R_HitProfile = R_HitProfile.new()
 	l_hitProfile.yBand = HIT_Y_BAND
@@ -181,11 +175,11 @@ func _build_world(p_count: int, p_random: RandomNumberGenerator) -> PackedInt32A
 			clampf(p_random.randfn(l_frontX, l_width * FRONT_SPREAD), 0.0, l_width - 1.0),
 			clampf(p_random.randfn(l_height * 0.5, l_height * 0.17), 0.0, l_height - 1.0))
 		
-		_positions.append(l_position)
-		var l_id: int = _chunking.register_entity(l_position, ENTITY_RADII[l_index % ENTITY_RADII.size()],
+		var l_id: int = ChunkingServer.register_entity(l_position, ENTITY_RADII[l_index % ENTITY_RADII.size()],
 			l_team, 1 << (l_index % 3))
-		_hits.register(l_id, M_ModuleManager.new(), l_hitProfile)
-		_targeting.register(l_id, l_targetingData)
+		HitServer.register(l_id, M_ModuleManager.new(), l_hitProfile)
+		TargetingServer.register(l_id, l_targetingData)
+		_positions[l_id] = l_position
 		l_ids.append(l_id)
 	
 	return l_ids

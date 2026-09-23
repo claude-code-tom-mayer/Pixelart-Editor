@@ -402,7 +402,7 @@ ul.rules li::marker{color:var(--accent);}
   <section id="api">
     <span class="eyebrow">Reference</span>
     <h2>Public API</h2>
-    <p class="prose">Entities call the index directly. It is the one server that hands out ids and runs their lifecycle; the hit and targeting servers are built with a reference to it and follow that lifecycle through its signals.</p>
+    <p class="prose"><code>ChunkingServer</code> is an autoload, the first of the three, and entities call it directly. It is the one server that hands out ids and runs their lifecycle; the <code>HitServer</code> and <code>TargetingServer</code> autoloads are loaded after it and follow that lifecycle through its signals.</p>
 
     <p class="group-title">Lifecycle</p>
     <div class="fn">
