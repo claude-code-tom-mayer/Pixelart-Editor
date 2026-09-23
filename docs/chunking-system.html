@@ -224,11 +224,12 @@ ul.rules li::marker{color:var(--accent);}
     <h1>Entity Chunk System</h1>
     <p class="sub">The spatial index underneath everything else: entities sorted into square chunks, columns and one map aggregate.</p>
     <div class="meta">
-      <div><dt>Classes</dt><dd>ChunkingServer · C_ChunkingServer</dd></div>
+      <div><dt>Classes</dt><dd>G_ChunkingServer · C_ChunkingServer</dd></div>
       <div><dt>Grid</dt><dd>square, derived on class load</dd></div>
       <div><dt>Aggregates</dt><dd>chunk · column · map</dd></div>
       <div><dt>Owns</dt><dd>entity ids and their lifecycle</dd></div>
-      <div><dt>Built on it</dt><dd><a href="https://claude.ai/code/artifact/7ae2df9a-5771-4e21-828b-c7e355edf7c8">Hit</a> · <a href="https://claude.ai/code/artifact/92730234-6886-4756-960e-a5a896e4dee4">Targeting</a></dd></div>
+      <div><dt>Built on it</dt><dd><a href="hit-system.html">Hit</a> · <a href="targeting-system.html">Targeting</a></dd></div>
+      <div><dt>State</dt><dd>tested end to end in Godot 4.7</dd></div>
     </div>
   </div>
 
@@ -240,6 +241,7 @@ ul.rules li::marker{color:var(--accent);}
       <p>Columns are the middle level because the two bases face each other along x. "Is there anything hostile ahead of me, or did something slip behind me" is then a walk over column entries rather than over entities — which is exactly what the targeting system asks every time an entity has nobody to fight.</p>
       <p>The rule that keeps it cheap: <strong>counts are always written through, masks only cascade upwards while they actually change.</strong> A removal can never force a rescan of the whole map — it stops at the first level whose value comes out unchanged.</p>
       <p>Entities are pure data. There is no node and no object per entity: an entity <em>is</em> an integer id, and every property is one slot in a packed array at that index.</p>
+      <p>Membership comes in two independent flavours. The <strong>coverage</strong> chains list an entity in <em>every</em> chunk its radius touches — that is what an area hit walks. The <strong>center</strong> chain lists it in exactly <em>one</em> chunk, the one its position falls into — that is what a targeting search walks, so an entity spanning six chunks is still scored exactly once.</p>
     </div>
 
     <div class="figure-panel">
@@ -283,10 +285,10 @@ ul.rules li::marker{color:var(--accent);}
             <circle cx="330" cy="126" r="17" fill="none" stroke="var(--accent)" stroke-dasharray="3 3"/>
             <circle cx="330" cy="126" r="4.5" fill="var(--accent)"/>
 
-            <text x="662" y="100" font-size="10" fill="var(--ink-soft)">_columnGroups · columnCounts</text>
+            <text x="662" y="100" font-size="10" fill="var(--ink-soft)">_columnGroups · _columnCounts</text>
             <text x="662" y="116" font-size="10" fill="var(--ink-soft)">one entry per column</text>
-            <text x="662" y="152" font-size="10" fill="var(--ink-soft)">_chunkGroups · chunkCounts</text>
-            <text x="662" y="168" font-size="10" fill="var(--ink-soft)">entitiesInChunk[chunkId]</text>
+            <text x="662" y="152" font-size="10" fill="var(--ink-soft)">_chunkGroups · _chunkCounts</text>
+            <text x="662" y="168" font-size="10" fill="var(--ink-soft)">_chunkHead[chunkId] → slot chain</text>
             <text x="662" y="212" font-size="10" fill="var(--accent)">an entity on a border</text>
             <text x="662" y="228" font-size="10" fill="var(--accent)">stands in every chunk</text>
             <text x="662" y="244" font-size="10" fill="var(--accent)">its radius touches</text>
@@ -335,10 +337,10 @@ ul.rules li::marker{color:var(--accent);}
 
   <section id="layout">
     <span class="eyebrow">Data</span>
-    <h2>Shared slots, private bookkeeping</h2>
+    <h2>Everything is private; some of it is read from outside anyway</h2>
     <div class="prose">
-      <p>The index splits its data in two. The <strong>shared slots</strong> are public: the servers built on top read them directly, which keeps a function call out of every inner loop. The <strong>bookkeeping</strong> that only the cascade touches stays private.</p>
-      <p>Each kind of aggregate is a single packed array where the team selects a block and the chunk or column selects the slot, so adding a third team means adding one enum entry and nothing else.</p>
+      <p>Every field carries the <code>_</code> private prefix the style guide asks for — GDScript cannot enforce access control across classes, so <code>_</code> here means "the index's own bookkeeping," not "nobody else may touch it." <code>G_HitServer</code> and <code>G_TargetingServer</code> read a handful of these arrays directly (<code>G_ChunkingServer._entityPosition[id]</code> and the like), which keeps a function call out of every inner loop. Writing to one of these from outside skips the chunk update and corrupts the grid — see <a href="#rules">Rules</a>.</p>
+      <p>Each per team aggregate is a single packed array where the team selects a block and the chunk or column selects the slot, so adding a third team means adding one enum entry and nothing else.</p>
     </div>
 
     <div class="strip">
@@ -346,44 +348,79 @@ ul.rules li::marker{color:var(--accent);}
       <div class="t1"><span class="strip-label">team 1 · defender</span>index CHUNK_COUNT … 2·CHUNK_COUNT-1</div>
     </div>
 
-    <p class="group-title">Public — the shared entity slots</p>
+    <p class="group-title">Per entity data, read directly by the servers built on top</p>
     <div class="table-wrap">
       <table class="vars">
         <tr><th>Field</th><th>Type</th><th>Holds</th></tr>
-        <tr><td>entityTeam</td><td>PackedByteArray</td><td>Team, as a <code>TEAM</code> value</td></tr>
-        <tr><td>entityGroups</td><td>PackedInt64Array</td><td>Bitmask of the groups the entity belongs to</td></tr>
-        <tr><td>entityPosition</td><td>PackedVector2Array</td><td>Current position</td></tr>
-        <tr><td>entityRadius</td><td>PackedFloat32Array</td><td>Effect radius — what decides chunk coverage</td></tr>
-        <tr><td>entityPreUnregistered</td><td>PackedByteArray</td><td>1 while announced for removal but still active</td></tr>
-        <tr><td>entityUnregistering</td><td>PackedByteArray</td><td>1 while removed but the id is still locked</td></tr>
-        <tr><td>entityChunkArea</td><td>Array[Vector4i]</td><td>Covered rectangle as (minColumn, minRow, maxColumn, maxRow)</td></tr>
-        <tr><td>entityChunkIds</td><td>Array[PackedInt32Array]</td><td>Chunks the entity currently stands in</td></tr>
-        <tr><td>entitiesInChunk</td><td>Array[PackedInt32Array]</td><td>Entity ids per chunk</td></tr>
-        <tr><td>chunkCounts · columnCounts</td><td>PackedInt32Array</td><td>Entity counts per team and level</td></tr>
-        <tr><td>pendingFreeIds</td><td>PackedInt32Array</td><td>Ids removed since the last release</td></tr>
+        <tr><td>_entityTeam</td><td>PackedByteArray</td><td>Team, as a <code>TEAM</code> value</td></tr>
+        <tr><td>_entityGroups</td><td>PackedInt64Array</td><td>Bitmask of the groups the entity belongs to</td></tr>
+        <tr><td>_entityPosition</td><td>PackedVector2Array</td><td>Current position</td></tr>
+        <tr><td>_entityRadius</td><td>PackedFloat32Array</td><td>Effect radius — what decides chunk coverage</td></tr>
+        <tr><td>_entityPreUnregistered</td><td>PackedByteArray</td><td>1 while announced for removal but still active</td></tr>
+        <tr><td>_entityUnregistering</td><td>PackedByteArray</td><td>1 while removed but the id is still locked</td></tr>
+        <tr><td>_entityChunkArea</td><td>Array[Vector4i]</td><td>Covered rectangle as (minColumn, minRow, maxColumn, maxRow)</td></tr>
+        <tr><td>_entityCenterColumn · _entityCenterRow</td><td>PackedInt32Array</td><td>Column and row of the entity's center chunk — what search reads</td></tr>
       </table>
     </div>
 
-    <p class="group-title">Private — the cascade's own</p>
+    <p class="group-title">Coverage membership — one slot per chunk an entity touches</p>
+    <div class="prose" style="margin-top:2px;">
+      <p>An intrusive doubly linked list, threaded two ways through the same slot array: once per chunk, once per entity. No list is ever copied to add or remove a member.</p>
+    </div>
     <div class="table-wrap">
       <table class="vars">
         <tr><th>Field</th><th>Type</th><th>Holds</th></tr>
-        <tr><td>_chunkGroups · _columnGroups · _mapGroups</td><td>PackedInt64Array</td><td>The group masks, read through the <code>has_group</code> queries</td></tr>
-        <tr><td>_mapCounts</td><td>PackedInt32Array</td><td>Entity count per team over the whole map</td></tr>
-        <tr><td>_entityChunkIndices</td><td>Array[PackedInt32Array]</td><td>Each entity's slot inside each of its chunks</td></tr>
+        <tr><td>_chunkHead</td><td>PackedInt32Array</td><td>First slot of each chunk's chain, or <code>NO_SLOT</code></td></tr>
+        <tr><td>_entitySlotHead</td><td>PackedInt32Array</td><td>First slot of each entity's own chain, or <code>NO_SLOT</code></td></tr>
+        <tr><td>_slotEntity · _slotChunk</td><td>PackedInt32Array</td><td>The entity and the chunk one slot belongs to</td></tr>
+        <tr><td>_slotChunkNext · _slotChunkPrev</td><td>PackedInt32Array</td><td>Neighbours of a slot inside its chunk's chain</td></tr>
+        <tr><td>_slotEntityNext · _slotEntityPrev</td><td>PackedInt32Array</td><td>Neighbours of a slot inside its entity's chain</td></tr>
+        <tr><td>_freeSlots</td><td>PackedInt32Array</td><td>Membership slots ready to be handed out again</td></tr>
+      </table>
+    </div>
+
+    <p class="group-title">Center membership — exactly one slot per entity</p>
+    <div class="prose" style="margin-top:2px;">
+      <p>A second, unrelated chain: every entity sits in exactly one chunk here, the one its position falls into. This is what lets a search visit each entity once no matter how many chunks its radius covers.</p>
+    </div>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Field</th><th>Type</th><th>Holds</th></tr>
+        <tr><td>_entityCenterChunk</td><td>PackedInt32Array</td><td>The chunk id an entity's center chain link sits in, or <code>NO_COLUMN</code></td></tr>
+        <tr><td>_centerHead</td><td>PackedInt32Array</td><td>First entity of a chunk's center chain, or <code>NO_ENTITY</code></td></tr>
+        <tr><td>_centerNext · _centerPrev</td><td>PackedInt32Array</td><td>Neighbours of an entity inside the center chain of its chunk</td></tr>
+      </table>
+    </div>
+
+    <p class="group-title">Per team, per chunk / column / map aggregates</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Field</th><th>Type</th><th>Holds</th></tr>
+        <tr><td>_chunkGroups · _columnGroups · _mapGroups</td><td>PackedInt64Array</td><td>The group masks, read through the <code>has_group</code> and <code>has_opponent_group</code> queries</td></tr>
+        <tr><td>_chunkCounts · _columnCounts · _mapCounts</td><td>PackedInt32Array</td><td>Entity counts per team and level</td></tr>
+        <tr><td>_teamMinColumn · _teamMaxColumn</td><td>PackedInt32Array</td><td>Outermost occupied column per team, or <code>NO_COLUMN</code> — what <code>has_opponent_before/after_column</code> read instead of scanning</td></tr>
+      </table>
+    </div>
+
+    <p class="group-title">Free lists</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Field</th><th>Type</th><th>Holds</th></tr>
+        <tr><td>_pendingFreeIds</td><td>PackedInt32Array</td><td>Ids removed since the last <code>release_removed_ids()</code></td></tr>
         <tr><td>_freeIds</td><td>PackedInt32Array</td><td>Ids ready to be handed out again</td></tr>
       </table>
     </div>
 
-    <p class="note-inline"><code>_entityChunkIndices</code> is what makes removal O(1): it records where the entity sits inside each chunk list, so the chunk can swap its last element into that slot and shrink instead of searching and shifting.</p>
+    <p class="note-inline">Both membership lists are doubly linked, so unlinking a slot or a center entry is a fixed number of pointer rewrites — no swap, no search, and no per entity index to keep in step. <code>_teamMinColumn</code>/<code>_teamMaxColumn</code> only rescan when the column that just emptied <em>was</em> the span edge, so the amortised cost stays near zero.</p>
   </section>
 
   <section id="fastpath">
     <span class="eyebrow">Movement</span>
     <h2>The rectangle check that skips the work</h2>
     <div class="prose">
-      <p><code>set_position()</code> and <code>set_radius()</code> both go through one internal step that compares the new chunk rectangle against the one the entity already covers, and returns before touching a single chunk when they match. <code>_compute_chunk_area()</code> is allocation free — it returns a <code>Vector4i</code>, a value type — so the fast path costs four clamps and one comparison.</p>
-      <p>That path is taken on the large majority of movement calls, which is why nothing else in the system is allowed to add work to it.</p>
+      <p><code>set_position()</code> and <code>set_radius()</code> both go through one internal step that compares the new chunk rectangle against the one the entity already covers, and skips the coverage update entirely when they match. <code>_compute_chunk_area()</code> is allocation free — it returns a <code>Vector4i</code>, a value type — so the fast path costs four clamps and one comparison.</p>
+      <p><code>set_position()</code> also updates the entity's center chunk, through the same kind of drop-out: <code>_apply_center_chunk()</code> returns at once when the position did not cross into a new chunk. The two checks are independent — a small move can shift the center chunk without changing the coverage rectangle, or the reverse for a large entity moving near its own edge.</p>
+      <p>The coverage fast path is taken on the large majority of movement calls, which is why nothing else in the system is allowed to add work to it.</p>
     </div>
 
     <div class="table-wrap" style="margin-top:16px;">
@@ -402,7 +439,7 @@ ul.rules li::marker{color:var(--accent);}
   <section id="api">
     <span class="eyebrow">Reference</span>
     <h2>Public API</h2>
-    <p class="prose"><code>ChunkingServer</code> is an autoload, the first of the three, and entities call it directly. It is the one server that hands out ids and runs their lifecycle; the <code>HitServer</code> and <code>TargetingServer</code> autoloads are loaded after it and follow that lifecycle through its signals.</p>
+    <p class="prose"><code>G_ChunkingServer</code> is an autoload, the first of the three, and entities call it directly. It is the one server that hands out ids and runs their lifecycle; the <code>G_HitServer</code> and <code>G_TargetingServer</code> autoloads are loaded after it and follow that lifecycle through its signals.</p>
 
     <p class="group-title">Lifecycle</p>
     <div class="fn">
@@ -429,10 +466,10 @@ ul.rules li::marker{color:var(--accent);}
     <div class="table-wrap">
       <table class="vars">
         <tr><th>Signal</th><th>Emitted when</th><th>Hit server</th><th>Targeting server</th></tr>
-        <tr><td>entity_slot_appended(p_id)</td><td>A fresh id is handed out for the first time</td><td>appends a slot</td><td>appends a slot</td></tr>
-        <tr><td>entity_pre_unregistered(p_id)</td><td>pre_unregister_entity() marks an entity</td><td>—</td><td>drops its targeters</td></tr>
-        <tr><td>entity_unregistered(p_id)</td><td>unregister_entity() removes it, once per id</td><td>—</td><td>unlinks both sides</td></tr>
-        <tr><td>entity_released(p_id)</td><td>release_removed_ids() hands the id back</td><td>clears its slot</td><td>clears its slot</td></tr>
+        <tr><td>s_entitySlotAppended(p_id)</td><td>A fresh id is handed out for the first time</td><td>appends a slot</td><td>appends a slot</td></tr>
+        <tr><td>s_entityPreUnregistered(p_id)</td><td>pre_unregister_entity() marks an entity</td><td>—</td><td>drops its targeters</td></tr>
+        <tr><td>s_entityUnregistered(p_id)</td><td>unregister_entity() removes it, once per id</td><td>—</td><td>unlinks both sides</td></tr>
+        <tr><td>s_entityReleased(p_id)</td><td>release_removed_ids() hands the id back</td><td>clears its slot</td><td>clears its slot</td></tr>
       </table>
     </div>
 
@@ -443,11 +480,16 @@ ul.rules li::marker{color:var(--accent);}
         <tr><td>chunk_has_group(p_chunkId, p_team, p_groupMask)</td><td>Is any of these groups in this chunk</td><td>O(1)</td></tr>
         <tr><td>column_has_group(p_columnIndex, p_team, p_groupMask)</td><td>… in this column</td><td>O(1)</td></tr>
         <tr><td>map_has_group(p_team, p_groupMask)</td><td>… anywhere on the map</td><td>O(1)</td></tr>
-        <tr><td>has_opponent_in_chunk(p_chunkId, p_team)</td><td>Does another team stand here at all</td><td>O(teams)</td></tr>
+        <tr><td>chunk_has_opponent_group(p_chunkId, p_team, p_groupMask)</td><td>Does an opposing team hold one of these groups in this chunk</td><td>O(teams)</td></tr>
+        <tr><td>column_has_opponent_group(p_columnIndex, p_team, p_groupMask)</td><td>… in this column</td><td>O(teams)</td></tr>
+        <tr><td>map_has_opponent_group(p_team, p_groupMask)</td><td>… anywhere on the map</td><td>O(teams)</td></tr>
+        <tr><td>has_opponent_in_chunk(p_chunkId, p_team)</td><td>Does another team stand here at all, regardless of group</td><td>O(teams)</td></tr>
         <tr><td>has_opponent_in_column(p_columnIndex, p_team)</td><td>… anywhere in this column</td><td>O(teams)</td></tr>
+        <tr><td>has_opponent_before_column(p_columnIndex, p_team)</td><td>Does another team stand further left</td><td>O(teams)</td></tr>
+        <tr><td>has_opponent_after_column(p_columnIndex, p_team)</td><td>Does another team stand further right</td><td>O(teams)</td></tr>
       </table>
     </div>
-    <p class="note-inline">The <code>has_group</code> queries filter by what an entity <em>is</em>; the <code>has_opponent</code> queries read raw counts and therefore include invisible entities. Targeting uses the second kind to notice something that sneaked past.</p>
+    <p class="note-inline">The <code>has_group</code> and <code>has_opponent_group</code> queries filter by what an entity <em>is</em>; the plain <code>has_opponent</code> queries read raw counts and therefore include invisible entities. Targeting's ring search filters columns and chunks with the group aware queries, and uses <code>has_opponent_before/after_column</code> — a read of <code>_teamMinColumn</code>/<code>_teamMaxColumn</code>, never a scan — to notice something that sneaked past its march.</p>
 
     <p class="group-title">Index helpers, for the servers on top</p>
     <div class="table-wrap">
@@ -474,6 +516,9 @@ ul.rules li::marker{color:var(--accent);}
         <tr><td>CONFIGURED_CHUNK_COLUMNS / _ROWS</td><td>const int</td><td>Wanted counts — a wish, not a guarantee</td></tr>
         <tr><td>COVERAGE_EPSILON</td><td>const float</td><td>Tolerance so float error cannot add a spurious column</td></tr>
         <tr><td>TEAM</td><td>enum</td><td><code>ATTACKER</code>, <code>DEFENDER</code> — the values index every per-team container</td></tr>
+        <tr><td>NO_COLUMN</td><td>const int</td><td>Stored as the outermost occupied column of a team holding nothing, and as an empty center chunk</td></tr>
+        <tr><td>NO_SLOT</td><td>const int</td><td>Stored as a coverage membership link that points nowhere</td></tr>
+        <tr><td>NO_ENTITY</td><td>const int</td><td>Stored as a center chain link that points nowhere</td></tr>
         <tr><td>CHUNK_SIZE</td><td>static float</td><td>Chunk edge, identical on both axes</td></tr>
         <tr><td>MAP_CHUNK_COLUMNS / _ROWS</td><td>static int</td><td>Counts after the square recalculation</td></tr>
         <tr><td>CHUNK_COUNT · MAP_SIZE · TEAM_COUNT</td><td>static</td><td>Totals derived from the above</td></tr>
@@ -504,7 +549,7 @@ MAP_CHUNK_ROWS     = ceil(CONFIGURED_MAP_SIZE.y / CHUNK_SIZE)</div>
     <span class="eyebrow">Contract</span>
     <h2>What the caller has to respect</h2>
     <ul class="rules">
-      <li><strong>The public slots are read only for everyone but the index.</strong> Writing <code>entityPosition</code> directly skips the chunk update and corrupts the grid — go through <code>set_position()</code>.</li>
+      <li><strong>The per entity arrays are read only for everyone but the index.</strong> Writing <code>_entityPosition</code> directly skips the chunk update and corrupts the grid — go through <code>set_position()</code>.</li>
       <li><strong><code>release_removed_ids()</code> once per frame, last.</strong> It is the only thing that recycles ids, and the lock it releases is what makes a queued damage event safe.</li>
       <li><strong>An unregistered id is dead until re-registered.</strong> The index does not re-check a caller's id.</li>
       <li><strong>64 groups maximum.</strong> Groups are bits in an <code>int64</code>; their meaning is the caller's to define.</li>
@@ -535,8 +580,8 @@ MAP_CHUNK_ROWS     = ceil(CONFIGURED_MAP_SIZE.y / CHUNK_SIZE)</div>
 
     <p class="group-title">Correctness</p>
     <div class="prose" style="margin-top:8px;">
-      <p>Fuzz-tested against a brute-force rebuild: 50 trials × 500 random operations mixing registration, long moves, sub-chunk nudges, radius changes, removal and release. After each batch every chunk and column mask, every count at all three levels, the entity-to-slot index mapping, the cached rectangle and the id lifecycle are compared against a full recomputation. All pass.</p>
-      <p>That validates the algorithm, not the GDScript. The scripts have not been through the Godot parser yet, so the first editor run is still the real smoke test.</p>
+      <p>Fuzz-tested against a brute-force rebuild: 50 trials × 500 random operations mixing registration, long moves, sub-chunk nudges, radius changes, removal and release. After each batch every chunk and column mask, every count at all three levels, the coverage and center membership chains, the cached rectangle and the id lifecycle are compared against a full recomputation. All pass.</p>
+      <p>That validated the algorithm, ahead of the GDScript. The end-to-end suite in <code>res://Tests/EndToEndTest.gd</code> now runs this and the two servers built on it inside Godot itself.</p>
     </div>
   </section>
 

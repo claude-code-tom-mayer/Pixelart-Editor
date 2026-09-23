@@ -224,8 +224,8 @@ ul.rules li::marker{color:var(--accent);}
     <h1>Entity Hit System</h1>
     <p class="sub">Area hits resolved through the chunk index: a shape narrows to a handful of chunks, and only what is left gets tested.</p>
     <div class="meta">
-      <div><dt>Classes</dt><dd>HitServer · C_HitServer · R_HitProfile · R_HitData</dd></div>
-      <div><dt>Reads</dt><dd><a href="https://claude.ai/code/artifact/a3e26aa9-1e78-458e-889d-d130c52985f3">the shared chunk index</a></dd></div>
+      <div><dt>Classes</dt><dd>G_HitServer · C_HitServer · R_HitProfile · R_HitData</dd></div>
+      <div><dt>Reads</dt><dd><a href="chunking-system.html">the shared chunk index</a></dd></div>
       <div><dt>Shapes</dt><dd>circle · directional rect · cake slice</dd></div>
       <div><dt>Public API</dt><dd>6 hits · 5 setters</dd></div>
       <div><dt>State</dt><dd>tested end to end in Godot 4.7</dd></div>
@@ -236,7 +236,7 @@ ul.rules li::marker{color:var(--accent);}
     <span class="eyebrow">Overview</span>
     <h2>A hit is a shape, not a scan</h2>
     <div class="prose">
-      <p>The <code>HitServer</code> autoload reads the one shared <code>ChunkingServer</code> autoload, follows its id lifecycle through its signals, and keeps only the hit side of every entity — the module references, the bands, the group masks and the radius profiles. A hit never walks the entity list: it turns its shape into an axis aligned box, asks the chunk grid which chunks that box touches, drops every chunk holding no opponent, and only then tests geometry.</p>
+      <p>The <code>G_HitServer</code> autoload reads the one shared <code>G_ChunkingServer</code> autoload, follows its id lifecycle through its signals, and keeps only the hit side of every entity — the module references, the bands, the group masks and the radius profiles. A hit never walks the entity list: it turns its shape into an axis aligned box, asks the chunk grid which chunks that box touches, drops every chunk holding no opponent, and only then tests geometry.</p>
       <p>That narrowing is exact, not approximate. An entity is registered in <strong>every</strong> chunk its radius touches, so any entity whose silhouette reaches into the box is already sitting in one of the chunks being walked. Nothing that a full scan would find can slip through.</p>
       <p>Each shape comes twice. The plain version collects whatever it finds and is the cheap choice for a simple blast. The <code>_ordered</code> version sorts the targets along an axis that suits the shape, which is what makes a hit limit mean "the nearest three" and lets a stop group end the hit at the first thing that blocks it.</p>
     </div>
@@ -283,7 +283,7 @@ emitter._entityStopGroups &amp; target._entityHurtGroups != 0</div>
 
             <rect x="180" y="20" width="150" height="46" rx="3" fill="none" stroke="var(--accent-2)"/>
             <text x="255" y="41" text-anchor="middle" fill="var(--accent-2)">chunk area</text>
-            <text x="255" y="56" text-anchor="middle" font-size="9" fill="var(--ink-soft)">_compute_chunk_area_from_bounds</text>
+            <text x="255" y="56" text-anchor="middle" font-size="9" fill="var(--ink-soft)">compute_chunk_area_from_bounds</text>
 
             <rect x="350" y="20" width="150" height="46" rx="3" fill="none" stroke="var(--accent-2)"/>
             <text x="425" y="41" text-anchor="middle" fill="var(--accent-2)">drop empty chunks</text>
@@ -442,7 +442,7 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
     <span class="eyebrow">How to use</span>
     <h2>Arming an entity, then hitting with it</h2>
     <div class="prose">
-      <p>An entity takes its id from the chunk index, then hands the hit server that id, its module manager and an <code>R_HitProfile</code>. An entity that never registers here can never be hit. A recycled id always starts clean — the hit server clears the slot when the index emits <code>entity_released</code>, so an entity can never inherit the groups or the profile of whoever held its id before. The setters exist for changes during a round.</p>
+      <p>An entity takes its id from the chunk index, then hands the hit server that id, its module manager and an <code>R_HitProfile</code>. An entity that never registers here can never be hit. A recycled id always starts clean — the hit server clears the slot when the index emits <code>s_entityReleased</code>, so an entity can never inherit the groups or the profile of whoever held its id before. The setters exist for changes during a round.</p>
     </div>
 
     <div class="code" style="margin-top:16px;"><span class="c">## Hit groups: what an attack is made of, and what can be harmed by it.</span>
@@ -455,8 +455,8 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
 <span class="c">## @param p_position Where it spawns</span>
 <span class="c">## @return Its id on every server</span>
 <span class="k">func</span> spawn_archer(p_position: <span class="t">Vector2</span>) -&gt; <span class="t">int</span>:
-    <span class="k">var</span> l_id: <span class="t">int</span> = ChunkingServer.register_entity(p_position, 24.0, C_ChunkingServer.TEAM.ATTACKER, 0b1)
-    HitServer.register(l_id, M_ModuleManager.new(), build_archer_profile())
+    <span class="k">var</span> l_id: <span class="t">int</span> = G_ChunkingServer.register_entity(p_position, 24.0, C_ChunkingServer.TEAM.ATTACKER, 0b1)
+    G_HitServer.register(l_id, M_ModuleManager.new(), build_archer_profile())
     
     <span class="k">return</span> l_id
 
@@ -480,7 +480,7 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
 <span class="c">## @param p_direction Where the arrow flies</span>
 <span class="c">## @return The impact positions as (x, y, height)</span>
 <span class="k">func</span> shoot(p_id: <span class="t">int</span>, p_origin: <span class="t">Vector2</span>, p_direction: <span class="t">Vector2</span>) -&gt; <span class="t">PackedVector3Array</span>:
-    <span class="k">return</span> HitServer.hit_directional_rect_ordered(
+    <span class="k">return</span> G_HitServer.hit_directional_rect_ordered(
         p_id,
         p_origin,
         p_direction,
@@ -498,14 +498,15 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
   <section id="api">
     <span class="eyebrow">Reference</span>
     <h2>Public API</h2>
-    <p class="prose">Five setters and six hit functions, on top of everything <code>ChunkingServer</code> already offers.</p>
+    <p class="prose">Five setters and six hit functions, on top of everything <code>G_ChunkingServer</code> already offers.</p>
 
     <p class="group-title">Registration</p>
     <div class="table-wrap">
       <table class="vars">
         <tr><th>Function</th><th>Called by</th><th>Does</th></tr>
-        <tr><td>register(p_id, p_module, p_hitProfile)</td><td>the entity, after ChunkingServer.register_entity()</td><td>Writes the profile into the slot of that id</td></tr>
-        <tr><td>_reset_slot(p_id)</td><td>ChunkingServer.entity_released</td><td>Drops the module reference, the groups and the radius curve slot</td></tr>
+        <tr><td>register(p_id, p_module, p_hitProfile)</td><td>the entity, after G_ChunkingServer.register_entity()</td><td>Writes the profile into the slot of that id</td></tr>
+        <tr><td>_append_slot(p_id)</td><td>G_ChunkingServer.s_entitySlotAppended</td><td>Grows every hit side array by one, empty slot</td></tr>
+        <tr><td>_reset_slot(p_id)</td><td>G_ChunkingServer.s_entityReleased</td><td>Drops the module reference, the groups and the radius curve slot</td></tr>
       </table>
     </div>
 
@@ -581,14 +582,14 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
       <li><strong>A preferred target needs a hit limit of exactly 1.</strong> Anything else logs a warning and runs as a normal hit.</li>
       <li><strong>Radius curves run 0 to 100 on both axes.</strong> A curve on the default domain behaves like no curve at all.</li>
       <li><strong>Hit groups are 32 bit and separate from the chunking groups.</strong> Do not reuse the group bits of the chunk masks here.</li>
-      <li><strong>Entities call the hit server directly.</strong> It is an autoload loaded after <code>ChunkingServer</code> and has no id space of its own.</li>
+      <li><strong>Entities call the hit server directly.</strong> It is an autoload loaded after <code>G_ChunkingServer</code> and has no id space of its own.</li>
       <li><strong>A module may kill its own entity inside <code>hit()</code>.</strong> That is safe, because dispatch happens after the target list is closed.</li>
     </ul>
 
     <p class="group-title">Verification</p>
     <div class="prose" style="margin-top:8px;">
       <p>The resolution logic was fuzz-tested against a brute-force reference: 40 worlds × 120 hits across all three shapes, comparing the chunk-narrowed result with a scan of every entity alive. No misses, no duplicates, and team, flag, group and band filters correct in every case; hit limits, sort orders and stop-group cuts were checked separately on top.</p>
-      <p>That validates the algorithm, not the GDScript. Nothing here has been through the Godot parser yet, so the first run in the editor is still the real test.</p>
+      <p>That validated the algorithm, ahead of the GDScript. The end-to-end suite in <code>res://Tests/EndToEndTest.gd</code> now exercises hits inside Godot itself, through <code>G_ChunkingServer</code> and <code>G_TargetingServer</code> together.</p>
     </div>
   </section>
 

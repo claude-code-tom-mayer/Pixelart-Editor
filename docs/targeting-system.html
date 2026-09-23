@@ -224,8 +224,8 @@ ul.rules li::marker{color:var(--accent);}
     <h1>Entity Targeting System</h1>
     <p class="sub">Every entity holds one target and knows where to walk. Targets are lost by event, never re-checked by polling.</p>
     <div class="meta">
-      <div><dt>Classes</dt><dd>TargetingServer · C_TargetingServer · R_TargetingData</dd></div>
-      <div><dt>Reads</dt><dd>the shared chunk index</dd></div>
+      <div><dt>Classes</dt><dd>G_TargetingServer · C_TargetingServer · R_TargetingData</dd></div>
+      <div><dt>Reads</dt><dd><a href="chunking-system.html">the shared chunk index</a></dd></div>
       <div><dt>States</dt><dd>SEARCH · APPROACH · COMBAT · FLEE</dd></div>
       <div><dt>Link cost</dt><dd>O(1) both ways</dd></div>
       <div><dt>State</dt><dd>tested end to end in Godot 4.7</dd></div>
@@ -304,7 +304,7 @@ ul.rules li::marker{color:var(--accent);}
       </div>
       <div class="decision">
         <span class="chip">Behind</span>
-        <p><strong>Before advancing, an entity checks the columns behind it.</strong> That check reads column <em>counts</em>, which include invisible entities — so something that sneaked past is noticed even by an entity that cannot see it, and the entity falls back instead of marching on.</p>
+        <p><strong>Before advancing, an entity checks the columns behind it.</strong> <code>has_opponent_before/after_column()</code> reads the outermost occupied column of the opposing team — itself kept current from raw <em>counts</em>, which include invisible entities — so something that sneaked past is noticed even by an entity that cannot see it, and the entity falls back instead of marching on.</p>
       </div>
     </div>
   </section>
@@ -314,7 +314,8 @@ ul.rules li::marker{color:var(--accent);}
     <h2>Ranges are chunk counts, not metres</h2>
     <div class="prose">
       <p>Search and flee distances are counted in <strong>chunks</strong>, not world units. A search covers the square of chunks around the entity instead of a circle, and a diagonal step costs <code>DIAGONAL_CHUNK_COST</code> rather than a square root. Nothing in the search or the scoring touches real geometry.</p>
-      <p>Only one distance stays real: the <strong>hit range</strong> that separates <code>APPROACH</code> from <code>COMBAT</code>. Quantising that one to chunks would let a unit open fire from anywhere in a neighbouring chunk, which reads as sloppy in play. It is stored squared, so that test is a subtraction and a multiply.</p>
+      <p>"The entity's own chunk" is not the coverage rectangle the index maintains for hits — it is a separate <strong>center chunk</strong>, the single chunk the entity's position falls into (<code>G_ChunkingServer._entityCenterColumn/_entityCenterRow</code>). The index keeps it current on every <code>set_position()</code> call, through its own drop-out check, so reading it here is a plain array lookup.</p>
+      <p>Only one distance stays real: the <strong>hit range</strong> that separates <code>APPROACH</code> from <code>COMBAT</code>. Quantising that one to chunks would let a unit open fire from anywhere in a neighbouring chunk, which reads as sloppy in play. It is stored as a plain distance — the target's radius is added on top fresh at check time, since it differs per opponent — and only that sum is squared, so the test itself is one addition, one multiply and one compare.</p>
     </div>
 
     <div class="table-wrap" style="margin-top:16px;">
@@ -326,22 +327,23 @@ ul.rules li::marker{color:var(--accent);}
       </table>
     </div>
 
-    <p class="note-inline">The entity's own chunk comes from the rectangle the index already maintains — no extra cache, and no cost added to the movement path, which is the hottest code in the whole system.</p>
+    <p class="note-inline">The entity's own chunk is its center chunk, kept current by the index on every move — no cost added to the movement path, which is the hottest code in the whole system.</p>
   </section>
 
   <section id="search">
     <span class="eyebrow">Search</span>
-    <h2>One walk, two winners</h2>
+    <h2>One walk, two winners, each entity seen once</h2>
     <div class="prose">
       <p>An entity can name <strong>priority groups</strong> it would rather go after. Conceptually that is two searches: one for the preferred groups, then one for the normal ones. In practice it is a single walk with two best-trackers — every candidate is scored once and lands in whichever pool it belongs to. If the priority pool has anything in it at the end, it wins. Same result, half the work.</p>
     </div>
 
     <ol class="seq">
       <li><span class="n">1</span><p><strong>Map check.</strong> If no opposing team holds any of the searched groups anywhere, the search returns immediately — one bitwise <code>AND</code> per team, before a single chunk is touched.</p></li>
-      <li><span class="n">2</span><p><strong>Chunk square.</strong> The entity's own chunk rectangle, grown by <code>searchChunks</code> in each direction and clamped to the map.</p></li>
-      <li><span class="n">3</span><p><strong>Skip empty chunks.</strong> <code>has_opponent_in_chunk()</code> rejects a whole chunk on a count lookup.</p></li>
-      <li><span class="n">4</span><p><strong>Filter, then score.</strong> Team, removal flags, group mask and invisibility first; only survivors get weighed.</p></li>
-      <li><span class="n">5</span><p><strong>Best priority, else best normal.</strong> No duplicate guard is needed — an entity spanning several chunks scores identically each time, and only the maximum is kept.</p></li>
+      <li><span class="n">2</span><p><strong>Chunk square, ring by ring.</strong> The entity's own center chunk, grown by <code>searchChunks</code> in each direction and clamped to the map, scanned ring by ring from distance 0 outwards.</p></li>
+      <li><span class="n">3</span><p><strong>Skip empty columns and chunks.</strong> <code>column_has_opponent_group()</code> and <code>chunk_has_opponent_group()</code> reject a whole column or chunk on a mask lookup, before any candidate inside it is read.</p></li>
+      <li><span class="n">4</span><p><strong>Walk the center chain, filter, then score.</strong> A chunk's candidates are its <em>center</em> members only — <code>G_ChunkingServer._centerHead/_centerNext</code> — so an entity spanning several chunks is offered exactly once, never rescored, never guarded against. Team, removal flags, group mask and invisibility are checked first; only survivors get weighed.</p></li>
+      <li><span class="n">5</span><p><strong>Best priority, else best normal.</strong> Kept across rings; the lower id wins a tied score, so the result cannot depend on chunk iteration order.</p></li>
+      <li><span class="n">6</span><p><strong>Stop once no further ring can win.</strong> A chunk at ring <em>r</em> is at least <em>r</em> steps away, so its best possible closeness score is fixed. Once that upper bound — closeness plus every bonus a candidate could still add — cannot beat what the search already holds, the remaining rings are skipped.</p></li>
     </ol>
   </section>
 
@@ -389,7 +391,7 @@ ul.rules li::marker{color:var(--accent);}
   <section id="api">
     <span class="eyebrow">Reference</span>
     <h2>Public API</h2>
-    <p class="prose">Entities call it directly with the id the chunk index gave them. Everything is set at registration through <code>register(p_id, p_targetingData)</code>; the setters are for changes during a round. Removal needs no call here — the server follows the <code>entity_pre_unregistered</code>, <code>entity_unregistered</code> and <code>entity_released</code> signals of the index.</p>
+    <p class="prose">Entities call it directly with the id the chunk index gave them. Everything is set at registration through <code>register(p_id, p_targetingData)</code>; the setters are for changes during a round. Removal needs no call here — the server follows the <code>s_entityPreUnregistered</code>, <code>s_entityUnregistered</code> and <code>s_entityReleased</code> signals of the index.</p>
 
     <div class="fn">
       <div class="fn-head"><span class="fn-name">update_entity</span><span class="tag pub">public</span><span class="tag cost">O(targeters)</span></div>
@@ -408,10 +410,10 @@ ul.rules li::marker{color:var(--accent);}
     </div>
 
     <div class="fn">
-      <div class="fn-head"><span class="fn-name">get_target_position</span><span class="tag pub">public</span><span class="tag cost">O(columns) worst case</span></div>
+      <div class="fn-head"><span class="fn-name">get_target_position</span><span class="tag pub">public</span><span class="tag cost">O(1)</span></div>
       <div class="fn-body">
         <div class="code"><span class="k">func</span> get_target_position(p_id: <span class="t">int</span>) -&gt; <span class="t">Vector2</span></div>
-        <p class="fn-note">Fighting and approaching return the target's own position. Fleeing returns the entity's own base x at its current y. Searching returns the enemy base x — or its own, if something is behind it or the map holds nothing it may go after.</p>
+        <p class="fn-note">Fighting and approaching return the target's own position. Fleeing returns the entity's own base x at its current y. Searching returns the enemy base x — or its own, if <code>has_opponent_before/after_column()</code> says something is behind it, or the map holds nothing it may go after.</p>
       </div>
     </div>
 
@@ -423,6 +425,17 @@ ul.rules li::marker{color:var(--accent);}
       </div>
     </div>
 
+    <p class="group-title">Reads</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Function</th><th>Returns</th><th>Cost</th></tr>
+        <tr><td>get_state(p_id)</td><td>Its current <code>STATE</code>, as last set by <code>update_entity()</code></td><td>O(1)</td></tr>
+        <tr><td>get_target(p_id)</td><td>Its target, or <code>NO_TARGET</code></td><td>O(1)</td></tr>
+        <tr><td>get_targeters(p_id)</td><td>A snapshot of who currently targets it</td><td>O(1)</td></tr>
+      </table>
+    </div>
+    <p class="note-inline"><code>get_targeters()</code> returns a <code>PackedInt32Array</code>, which Godot copies on write — the array handed back never follows later changes, and editing it changes nothing on the server. Reading it is still O(1); the copy only happens if the caller mutates it.</p>
+
     <p class="group-title">Setters, for changes during a round</p>
     <div class="table-wrap">
       <table class="vars">
@@ -432,7 +445,7 @@ ul.rules li::marker{color:var(--accent);}
         <tr><td>set_focused(p_id, p_isEnabled)</td><td>Whether it scores the focus bonus for others</td></tr>
         <tr><td>set_ignores_focus(p_id, p_isEnabled)</td><td>Whether it ignores focus while scoring</td></tr>
         <tr><td>set_search_chunks · set_flee_chunks</td><td>Reach and threat distance, in chunks</td></tr>
-        <tr><td>set_hit_range(p_id, p_hitRange)</td><td>Real combat distance; squared internally</td></tr>
+        <tr><td>set_hit_range(p_id, p_hitRange)</td><td>Real combat distance; combined with the target's radius and squared at check time</td></tr>
         <tr><td>set_priority_targeted_groups(p_id, p_groups)</td><td>The preferred mask</td></tr>
       </table>
     </div>
@@ -447,13 +460,14 @@ ul.rules li::marker{color:var(--accent);}
       <li><strong>Movement is not in here.</strong> The server reports a position; something else has to walk towards it.</li>
       <li><strong>Base and march x are fixed per team</strong> in <code>C_TargetingServer</code>. Attackers hold the left of the map, defenders the right.</li>
       <li><strong>Pre-unregistered entities are never targeted</strong>, and neither are invisible ones unless the searcher carries <code>FLAG_TARGETS_INVISIBLE</code>.</li>
-      <li><strong><code>get_targeters()</code> hands out live state.</strong> Read it, do not store it, do not write to it.</li>
+      <li><strong><code>get_targeters()</code> returns a snapshot.</strong> Packed arrays copy on write, so editing the result changes nothing on the server and later changes never show up in it.</li>
+      <li><strong>Search only ever visits a candidate through its center chunk.</strong> Reading <code>G_ChunkingServer._entityCenterColumn/_entityCenterRow</code> instead of the coverage rectangle is what makes a multi-chunk entity scored exactly once.</li>
     </ul>
 
     <p class="group-title">Verification</p>
     <div class="prose" style="margin-top:8px;">
       <p>The link graph was fuzz-tested against its invariants: 40 worlds × 400 random assign, drop, hide, announce, remove and release operations, asserting that every back reference resolves, every targeter index matches its slot, nobody targets their own team or a removed entity, and that a reachable priority candidate is never passed over. All pass.</p>
-      <p>That validates the algorithm, not the GDScript — none of it has been through the Godot parser yet.</p>
+      <p>That validated the algorithm, ahead of the GDScript. The end-to-end suite in <code>res://Tests/EndToEndTest.gd</code> now drives search, approach, combat and flee through <code>G_ChunkingServer</code> and <code>G_TargetingServer</code> together inside Godot itself.</p>
     </div>
   </section>
 
