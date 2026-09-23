@@ -195,6 +195,74 @@ ul.rules li::marker{color:var(--accent);}
   border-left:3px solid var(--line);padding:2px 0 2px 14px;margin-top:16px;
   color:var(--ink-soft);font-size:.9rem;
 }
+/* ---- Collapsible variable reference ---- */
+.vlist{border:1px solid var(--line);border-radius:3px;background:var(--surface);}
+.vlist-head,details.var>summary{
+  display:grid;grid-template-columns:minmax(0,15rem) minmax(0,9.5rem) minmax(0,1fr) 16px;
+  gap:12px;padding:9px 12px;align-items:baseline;
+}
+.vlist-head{
+  font-family:'Overpass',system-ui,sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-soft);background:var(--surface-2);font-weight:700;border-bottom:1px solid var(--line);
+}
+details.var{border-bottom:1px solid var(--line);}
+details.var:last-child{border-bottom:none;}
+details.var>summary{cursor:pointer;list-style:none;font-size:.86rem;}
+details.var>summary::-webkit-details-marker{display:none;}
+details.var>summary:hover{background:var(--surface-2);}
+details.var>summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+details.var[open]>summary{background:var(--surface-2);}
+.vn{font-family:'JetBrains Mono',monospace;color:var(--accent-2);overflow-wrap:anywhere;}
+.vt{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);font-size:.8rem;overflow-wrap:anywhere;}
+.chev{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);text-align:right;}
+.chev::before{content:"+";}
+details[open]>summary .chev::before{content:"\2212";}
+.var-body{padding:14px 16px 18px;border-top:1px dashed var(--line);display:grid;gap:12px;font-size:.92rem;min-width:0;}
+.var-body p{margin:0;max-width:68ch;}
+.var-body ul{margin:0;padding-left:1.1em;max-width:68ch;}
+.var-body li{margin-bottom:.3em;}
+.var-body .code{font-size:.76rem;}
+.lbl{
+  display:block;margin-bottom:2px;font-family:'Overpass',system-ui,sans-serif;font-size:.62rem;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--accent);
+}
+.var-fig{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:12px;overflow-x:auto;}
+.var-fig svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+.var-fig figcaption{margin-top:6px;}
+
+/* A drawn array: one cell per index, index on top. Filled in by the script at the end. */
+.arr{display:grid;grid-template-columns:minmax(0,11rem) minmax(0,1fr);gap:4px 12px;align-items:end;}
+.arr-name{font-family:'JetBrains Mono',monospace;font-size:.74rem;color:var(--ink-soft);overflow-wrap:anywhere;padding-bottom:6px;}
+.cells{display:flex;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:.78rem;min-width:0;padding-bottom:2px;}
+.cells>span{
+  flex:none;display:flex;flex-direction:column;align-items:center;min-width:2.5em;padding:2px 6px 4px;
+  border:1px solid var(--line);margin-left:-1px;background:var(--surface);white-space:nowrap;
+}
+.cells>span:first-child{margin-left:0;}
+.cells>span>i{font-style:normal;font-size:.6rem;color:var(--ink-soft);}
+.cells>span.nil{color:var(--ink-soft);}
+.cells>span.nil b{opacity:.55;}
+.cells>span b{font-weight:500;}
+.cells>span.hl{background:var(--accent-soft);color:var(--accent);}
+.cells>span.hl2{background:var(--accent-2-soft);color:var(--accent-2);}
+.cells>span.split{margin-left:10px;}
+.arrs{display:grid;gap:6px;}
+
+.xall{
+  flex:none;margin-left:auto;font:inherit;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);background:none;border:1px solid var(--line);border-radius:99px;padding:5px 12px;cursor:pointer;
+}
+.xall:hover{color:var(--ink);}
+.xall:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.hint{font-size:.8rem;color:var(--ink-soft);margin:6px 0 0;}
+@media (max-width:640px){
+  .vlist-head{display:none;}
+  details.var>summary{grid-template-columns:minmax(0,1fr) 16px;gap:2px 10px;}
+  details.var>summary>.vn,details.var>summary>.vt,details.var>summary>.vh{grid-column:1;}
+  details.var>summary>.chev{grid-column:2;grid-row:1;}
+  .arr{grid-template-columns:minmax(0,1fr);}
+  .arr-name{padding-bottom:0;}
+}
 @media (max-width:640px){
   h1{font-size:1.55rem;}
   .titleblock{padding:18px;}
@@ -213,8 +281,11 @@ ul.rules li::marker{color:var(--accent);}
   <a href="#silhouette">Silhouette</a>
   <a href="#shapes">Shapes</a>
   <a href="#usage">How to use</a>
+  <a href="#data">Data</a>
   <a href="#api">API</a>
+  <a href="#constants">Constants</a>
   <a href="#rules">Rules</a>
+  <button class="xall" type="button" aria-pressed="false">Expand details</button>
 </div>
 
 <div class="wrap">
@@ -249,15 +320,76 @@ ul.rules li::marker{color:var(--accent);}
       <p>The chunking groups and the hit groups answer different questions and live in different bitmasks. Keeping them apart is deliberate: one is about what an entity <em>is</em>, the other about what can physically connect with it.</p>
     </div>
 
-    <div class="table-wrap" style="margin-top:16px;">
-      <table class="vars">
-        <tr><th>Mask</th><th>Width</th><th>Answers</th></tr>
-        <tr><td>_entityGroups</td><td>int64</td><td>What the entity is — ground, air, armored. Aggregated per chunk, row and map</td></tr>
-        <tr><td>_entityTargetedGroups</td><td>int64</td><td>What it is allowed to go after</td></tr>
-        <tr><td>_entityHitGroups</td><td>int32</td><td>What its hits are made of — projectile, melee, magic</td></tr>
-        <tr><td>_entityHurtGroups</td><td>int32</td><td>What can physically harm it — a ghost simply has no projectile bit</td></tr>
-        <tr><td>_entityStopGroups</td><td>int32</td><td>Which hurt groups end its hit on the target that matches</td></tr>
-      </table>
+    <div class="vlist" style="margin-top:16px;">
+      <div class="vlist-head"><span>Mask</span><span>Width · owner</span><span>Answers</span><span></span></div>
+
+      <details class="var">
+        <summary><span class="vn">_entityGroups</span><span class="vt">int64 · Chunking</span><span class="vh">What the entity is — ground, air, armored. Aggregated per chunk, column and map</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Lives in <code>G_ChunkingServer</code>. Only targeting reads it — a hit never looks at it. Example: <code>GROUND = 0b01</code>, <code>AIR = 0b10</code>; a bat is <code>0b10</code>.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_entityTargetedGroups</span><span class="vt">int64 · Targeting</span><span class="vh">What it is allowed to go after</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Lives in <code>G_TargetingServer</code>, same bit meanings as <code>_entityGroups</code>. An anti-air tower with <code>0b10</code> only ever picks bats as targets. Whether its shot then <em>harms</em> the bat is decided by the three masks below.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_entityHitGroups</span><span class="vt">int64 · Hit</span><span class="vh">What its hits are made of — projectile, melee, magic</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>The damage channels every hit of this entity carries. Hit, hurt and stop groups share <strong>one</strong> bit space — they are ANDed with each other — so define the channels once:</p>
+          <div class="code"><span class="k">const</span> CH_PROJECTILE: <span class="t">int</span> = 1 &lt;&lt; 0   <span class="c"># 0b001</span>
+<span class="k">const</span> CH_MELEE: <span class="t">int</span>      = 1 &lt;&lt; 1   <span class="c"># 0b010</span>
+<span class="k">const</span> CH_SHIELD: <span class="t">int</span>     = 1 &lt;&lt; 2   <span class="c"># 0b100 — never carried by an attack, marks a blocker</span></div>
+          <p>An archer's hits carry <code>CH_PROJECTILE</code> (<code>0b001</code>). A knight's carry <code>CH_MELEE</code>. A flaming sword could carry both.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_entityHurtGroups</span><span class="vt">int64 · Hit</span><span class="vh">What can physically harm it — a ghost simply has no projectile bit</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>A hit connects when <code>emitter hit groups &amp; target hurt groups != 0</code>. Also what a stop group is matched against, so it carries "I am a blocker" bits like <code>CH_SHIELD</code> too.</p>
+          <div class="table-wrap">
+            <table class="num">
+              <tr><th>Target</th><th>hurtGroups</th><th>Arrow 0b001 &amp; hurt</th><th>Result</th></tr>
+              <tr><td>goblin</td><td>0b011</td><td>0b001</td><td>hit</td></tr>
+              <tr><td>shieldbearer</td><td>0b111</td><td>0b001</td><td>hit</td></tr>
+              <tr><td>ghost</td><td>0b010</td><td>0b000</td><td>untouched — the arrow passes through</td></tr>
+            </table>
+          </div>
+          <p>An entity whose hurt groups are 0 can never be hit — including every entity registered without a profile.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_entityStopGroups</span><span class="vt">int64 · Hit</span><span class="vh">Which hurt groups end its hit on the target that matches</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Checked only by the <code>_ordered</code> hits, on targets that were already hit: once <code>emitter stop groups &amp; target hurt groups != 0</code>, that target still takes the hit, and everything after it is spared. An archer with <code>stopGroups = CH_SHIELD</code> fires a piercing arrow:</p>
+          <figure class="var-fig" style="margin:0;">
+            <svg viewBox="0 0 600 120" role="img" aria-label="An arrow flies right from the archer. It hits a goblin, then a shieldbearer where it stops. A troll behind the shield is not hit." style="color:var(--ink)">
+              <g font-family="JetBrains Mono, monospace" font-size="10" text-anchor="middle" fill="currentColor">
+                <circle cx="40" cy="60" r="14" fill="var(--accent-2)" fill-opacity=".2" stroke="var(--accent-2)"/>
+                <text x="40" y="96" fill="var(--accent-2)">archer</text>
+                <path d="M58,60 L352,60" stroke="var(--accent)" stroke-width="1.6" fill="none" marker-end="url(#ha)"/>
+                <path d="M352,60 L540,60" stroke="var(--ink-soft)" stroke-dasharray="3 4" fill="none"/>
+                <circle cx="180" cy="60" r="14" fill="var(--accent)" fill-opacity=".2" stroke="var(--accent)"/>
+                <text x="180" y="96" fill="var(--accent)">goblin · hit</text>
+                <circle cx="360" cy="60" r="14" fill="var(--accent)" fill-opacity=".2" stroke="var(--accent)" stroke-width="2"/>
+                <line x1="372" y1="40" x2="372" y2="80" stroke="var(--accent)" stroke-width="3"/>
+                <text x="360" y="96" fill="var(--accent)">shieldbearer · hit, stops</text>
+                <circle cx="520" cy="60" r="14" fill="none" stroke="var(--ink-soft)"/>
+                <text x="520" y="96" fill="var(--ink-soft)">troll · spared</text>
+                <text x="300" y="22" fill="var(--ink-soft)">stopGroups 0b100 &amp; shieldbearer hurt 0b111 = 0b100 ≠ 0</text>
+              </g>
+              <defs><marker id="ha" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker></defs>
+            </svg>
+          </figure>
+          <p>A target that the hit does not connect with (the ghost) cannot stop it either — stop groups only look at targets that were hit.</p>
+        </div>
+      </details>
     </div>
 
     <div class="code" style="margin-top:16px;"><span class="c">## A hit connects when the two hit space masks overlap.</span>
@@ -276,7 +408,7 @@ emitter._entityStopGroups &amp; target._entityHurtGroups != 0</div>
     <div class="figure-panel">
       <figure style="margin:0;">
         <svg viewBox="0 0 780 300" role="img" aria-label="Pipeline: the shape bounds become a chunk area, chunks without opponents are dropped, the remaining entities pass the cheap filters, then the geometry test, then ordering, the stop group and the hit limit, and finally the payload is dispatched." style="color:var(--ink)">
-          <g font-family="JetBrains Mono, monospace" font-size="10.5">
+          <g font-family="JetBrains Mono, monospace" font-size="10.5" fill="currentColor">
             <rect x="10" y="20" width="150" height="46" rx="3" fill="none" stroke="currentColor"/>
             <text x="85" y="41" text-anchor="middle" fill="currentColor">shape bounds</text>
             <text x="85" y="56" text-anchor="middle" font-size="9" fill="var(--ink-soft)">min / max corner</text>
@@ -346,7 +478,7 @@ emitter._entityStopGroups &amp; target._entityHurtGroups != 0</div>
     <div class="figure-panel">
       <figure style="margin:0;">
         <svg viewBox="0 0 700 280" role="img" aria-label="Left: an entity without a curve is a cylinder of constant radius. Right: a curve maps the percent along the y band to the percent of the radius, giving a silhouette; the hit band's middle selects the height that is sampled." style="color:var(--ink)">
-          <g font-family="JetBrains Mono, monospace" font-size="10">
+          <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
             <text x="110" y="22" text-anchor="middle" font-family="Overpass,sans-serif" font-size="11" font-weight="700" fill="var(--ink-soft)">NO CURVE</text>
             <line x1="40" y1="240" x2="180" y2="240" stroke="currentColor" stroke-opacity=".4"/>
             <rect x="70" y="70" width="80" height="170" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/>
@@ -395,7 +527,7 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
     <div class="figure-panel">
       <figure style="margin:0;">
         <svg viewBox="0 0 760 230" role="img" aria-label="The circle is ordered from its center outwards, the directional rect from a chosen one of its four edges, and the cake slice sweeps from its right edge to its left." style="color:var(--ink)">
-          <g font-family="JetBrains Mono, monospace" font-size="10">
+          <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
             <circle cx="120" cy="120" r="70" fill="var(--accent-2)" fill-opacity=".10" stroke="var(--accent-2)"/>
             <circle cx="120" cy="120" r="3" fill="var(--accent-2)"/>
             <line x1="120" y1="120" x2="190" y2="120" stroke="var(--accent)" marker-end="url(#sh)"/>
@@ -445,11 +577,10 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
       <p>An entity takes its id from the chunk index, then hands the hit server that id, its module manager and an <code>R_HitProfile</code>. An entity that never registers here can never be hit. A recycled id always starts clean — the hit server clears the slot when the index emits <code>s_entityReleased</code>, so an entity can never inherit the groups or the profile of whoever held its id before. The setters exist for changes during a round.</p>
     </div>
 
-    <div class="code" style="margin-top:16px;"><span class="c">## Hit groups: what an attack is made of, and what can be harmed by it.</span>
-<span class="k">const</span> HIT_PROJECTILE: <span class="t">int</span> = 1 &lt;&lt; 0
-<span class="k">const</span> HIT_MELEE: <span class="t">int</span> = 1 &lt;&lt; 1
-<span class="k">const</span> HURT_FLESH: <span class="t">int</span> = 1 &lt;&lt; 0
-<span class="k">const</span> HURT_SHIELD: <span class="t">int</span> = 1 &lt;&lt; 1
+    <div class="code" style="margin-top:16px;"><span class="c">## Hit channels — one bit space shared by hit, hurt and stop groups.</span>
+<span class="k">const</span> CH_PROJECTILE: <span class="t">int</span> = 1 &lt;&lt; 0
+<span class="k">const</span> CH_MELEE: <span class="t">int</span> = 1 &lt;&lt; 1
+<span class="k">const</span> CH_SHIELD: <span class="t">int</span> = 1 &lt;&lt; 2
 
 <span class="c">## Spawns one archer and arms it.</span>
 <span class="c">## @param p_position Where it spawns</span>
@@ -467,9 +598,9 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
     <span class="k">var</span> l_profile: <span class="t">R_HitProfile</span> = R_HitProfile.new()
     
     l_profile.yBand = <span class="t">Vector2</span>(0.0, 64.0)
-    l_profile.hurtGroups = HURT_FLESH
-    l_profile.hitGroups = HIT_PROJECTILE
-    l_profile.stopGroups = HURT_SHIELD
+    l_profile.hurtGroups = CH_PROJECTILE | CH_MELEE
+    l_profile.hitGroups = CH_PROJECTILE
+    l_profile.stopGroups = CH_SHIELD
     
     <span class="k">return</span> l_profile
 
@@ -492,7 +623,270 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
         _arrowHitData,
         C_HitServer.RECT_EDGE.BACK)</div>
 
-    <p class="fn-note" style="margin-top:12px;">Ordered from <code>BACK</code>, so the arrow walks outward from the archer and the first shield it meets ends it — every entity behind that shield is spared.</p>
+    <p class="fn-note" style="margin-top:12px;">Ordered from <code>BACK</code>, so the arrow walks outward from the archer and the first shield it meets ends it — every entity behind that shield is spared. A shieldbearer's own profile carries <code>hurtGroups = CH_PROJECTILE | CH_MELEE | CH_SHIELD</code>: the projectile bit lets the arrow hit it, the shield bit makes it stop there.</p>
+  </section>
+
+  <section id="data">
+    <span class="eyebrow">Data</span>
+    <h2>What the hit server stores</h2>
+    <div class="prose">
+      <p>Like the chunk index, every per entity field is a packed array indexed by the entity id, grown by <code>s_entitySlotAppended</code> and cleared by <code>s_entityReleased</code>. Positions, radii and teams are not copied — they are read straight from <code>G_ChunkingServer</code>. On top come the shared radius curve storage and a few buffers reused by every hit, so a hit allocates nothing but its result array.</p>
+    </div>
+    <p class="hint">Every row opens for a worked example.</p>
+
+    <p class="group-title">Per entity</p>
+    <div class="vlist">
+      <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
+
+      <details class="var">
+        <summary><span class="vn">_entityModules</span><span class="vt">Array[M_ModuleManager]</span><span class="vh">Who receives the hits of each entity</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>When a hit lands on id 5, the server calls <code>_entityModules[5].hit(p_hitData)</code>. <code>null</code> is allowed: the target is still hit — it counts towards the hit limit, can stop the hit, and its impact is returned — but nobody is told. The call happens only after the whole target list is final, so <code>hit()</code> may unregister its own entity safely.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_entityYBand</span><span class="vt">PackedVector2Array</span><span class="vh">Vertical extent as (bottom, top) — the third axis</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Positions are 2D; height lives here. A hit carries its own band, and the two must overlap: <code>hit.bottom ≤ target.top and hit.top ≥ target.bottom</code>.</p>
+          <figure class="var-fig" style="margin:0;">
+            <svg viewBox="0 0 560 240" role="img" aria-label="Height axis from 0 to 160. An archer stands from 0 to 64, a bat flies from 80 to 140. An arrow band from 20 to 40 overlaps only the archer. An overhead strike band from 70 to 100 overlaps only the bat." style="color:var(--ink)">
+              <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
+                <line x1="50" y1="18" x2="50" y2="210" stroke="currentColor" stroke-opacity=".5"/>
+                <line x1="50" y1="210" x2="420" y2="210" stroke="currentColor" stroke-opacity=".5"/>
+                <g fill="var(--ink-soft)" text-anchor="end">
+                  <text x="44" y="213">0</text><text x="44" y="165">40</text><text x="44" y="117">80</text><text x="44" y="69">120</text><text x="44" y="21">160</text>
+                </g>
+                <rect x="60" y="162" width="360" height="24" fill="var(--accent-2)" fill-opacity=".16" stroke="var(--accent-2)" stroke-dasharray="3 3"/>
+                <rect x="60" y="90" width="360" height="36" fill="var(--accent)" fill-opacity=".12" stroke="var(--accent)" stroke-dasharray="3 3"/>
+                <rect x="120" y="133.2" width="50" height="76.8" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                <text x="145" y="228" text-anchor="middle">archer (0, 64)</text>
+                <rect x="260" y="42" width="50" height="72" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                <text x="285" y="228" text-anchor="middle">bat (80, 140)</text>
+                <circle cx="145" cy="174" r="3.5" fill="var(--accent-2)"/>
+                <circle cx="285" cy="108" r="3.5" fill="var(--accent)"/>
+                <text x="428" y="170" fill="var(--accent-2)">arrow (20, 40)</text>
+                <text x="428" y="184" font-size="9" fill="var(--ink-soft)">hits archer at 30</text>
+                <text x="428" y="104" fill="var(--accent)">overhead (70, 100)</text>
+                <text x="428" y="118" font-size="9" fill="var(--ink-soft)">hits bat at 85</text>
+              </g>
+            </svg>
+            <figcaption>Dots: the height each hit is measured at — the middle of the hit band, held inside the target's band.</figcaption>
+          </figure>
+          <p>The overhead strike (70 … 100) misses the archer: <code>70 ≤ 64</code> is false. The arrow passes under the bat: <code>40 ≥ 80</code> is false. No special case for flying units anywhere.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_entityHitGroups · _entityHurtGroups · _entityStopGroups</span><span class="vt">PackedInt64Array</span><span class="vh">The three hit channel masks</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Explained bit by bit, with the arrow-and-shield example, under <a href="#groups">Group spaces</a>.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_entityCurveIndex</span><span class="vt">PackedInt32Array</span><span class="vh">Curve slot per entity, or <code>NO_CURVE</code> for a constant radius</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Which shared radius profile an entity uses (see the storage below). Ids 0 and 1 are goblins, 2 a troll, 3 an archer without a curve:</p>
+          <div class="arrs"><div class="arr" data-name="_entityCurveIndex" data-v="0 0 1 -1" data-hl="2"></div></div>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_entityVisitStamp</span><span class="vt">PackedInt32Array</span><span class="vh">The last hit that looked at each entity — dedup in one compare</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>An entity stands in every chunk its radius touches, so a hit walking chunks 1, 2, 5, 6 meets a large entity up to four times. Each hit first increments <code>_visitStamp</code>, then:</p>
+          <div class="code">hit #17 walks chunk 1:  id 2 stamp 16 ≠ 17 → stamp = 17, test it
+hit #17 walks chunk 2:  id 2 stamp 17 = 17 → skip
+hit #17 walks chunk 5:  id 2 stamp 17 = 17 → skip
+hit #18 walks chunk 1:  id 2 stamp 17 ≠ 18 → stamp = 18, test it</div>
+          <p>Nothing is ever cleared between hits — a new counter value makes every old stamp stale at once.</p>
+        </div>
+      </details>
+    </div>
+
+    <p class="group-title">Radius curve storage — one slot per archetype, not per entity</p>
+    <details class="var" style="margin-bottom:10px;border:1px solid var(--line);border-radius:3px;background:var(--surface);">
+      <summary style="grid-template-columns:minmax(0,1fr) 16px;"><span class="vh"><strong>How the six curve fields fit together</strong> <span style="color:var(--ink-soft)">— 50 goblins and 3 trolls</span></span><span class="chev"></span></summary>
+      <div class="var-body">
+        <p>All goblins share one <code>Curve</code> resource, all trolls another. Each distinct curve gets a slot; the slot owns a block of 65 pre-read samples; entities only store the slot number.</p>
+        <figure class="var-fig" style="margin:0;">
+          <svg viewBox="0 0 640 230" role="img" aria-label="Fifty goblins point to curve slot 0 and three trolls point to curve slot 1. Slot 0 owns samples 0 to 64, slot 1 owns samples 65 to 129 of the flat sample array. Each block is drawn as the curve shape it holds." style="color:var(--ink)">
+            <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
+              <text x="20" y="24" font-family="Overpass,sans-serif" font-weight="700" fill="var(--ink-soft)">ENTITIES</text>
+              <text x="200" y="24" font-family="Overpass,sans-serif" font-weight="700" fill="var(--ink-soft)">SLOTS</text>
+              <text x="360" y="24" font-family="Overpass,sans-serif" font-weight="700" fill="var(--ink-soft)">_curveSamples</text>
+              <rect x="20" y="44" width="120" height="40" rx="3" fill="none" stroke="var(--accent-2)"/>
+              <text x="80" y="62" text-anchor="middle">50 goblins</text>
+              <text x="80" y="76" text-anchor="middle" font-size="9" fill="var(--ink-soft)">curveIndex 0</text>
+              <rect x="20" y="124" width="120" height="40" rx="3" fill="none" stroke="var(--accent)"/>
+              <text x="80" y="142" text-anchor="middle">3 trolls</text>
+              <text x="80" y="156" text-anchor="middle" font-size="9" fill="var(--ink-soft)">curveIndex 1</text>
+              <rect x="20" y="184" width="120" height="30" rx="3" fill="none" stroke="currentColor" stroke-opacity=".4"/>
+              <text x="80" y="203" text-anchor="middle" fill="var(--ink-soft)">archers · −1</text>
+              <rect x="190" y="44" width="120" height="40" rx="3" fill="none" stroke="var(--accent-2)"/>
+              <text x="250" y="62" text-anchor="middle">slot 0</text>
+              <text x="250" y="76" text-anchor="middle" font-size="9" fill="var(--ink-soft)">users 50</text>
+              <rect x="190" y="124" width="120" height="40" rx="3" fill="none" stroke="var(--accent)"/>
+              <text x="250" y="142" text-anchor="middle">slot 1</text>
+              <text x="250" y="156" text-anchor="middle" font-size="9" fill="var(--ink-soft)">users 3</text>
+              <path d="M140,64 L186,64" stroke="var(--accent-2)" fill="none" marker-end="url(#hc1)"/>
+              <path d="M140,144 L186,144" stroke="var(--accent)" fill="none" marker-end="url(#hc2)"/>
+              <path d="M310,64 L356,64" stroke="var(--accent-2)" fill="none" marker-end="url(#hc1)"/>
+              <path d="M310,144 L356,144" stroke="var(--accent)" fill="none" marker-end="url(#hc2)"/>
+              <rect x="360" y="40" width="260" height="48" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/>
+              <polyline points="364,70 400,58 440,50 480,48 520,52 560,60 616,72" fill="none" stroke="var(--accent-2)" stroke-width="1.5"/>
+              <text x="364" y="100" font-size="9" fill="var(--ink-soft)">[0]</text><text x="616" y="100" text-anchor="end" font-size="9" fill="var(--ink-soft)">[64]</text>
+              <rect x="360" y="120" width="260" height="48" fill="var(--accent-soft)" stroke="var(--accent)"/>
+              <polyline points="364,146 400,144 440,136 480,126 520,124 560,140 616,154" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+              <text x="364" y="180" font-size="9" fill="var(--ink-soft)">[65]</text><text x="616" y="180" text-anchor="end" font-size="9" fill="var(--ink-soft)">[129]</text>
+              <text x="490" y="205" text-anchor="middle" font-size="9" fill="var(--ink-soft)">left = feet (0 %), right = head (100 %)</text>
+            </g>
+            <defs>
+              <marker id="hc1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent-2)"/></marker>
+              <marker id="hc2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker>
+            </defs>
+          </svg>
+          <figcaption>53 entities, two slots, 130 floats. A higher line in a block means a wider radius at that height.</figcaption>
+        </figure>
+        <div class="code"><span class="c">## A troll: radius 40, yBand (0, 100), hit measured at height 30</span>
+position = (30 - 0) / 100 * 64      = 19.2    <span class="c"># 64 intervals between the 65 samples</span>
+sample   = 19,  fraction = 0.2
+base     = slot 1 * 65 + 19         = 84
+percent  = s[84] + (s[85] - s[84]) * 0.2      <span class="c"># e.g. 70 + (75 - 70) * 0.2 = 71</span>
+radius   = 40 * 71 / 100            = <span class="t">28.4</span></div>
+      </div>
+    </details>
+
+    <div class="vlist">
+      <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
+
+      <details class="var">
+        <summary><span class="vn">_radiiCurves</span><span class="vt">Array[Curve]</span><span class="vh">The <code>Curve</code> stored in each slot</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <div class="arrs"><div class="arr" data-name="_radiiCurves" data-v="goblin.tres troll.tres"></div></div>
+          <p>Never sampled during a hit — it is kept only to find the dictionary key again when the slot is freed. A freed slot holds <code>null</code>.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_curveSamples</span><span class="vt">PackedFloat32Array</span><span class="vh">Every slot baked into 65 samples, one block per slot</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Slot <em>s</em> owns indices <code>s × 65 … s × 65 + 64</code>. Sample <em>i</em> holds the curve's value (0 … 100 %) at <code>i / 64 × 100 %</code> of the entity's height: sample 0 at the feet, 16 at a quarter, 32 halfway, 64 at the top. Read once when a slot is taken; a hit reads two floats and interpolates instead of calling into the <code>Curve</code> object.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_curveSlotOf</span><span class="vt">Dictionary[Curve, int]</span><span class="vh">Which slot a curve already sits in</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <div class="code">{ goblin.tres: 0, troll.tres: 1 }</div>
+          <p>This is what makes the 50th goblin free: its curve is found here and it just joins slot 0. <strong>Keys are object identity</strong>, not curve shape — two separately created <code>Curve</code>s with the same points get two slots. Share one <code>.tres</code> per archetype.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_curveUsers</span><span class="vt">PackedInt32Array</span><span class="vh">How many entities use each slot</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <div class="arrs"><div class="arr" data-name="_curveUsers" data-v="50 3"></div></div>
+          <p>A reference count. When the third troll dies (or switches curve), slot 1 drops to 0 and is freed: its <code>_radiiCurves</code> entry becomes <code>null</code>, its dictionary key is erased, and 1 goes onto <code>_freeCurveIndices</code>.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_freeCurveIndices</span><span class="vt">PackedInt32Array</span><span class="vh">Slots ready to be handed out again</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>After the trolls are gone: <code>[1]</code>. The next new curve (say, for ogres) takes slot 1 and overwrites samples 65 … 129; no array grows.</p>
+        </div>
+      </details>
+    </div>
+
+    <p class="group-title">Per hit buffers — reused, never shrunk</p>
+    <details class="var" style="margin-bottom:10px;border:1px solid var(--line);border-radius:3px;background:var(--surface);">
+      <summary style="grid-template-columns:minmax(0,1fr) 16px;"><span class="vh"><strong>One ordered hit, buffer by buffer</strong> <span style="color:var(--ink-soft)">— <code>hit_circle_ordered</code>, limit 3, emitter stops at shields</span></span><span class="chev"></span></summary>
+      <div class="var-body">
+        <p><strong>1 · Gather.</strong> The chunk walk finds four opponents that pass team, flags, groups and band. Cells past the count are leftovers from earlier hits and are ignored.</p>
+        <div class="arrs"><div class="arr" data-name="_candidateIds (count 4)" data-v="7 3 9 4 … … …" data-hl2="0 1 2 3"></div></div>
+        <p><strong>2 · Geometry.</strong> Id 9 is out of reach and dropped. The other three are pushed with their key — for a circle, the squared distance to the origin:</p>
+        <div class="arrs">
+          <div class="arr" data-name="_hitIds (count 3)" data-v="7 3 4" data-hl2="0 1 2"></div>
+          <div class="arr" data-name="_hitKeys" data-v="900 100 400"></div>
+        </div>
+        <p><strong>3 · Order.</strong> <code>_hitOrder</code> lists buffer indices by ascending key — nothing else is moved:</p>
+        <div class="arrs"><div class="arr" data-name="_hitOrder" data-v="1 2 0" data-idx="1st 2nd 3rd"></div></div>
+        <p><strong>4 · Cut.</strong> Limit is <code>min(3, 3) = 3</code>. Walk in order: id 3 (goblin), then id 4 — a shieldbearer, stop groups match, so the walk ends after it. <strong>5 · Dispatch</strong> ids 3 and 4, return their two impact positions. Id 7 is spared.</p>
+      </div>
+    </details>
+
+    <div class="vlist">
+      <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
+
+      <details class="var">
+        <summary><span class="vn">_visitStamp</span><span class="vt">int</span><span class="vh">Counter handed to every gather</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Incremented at the start of every chunk gather; entities compare their <code>_entityVisitStamp</code> against it (example above). The preferred target path tests a single id and does not need it.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_candidateIds · _candidateCount</span><span class="vt">PackedInt32Array · int</span><span class="vh">Entities worth a geometry test in the running hit</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Only the first <code>_candidateCount</code> entries are live. The count is reset to 0 per hit; the array itself keeps its size and just doubles when full (16 → 32 → 64 …, see <code>BUFFER_MIN_CAPACITY</code>). After a few hits it has reached its working size and never allocates again.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_hitIds · _hitCount</span><span class="vt">PackedInt32Array · int</span><span class="vh">Targets the shape accepted</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Same live-up-to-count scheme. Three arrays run in parallel at the same index: <code>_hitIds[i]</code>, <code>_hitKeys[i]</code>, <code>_hitPositions[i]</code> all describe hit <em>i</em>.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_hitKeys</span><span class="vt">PackedFloat32Array</span><span class="vh">Sort key of each accepted target — smaller goes first</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Each shape writes the key that makes "ascending" mean its natural order:</p>
+          <div class="table-wrap">
+            <table>
+              <tr><th>Shape</th><th>Key</th><th>First in line</th></tr>
+              <tr><td>circle</td><td><code>distance²</code> to the origin</td><td>nearest</td></tr>
+              <tr><td>rect, <code>BACK</code></td><td><code>along</code></td><td>closest to the back edge</td></tr>
+              <tr><td>rect, <code>FRONT</code></td><td><code>length − along</code></td><td>closest to the front edge</td></tr>
+              <tr><td>rect, <code>RIGHT</code> / <code>LEFT</code></td><td><code>−across</code> / <code>across</code></td><td>closest to that side</td></tr>
+              <tr><td>cake slice</td><td><code>−angle</code> (<code>angle</code> when reversed)</td><td>at the right (left) edge</td></tr>
+            </table>
+          </div>
+          <p>Unordered hits still write keys but never sort them.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_hitPositions</span><span class="vt">PackedVector3Array</span><span class="vh">Impact of each accepted target, as (x, y, height)</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>The point on the target's silhouette facing the hit origin, at the sampled height. A target at (100, 0) with radius 20, hit from the origin (0, 0) at height 30 → <code>(80, 0, 30)</code>. If the origin lies inside the target's radius, the impact is the origin itself. These are what the hit functions return — handy for spawning impact effects.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_hitOrder</span><span class="vt">PackedInt32Array</span><span class="vh">Indices into the hit buffers, in the order an ordered hit applies them</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Built by insertion sort over <code>_hitKeys</code> only for ordered hits that may land more than once. An ordered hit with limit 1 skips it and just picks the smallest key.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_defaultHitProfile</span><span class="vt">R_HitProfile</span><span class="vh">Fallback for an entity registered with <code>null</code></span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Built once, on first need, with the <code>R_HitProfile</code> defaults: band (0, 64) and every mask 0. That means such an entity <strong>can never be hit and its hits connect with nothing</strong> — which is why registering without a profile logs an error rather than passing silently.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">_hasWarnedPreferredMisuse</span><span class="vt">bool</span><span class="vh">Whether the preferred-target warning was already printed</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Passing a preferred target with a limit other than 1 is ignored with a warning. This flag keeps that warning to once per run instead of once per hit.</p>
+        </div>
+      </details>
+    </div>
   </section>
 
   <section id="api">
@@ -560,16 +954,141 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
     </div>
 
     <p class="group-title">Shared arguments</p>
-    <div class="table-wrap">
-      <table class="vars">
-        <tr><th>Argument</th><th>Meaning</th></tr>
-        <tr><td>p_emitterId</td><td>The entity the hit belongs to; its team, hit groups and stop groups drive everything</td></tr>
-        <tr><td>p_hitYBand</td><td>Vertical extent of the hit; must overlap a target's band</td></tr>
-        <tr><td>p_maxHits</td><td>Upper number of targets, or <code>C_HitServer.UNLIMITED_HITS</code></td></tr>
-        <tr><td>p_preferredId</td><td>Checked before the chunk walk when <code>p_maxHits</code> is 1, else <code>C_HitServer.NO_PREFERRED_TARGET</code></td></tr>
-        <tr><td>p_hitData</td><td>The <code>R_HitData</code> handed to every module manager that is hit</td></tr>
-        <tr><td><em>returns</em></td><td><code>PackedVector3Array</code> of impacts as (x, y, height), on the target's silhouette facing the origin</td></tr>
-      </table>
+    <div class="vlist">
+      <div class="vlist-head"><span>Argument</span><span>Type</span><span>Meaning</span><span></span></div>
+
+      <details class="var">
+        <summary><span class="vn">p_emitterId</span><span class="vt">int</span><span class="vh">The entity the hit belongs to; its team, hit groups and stop groups drive everything</span><span class="chev"></span></summary>
+        <div class="var-body"><p>The shape itself is placed by <code>p_origin</code>, not by the emitter's position — a mage can cast an explosion 300 units away. The emitter only supplies the team (never hit your own), its hit groups and its stop groups.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">p_hitYBand</span><span class="vt">Vector2</span><span class="vh">Vertical extent of the hit; must overlap a target's band</span><span class="chev"></span></summary>
+        <div class="var-body"><p>A ground slam: <code>(0, 10)</code> — misses everything flying. An arrow at chest height: <code>(20, 40)</code>. Anti-air flak: <code>(80, 400)</code>. Its middle is also the height a radius curve is sampled at. See the <a href="#data">band drawing</a>.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">p_maxHits</span><span class="vt">int</span><span class="vh">Upper number of targets, or <code>C_HitServer.UNLIMITED_HITS</code></span><span class="chev"></span></summary>
+        <div class="var-body"><p>In an <code>_ordered</code> hit this means "the first N in order" — with a circle, the nearest N. In a plain hit it means "any N", whichever the chunk walk met first. 0 hits nobody.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">p_preferredId</span><span class="vt">int</span><span class="vh">Tried alone first when <code>p_maxHits</code> is 1, else <code>C_HitServer.NO_PREFERRED_TARGET</code></span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>For a single-target attack that should land on the unit's current target if it can. Pass the id from <code>G_TargetingServer.get_target()</code>:</p>
+          <div class="code">preferred valid and inside the shape  →  hit it, done — no chunk is walked
+preferred filtered out or out of reach →  normal hit: nearest / any other target
+p_maxHits != 1                         →  preference ignored, one warning per run</div>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">p_hitData</span><span class="vt">R_HitData</span><span class="vh">Handed to every module manager that is hit</span><span class="chev"></span></summary>
+        <div class="var-body"><p>One shared object for all targets of this hit. Keep one per attack kind (e.g. an <code>_arrowHitData</code> member) instead of creating one per shot.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn"><em>returns</em></span><span class="vt">PackedVector3Array</span><span class="vh">Impacts as (x, y, height), on the target's silhouette facing the origin</span><span class="chev"></span></summary>
+        <div class="var-body"><p>One entry per target that was hit, in hit order for the <code>_ordered</code> variants. Empty means nothing was hit. Example for an arrow from (0, 0) hitting a goblin (r 20) at (100, 0) at height 30: <code>[(80, 0, 30)]</code>.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section id="constants">
+    <span class="eyebrow">Reference</span>
+    <h2>C_HitServer, R_HitProfile, R_HitData</h2>
+
+    <p class="group-title">C_HitServer</p>
+    <div class="vlist">
+      <div class="vlist-head"><span>Name</span><span>Kind</span><span>Meaning</span><span></span></div>
+
+      <details class="var">
+        <summary><span class="vn">RECT_EDGE</span><span class="vt">enum</span><span class="vh"><code>BACK</code>, <code>FRONT</code>, <code>LEFT</code>, <code>RIGHT</code> — where an ordered rect hit starts</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Edges in the rect's own frame, looking along <code>p_direction</code>: <code>BACK</code> is the edge at <code>p_origin</code>, <code>FRONT</code> the far one. A piercing arrow uses <code>BACK</code> (nearest to the shooter first); a wave rolling in from the far end uses <code>FRONT</code>; a sweep from the side uses <code>LEFT</code> or <code>RIGHT</code>. The resulting sort keys are listed under <a href="#data">_hitKeys</a>.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">UNLIMITED_HITS</span><span class="vt">const int</span><span class="vh"><code>−1</code>: pass as <code>p_maxHits</code> to hit every valid target</span><span class="chev"></span></summary>
+        <div class="var-body"><p>An explosion: <code>UNLIMITED_HITS</code>. A cleave that may hit two: <code>2</code>. A single-target stab: <code>1</code>. Stop groups can still end an ordered unlimited hit early.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">NO_PREFERRED_TARGET</span><span class="vt">const int</span><span class="vh"><code>−1</code>: pass as <code>p_preferredId</code> when there is no target to try first</span><span class="chev"></span></summary>
+        <div class="var-body"><p>See <a href="#api">p_preferredId</a> for what a preferred target does.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">NO_CURVE</span><span class="vt">const int</span><span class="vh"><code>−1</code>: curve slot of an entity with a constant radius</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Stored in <code>_entityCurveIndex</code>. Such an entity is a plain cylinder: its full <code>_entityRadius</code> at every height.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">CURVE_PERCENT_MAX</span><span class="vt">const float</span><span class="vh"><code>100</code>: upper end of both curve axes</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Author radius curves with <strong>x from 0 to 100</strong> (percent of the height, feet to head) and <strong>y from 0 to 100</strong> (percent of the radius). A point (70, 100) means "at 70 % of its height, the full radius". A curve left on Godot's default 0 … 1 domain is sampled at 0 … 100, clamps to its last point everywhere, and silently behaves like a cylinder.</p>
+        </div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">BUFFER_MIN_CAPACITY</span><span class="vt">const int</span><span class="vh"><code>16</code>: first size a per hit buffer grows to</span><span class="chev"></span></summary>
+        <div class="var-body"><p>The candidate and hit buffers start empty. The first push grows them to 16, and after that they double when full: 16 → 32 → 64. Without the minimum, the first hits would grow 1 → 2 → 4 → 8 → 16, reallocating four times for nothing.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">CURVE_SAMPLE_COUNT</span><span class="vt">const int</span><span class="vh"><code>65</code>: samples per baked curve</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>64 equal steps from 0 % to 100 %, plus one so the last sample sits exactly on 100 %. Each step is 1.5625 % of the height.</p>
+          <div class="arrs"><div class="arr" data-name="sample → height %" data-v="0 25 50 75 100" data-idx="0 16 32 48 64"></div></div>
+          <p>Costs 65 floats (260 bytes) per distinct curve, whatever the number of entities using it.</p>
+        </div>
+      </details>
+    </div>
+
+    <p class="group-title">R_HitProfile — one per archetype, handed to <code>register()</code></p>
+    <div class="vlist">
+      <div class="vlist-head"><span>Field</span><span>Type · default</span><span>Becomes</span><span></span></div>
+
+      <details class="var">
+        <summary><span class="vn">yBand</span><span class="vt">Vector2 · (0, 64)</span><span class="vh"><code>_entityYBand</code> — (bottom, top)</span><span class="chev"></span></summary>
+        <div class="var-body"><p>A foot soldier: <code>(0, 64)</code>. A bat: <code>(80, 140)</code>. A giant: <code>(0, 200)</code>. See the <a href="#data">band drawing</a>.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">hurtGroups</span><span class="vt">int · 0</span><span class="vh"><code>_entityHurtGroups</code> — what harms it</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Leave it 0 and the entity can never be hit. See <a href="#groups">Group spaces</a>.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">hitGroups</span><span class="vt">int · 0</span><span class="vh"><code>_entityHitGroups</code> — what its hits carry</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Leave it 0 and its hits connect with nothing.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">stopGroups</span><span class="vt">int · 0</span><span class="vh"><code>_entityStopGroups</code> — what ends its ordered hits</span><span class="chev"></span></summary>
+        <div class="var-body"><p>0 means its ordered hits pierce everything up to the hit limit.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">radiusCurve</span><span class="vt">Curve · null</span><span class="vh">A curve slot — the silhouette</span><span class="chev"></span></summary>
+        <div class="var-body"><p>0 … 100 on both axes (see <code>CURVE_PERCENT_MAX</code>). <code>null</code> keeps the radius constant. Share the same resource across the archetype so it costs one slot.</p></div>
+      </details>
+    </div>
+
+    <p class="group-title">R_HitData — the payload of one hit</p>
+    <div class="vlist">
+      <div class="vlist-head"><span>Field</span><span>Type · default</span><span>Meaning</span><span></span></div>
+
+      <details class="var">
+        <summary><span class="vn">damage</span><span class="vt">float · 0</span><span class="vh">Damage dealt to every entity the hit connects with</span><span class="chev"></span></summary>
+        <div class="var-body"><p>The server only passes it along; the receiving <code>M_ModuleManager</code> decides what it does. The same <code>R_HitData</code> object goes to every target, so the receiver must not modify it.</p></div>
+      </details>
+
+      <details class="var">
+        <summary><span class="vn">damageType</span><span class="vt">int · 0</span><span class="vh">Kind of damage, for the receiver to branch on</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Free for the game to define (fire, poison …). Unrelated to hit groups: groups decide <em>whether</em> a hit lands, <code>damageType</code> what it does once it has.</p></div>
+      </details>
     </div>
   </section>
 
@@ -580,8 +1099,9 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
       <li><strong>Only the other team is ever hit.</strong> There is no friendly fire path and no flag to enable one.</li>
       <li><strong>Announced entities are skipped.</strong> An entity marked by <code>pre_unregister_entity()</code> takes no more hits — that is what the flag is for.</li>
       <li><strong>A preferred target needs a hit limit of exactly 1.</strong> Anything else logs a warning and runs as a normal hit.</li>
-      <li><strong>Radius curves run 0 to 100 on both axes.</strong> A curve on the default domain behaves like no curve at all.</li>
-      <li><strong>Hit groups are 32 bit and separate from the chunking groups.</strong> Do not reuse the group bits of the chunk masks here.</li>
+      <li><strong>Radius curves run 0 to 100 on both axes.</strong> A curve on the default domain behaves like no curve at all. Curves are shared by resource identity, so give an archetype one <code>.tres</code>.</li>
+      <li><strong>Always pass a profile.</strong> Without one the entity gets all-zero masks: it can never be hit and its hits connect with nothing.</li>
+      <li><strong>Hit, hurt and stop groups are one 64 bit space, separate from the chunking groups.</strong> Define the channel bits once and use them in all three masks; do not reuse the group bits of the chunk masks here.</li>
       <li><strong>Entities call the hit server directly.</strong> It is an autoload loaded after <code>G_ChunkingServer</code> and has no id space of its own.</li>
       <li><strong>A module may kill its own entity inside <code>hit()</code>.</strong> That is safe, because dispatch happens after the target list is closed.</li>
     </ul>
@@ -596,6 +1116,52 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
 </div>
 
 <script>
+(function(){
+  // Draws every .arr from its data attributes:
+  //   data-v    values, space separated ("-1" and "·" render faded)
+  //   data-hl   indices to highlight in the accent colour, data-hl2 in the second one
+  //   data-idx  optional labels instead of 0, 1, 2 ...
+  //   data-split index before which a gap is drawn (team blocks)
+  Array.prototype.forEach.call(document.querySelectorAll('.arr[data-v]'), function(el){
+    var vals = el.getAttribute('data-v').trim().split(/\s+/);
+    var hl = (el.getAttribute('data-hl') || '').split(/\s+/);
+    var hl2 = (el.getAttribute('data-hl2') || '').split(/\s+/);
+    var idx = el.getAttribute('data-idx');
+    var labels = idx ? idx.trim().split(/\s+/) : null;
+    var split = el.getAttribute('data-split');
+    var name = document.createElement('span');
+    name.className = 'arr-name';
+    name.textContent = el.getAttribute('data-name') || '';
+    var row = document.createElement('div');
+    row.className = 'cells';
+    vals.forEach(function(v, i){
+      var c = document.createElement('span');
+      var k = String(i);
+      if(v === '-1' || v === '·') c.classList.add('nil');
+      if(hl.indexOf(k) >= 0) c.classList.add('hl');
+      if(hl2.indexOf(k) >= 0) c.classList.add('hl2');
+      if(split !== null && String(split) === k) c.classList.add('split');
+      var n = document.createElement('i');
+      n.textContent = labels ? labels[i] : k;
+      var b = document.createElement('b');
+      b.textContent = v;
+      c.appendChild(n); c.appendChild(b);
+      row.appendChild(c);
+    });
+    el.appendChild(name); el.appendChild(row);
+  });
+
+  var btn = document.querySelector('.xall');
+  if(btn){
+    btn.addEventListener('click', function(){
+      var all = document.querySelectorAll('details.var');
+      var open = btn.getAttribute('aria-pressed') !== 'true';
+      Array.prototype.forEach.call(all, function(d){ d.open = open; });
+      btn.setAttribute('aria-pressed', open ? 'true' : 'false');
+      btn.textContent = open ? 'Collapse details' : 'Expand details';
+    });
+  }
+})();
 (function(){
   var links = Array.prototype.slice.call(document.querySelectorAll('.nav a[href^="#"]'));
   var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
