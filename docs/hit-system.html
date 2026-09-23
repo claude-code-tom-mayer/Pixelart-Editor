@@ -432,7 +432,7 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
         <tr><th>Shape</th><th>Defined by</th><th>Ordered by</th></tr>
         <tr><td>circle</td><td>origin, radius</td><td>Distance from the origin, nearest first</td></tr>
         <tr><td>directional rect</td><td>origin at the back edge, direction, length, width</td><td>The chosen <code>RECT_EDGE</code>: BACK, FRONT, LEFT or RIGHT</td></tr>
-        <tr><td>cake slice</td><td>origin at the tip, direction, radius, full angle</td><td>Sweep angle, right edge to left; <code>p_reversed</code> flips it</td></tr>
+        <tr><td>cake slice</td><td>origin at the tip, direction, radius, full angle</td><td>Sweep angle, right edge to left; <code>p_isReversed</code> flips it</td></tr>
       </table>
     </div>
 
@@ -547,7 +547,7 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
         p_preferredId: <span class="t">int</span>, p_hitData: <span class="t">R_HitData</span>) -&gt; <span class="t">PackedVector3Array</span>
 
 <span class="c">## The ordered variant takes one more argument:</span>
-        p_reversed: <span class="t">bool</span>   <span class="c"># sweep left to right instead</span></div>
+        p_isReversed: <span class="t">bool</span>   <span class="c"># sweep left to right instead</span></div>
         <p class="fn-note">A sword swing or a cone. <code>p_angle</code> is the full opening angle in radians, centered on the direction. A target is caught by the wedge itself or by either straight edge.</p>
       </div>
     </div>
