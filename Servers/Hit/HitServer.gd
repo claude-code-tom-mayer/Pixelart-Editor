@@ -1,9 +1,12 @@
-extends A_EntityServer
+extends RefCounted
 class_name HitServer
 ## Resolves area hits through the chunk index, so only entities near the shape are tested. [br]
 ## Hit and hurt groups decide whether a hit connects at all, stop groups end it at the first blocker.
 
 #region EXPORTS_AND_VARS
+
+## Chunk index, entity ids and shared entity columns this server reads.
+var _chunking: ChunkingServer = null
 
 ## Module management per entity id; receives every hit that connects with it.
 var _entityModules: Array[M_ModuleManager] = []
@@ -78,6 +81,9 @@ var _visitStamp: int = 0
 
 # Cached constants, assigned once in _init().
 
+## Cached C_ChunkingServer.MAP_CHUNK_COLUMNS; the candidate gather reads it constantly.
+var MAP_CHUNK_COLUMNS: int
+
 ## Cached C_ChunkingServer.NO_SLOT.
 var NO_SLOT: int
 
@@ -103,10 +109,15 @@ var UNLIMITED_HITS: int
 
 #region LIFECYCLE_AND_METHODS
 
-## Binds the server to the chunk index and caches the constants its loops read. [br]
-## @param p_chunking The index and shared entity columns every server reads
+## Binds the server to the chunk index and follows its id lifecycle from now on. [br]
+## Build it before the first entity registers, so it sees every id the index hands out. [br]
+## @param p_chunking The index whose ids and entity columns this server shares
 func _init(p_chunking: ChunkingServer) -> void:
-	super(p_chunking)
+	_chunking = p_chunking
+	_chunking.entity_slot_appended.connect(_append_slot)
+	_chunking.entity_released.connect(_reset_slot)
+	
+	MAP_CHUNK_COLUMNS = C_ChunkingServer.MAP_CHUNK_COLUMNS
 	NO_SLOT = C_ChunkingServer.NO_SLOT
 	NO_CURVE = C_HitServer.NO_CURVE
 	CURVE_SAMPLE_COUNT = C_HitServer.CURVE_SAMPLE_COUNT
@@ -116,13 +127,11 @@ func _init(p_chunking: ChunkingServer) -> void:
 	UNLIMITED_HITS = C_HitServer.UNLIMITED_HITS
 
 
-## Gives an entity its hit side; the api server calls this while it registers. [br]
-## @param p_id The entity to arm [br]
+## Gives an entity its hit side; an entity that never calls this can never be hit. [br]
+## @param p_id The id ChunkingServer.register_entity() returned [br]
 ## @param p_module Module management that receives its hits [br]
 ## @param p_hitProfile Band, groups and radius profile of the entity
 func register(p_id: int, p_module: M_ModuleManager, p_hitProfile: R_HitProfile) -> void:
-	ensure_slot(p_id)
-	
 	var l_hitProfile: R_HitProfile = p_hitProfile
 	
 	if (l_hitProfile == null):
@@ -136,13 +145,6 @@ func register(p_id: int, p_module: M_ModuleManager, p_hitProfile: R_HitProfile) 
 	_entityStopGroups[p_id] = l_hitProfile.stopGroups
 	
 	set_radius_curve(p_id, l_hitProfile.radiusCurve)
-
-
-## Drops everything an entity holds once its id is handed back for reuse. [br]
-## @param p_id The entity whose slot is released
-func release_entity(p_id: int) -> void:
-	_entityModules[p_id] = null
-	_release_curve(p_id)
 
 
 ## Sets the vertical extent an entity occupies. [br]
@@ -511,8 +513,10 @@ func _test_cake_slice(p_emitterId: int, p_origin: Vector2, p_direction: Vector2,
 
 
 ## Appends one fresh slot to every column of this server. [br]
-## Overrides A_EntityServer.
-func _append_slot() -> void:
+## Connected to ChunkingServer.entity_slot_appended, so ids of both servers always match. [br]
+## @param p_id The id the slot is appended for
+@warning_ignore("unused_parameter")
+func _append_slot(p_id: int) -> void:
 	_entityModules.append(null)
 	_entityYBand.append(Vector2.ZERO)
 	_entityHurtGroups.append(0)
@@ -522,8 +526,8 @@ func _append_slot() -> void:
 	_entityVisitStamp.append(0)
 
 
-## Resets one slot so a reused id inherits nothing of its predecessor. [br]
-## Overrides A_EntityServer. [br]
+## Clears one slot once its id is handed back, so a reused id inherits nothing. [br]
+## Connected to ChunkingServer.entity_released. [br]
 ## @param p_id The entity slot to reset
 func _reset_slot(p_id: int) -> void:
 	_entityModules[p_id] = null
@@ -533,13 +537,6 @@ func _reset_slot(p_id: int) -> void:
 	_entityStopGroups[p_id] = 0
 	_entityVisitStamp[p_id] = 0
 	_release_curve(p_id)
-
-
-## Reads how many slots this server currently holds. [br]
-## Overrides A_EntityServer. [br]
-## @return The number of slots
-func _get_slot_count() -> int:
-	return _entityYBand.size()
 
 
 ## Builds the fallback profile for entities registered without one, once. [br]

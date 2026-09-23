@@ -8,6 +8,15 @@ class_name FrameBenchmark
 ## Position of every entity, kept here so the benchmark never reads server internals.
 var _positions: PackedVector2Array = PackedVector2Array()
 
+## Chunk index of the running pass; hands out the id every entity uses on all servers.
+var _chunking: ChunkingServer = null
+
+## Hit server of the running pass.
+var _hits: HitServer = null
+
+## Targeting server of the running pass.
+var _targeting: TargetingServer = null
+
 # Cached constants, assigned once in _init().
 
 ## Cached C_FrameBenchmark.ENTITY_COUNTS.
@@ -86,11 +95,14 @@ func _init() -> void:
 ## Builds a world of two fronts and times the phases of one frame in it. [br]
 ## @param p_count How many entities the pass registers
 func _run_pass(p_count: int) -> void:
-	var l_api: ApiServer = ApiServer.new()
+	_chunking = ChunkingServer.new()
+	_hits = HitServer.new(_chunking)
+	_targeting = TargetingServer.new(_chunking)
+	
 	var l_random: RandomNumberGenerator = RandomNumberGenerator.new()
 	l_random.seed = 11
 	
-	var l_ids: PackedInt32Array = _build_world(l_api, p_count, l_random)
+	var l_ids: PackedInt32Array = _build_world(p_count, l_random)
 	var l_hitData: R_HitData = R_HitData.new()
 	l_hitData.damage = 1.0
 	
@@ -108,28 +120,28 @@ func _run_pass(p_count: int) -> void:
 		var l_start: int = Time.get_ticks_usec()
 		for l_id: int in l_ids:
 			_positions[l_id] = _get_drifted_position(l_id, l_random)
-			l_api.set_position(l_id, _positions[l_id])
+			_chunking.set_position(l_id, _positions[l_id])
 		l_moveTime += Time.get_ticks_usec() - l_start
 		
 		l_start = Time.get_ticks_usec()
 		for l_id: int in l_ids:
-			l_api.update_entity(l_id)
+			_targeting.update_entity(l_id)
 		l_updateTime += Time.get_ticks_usec() - l_start
 		
 		l_start = Time.get_ticks_usec()
 		for l_id: int in l_ids:
-			l_api.get_target_position(l_id)
+			_targeting.get_target_position(l_id)
 		l_positionTime += Time.get_ticks_usec() - l_start
 		
 		l_start = Time.get_ticks_usec()
 		for l_step: int in l_budget:
-			l_api.search_target(l_ids[(l_cursor + l_step) % p_count])
+			_targeting.search_target(l_ids[(l_cursor + l_step) % p_count])
 		l_searchTime += Time.get_ticks_usec() - l_start
 		l_cursor = (l_cursor + l_budget) % p_count
 		
 		l_start = Time.get_ticks_usec()
 		for l_id: int in l_ids:
-			l_landed += l_api.hit_circle_ordered(l_id, _positions[l_id], HIT_RADIUS, HIT_Y_BAND,
+			l_landed += _hits.hit_circle_ordered(l_id, _positions[l_id], HIT_RADIUS, HIT_Y_BAND,
 				1, NO_PREFERRED_TARGET, l_hitData).size()
 		l_hitTime += Time.get_ticks_usec() - l_start
 	
@@ -143,12 +155,11 @@ func _run_pass(p_count: int) -> void:
 		int(l_landed / l_frames)])
 
 
-## Registers two fronts facing each other along x, armed so their hits connect. [br]
-## @param p_api The server every entity is created through [br]
+## Registers two fronts facing each other along x on all three servers, armed so their hits connect. [br]
 ## @param p_count How many entities to build [br]
 ## @param p_random Source of every position [br]
 ## @return The assigned entity ids
-func _build_world(p_api: ApiServer, p_count: int, p_random: RandomNumberGenerator) -> PackedInt32Array:
+func _build_world(p_count: int, p_random: RandomNumberGenerator) -> PackedInt32Array:
 	var l_ids: PackedInt32Array = PackedInt32Array()
 	var l_width: float = MAP_SIZE.x
 	var l_height: float = MAP_SIZE.y
@@ -164,12 +175,6 @@ func _build_world(p_api: ApiServer, p_count: int, p_random: RandomNumberGenerato
 	l_targetingData.searchChunks = SEARCH_CHUNKS
 	
 	for l_index: int in p_count:
-		var l_entityData: R_EntityData = R_EntityData.new()
-		l_entityData.radius = ENTITY_RADII[l_index % ENTITY_RADII.size()]
-		l_entityData.groups = 1 << (l_index % 3)
-		l_entityData.hitProfile = l_hitProfile
-		l_entityData.targetingData = l_targetingData
-		
 		var l_team: int = l_index % TEAM_COUNT
 		var l_frontX: float = l_width * (FRONT_OFFSET if l_team == 0 else 1.0 - FRONT_OFFSET)
 		var l_position: Vector2 = Vector2(
@@ -177,7 +182,11 @@ func _build_world(p_api: ApiServer, p_count: int, p_random: RandomNumberGenerato
 			clampf(p_random.randfn(l_height * 0.5, l_height * 0.17), 0.0, l_height - 1.0))
 		
 		_positions.append(l_position)
-		l_ids.append(p_api.create_entity(l_position, l_team, M_ModuleManager.new(), l_entityData))
+		var l_id: int = _chunking.register_entity(l_position, ENTITY_RADII[l_index % ENTITY_RADII.size()],
+			l_team, 1 << (l_index % 3))
+		_hits.register(l_id, M_ModuleManager.new(), l_hitProfile)
+		_targeting.register(l_id, l_targetingData)
+		l_ids.append(l_id)
 	
 	return l_ids
 

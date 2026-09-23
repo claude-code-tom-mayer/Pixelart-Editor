@@ -228,7 +228,7 @@ ul.rules li::marker{color:var(--accent);}
       <div><dt>Reads</dt><dd>the shared chunk index</dd></div>
       <div><dt>States</dt><dd>SEARCH · APPROACH · COMBAT · FLEE</dd></div>
       <div><dt>Link cost</dt><dd>O(1) both ways</dd></div>
-      <div><dt>State</dt><dd>implemented, not yet parsed in Godot</dd></div>
+      <div><dt>State</dt><dd>tested end to end in Godot 4.7</dd></div>
     </div>
   </div>
 
@@ -389,7 +389,7 @@ ul.rules li::marker{color:var(--accent);}
   <section id="api">
     <span class="eyebrow">Reference</span>
     <h2>Public API</h2>
-    <p class="prose">Reached through the api server in normal use. Everything is set at registration through <code>R_TargetingData</code>; the setters are for changes during a round.</p>
+    <p class="prose">Entities call it directly with the id the chunk index gave them. Everything is set at registration through <code>register(p_id, p_targetingData)</code>; the setters are for changes during a round. Removal needs no call here — the server follows the <code>entity_pre_unregistered</code>, <code>entity_unregistered</code> and <code>entity_released</code> signals of the index.</p>
 
     <div class="fn">
       <div class="fn-head"><span class="fn-name">update_entity</span><span class="tag pub">public</span><span class="tag cost">O(targeters)</span></div>

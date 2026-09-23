@@ -1,7 +1,23 @@
 extends RefCounted
 class_name ChunkingServer
-## Sorts entities into square chunks, columns and one map aggregate for fast group queries. [br]
-## Counts are always written through, group masks only cascade upwards when they really change.
+## Owns the entity ids and sorts entities into square chunks, columns and one map aggregate. [br]
+## Servers built on top read the index directly and follow the id lifecycle through its signals.
+
+#region SIGNALS
+
+## A fresh id was handed out for the first time; servers append one slot for it.
+signal entity_slot_appended(p_id: int)
+
+## An entity was announced for removal but is still fully active.
+signal entity_pre_unregistered(p_id: int)
+
+## An entity was removed from the index; its id stays locked until it is released.
+signal entity_unregistered(p_id: int)
+
+## The id of a removed entity is handed back for reuse; servers clear their slot of it.
+signal entity_released(p_id: int)
+
+#endregion
 
 #region EXPORTS_AND_VARS
 
@@ -173,6 +189,7 @@ func _init() -> void:
 
 
 ## Registers a new entity and adds it to every chunk its radius covers. [br]
+## The returned id is the one every other server addresses the entity by. [br]
 ## @param p_position Start position of the entity [br]
 ## @param p_radius Effect radius of the entity [br]
 ## @param p_team Team of the entity, a C_ChunkingServer.TEAM value [br]
@@ -207,6 +224,7 @@ func register_entity(p_position: Vector2, p_radius: float, p_team: int, p_groups
 ## @param p_id The entity id to mark
 func pre_unregister_entity(p_id: int) -> void:
 	_entityPreUnregistered[p_id] = 1
+	entity_pre_unregistered.emit(p_id)
 
 
 ## Removes an entity from all its chunks and locks its id until it is released. [br]
@@ -217,6 +235,7 @@ func unregister_entity(p_id: int) -> void:
 		return
 	
 	_entityUnregistering[p_id] = 1
+	entity_unregistered.emit(p_id)
 	
 	var l_slot: int = _entitySlotHead[p_id]
 	while (l_slot != NO_SLOT):
@@ -246,28 +265,16 @@ func set_radius(p_id: int, p_radius: float) -> void:
 	_apply_chunk_area(p_id, _compute_chunk_area(_entityPosition[p_id], p_radius))
 
 
-## Hands the ids of removed entities back for reuse and clears their state. [br]
+## Hands the ids of removed entities back for reuse and lets every server clear them. [br]
 ## Call once after every system that could still hold a removed id has run.
 func release_removed_ids() -> void:
 	for l_id: int in _pendingFreeIds:
 		_entityUnregistering[l_id] = 0
 		_entityPreUnregistered[l_id] = 0
 		_freeIds.append(l_id)
+		entity_released.emit(l_id)
 	
 	_pendingFreeIds.clear()
-
-
-## Checks whether an entity is already removed and only waiting for its id to be released. [br]
-## @param p_id The entity to check [br]
-## @return true if it is gone from the index
-func is_unregistering(p_id: int) -> bool:
-	return _entityUnregistering[p_id] == 1
-
-
-## Reads the ids that were removed since the last release. [br]
-## @return A snapshot of the ids waiting to be freed
-func get_pending_free_ids() -> PackedInt32Array:
-	return _pendingFreeIds
 
 
 ## Checks whether any team other than the asking one holds entities in a chunk. [br]
@@ -449,6 +456,7 @@ func _get_team_column_index(p_team: int, p_columnIndex: int) -> int:
 
 
 ## Takes a free entity id or appends a fresh slot to every entity container. [br]
+## A fresh slot is announced, so every server grows along with the index. [br]
 ## @return The id the next entity is stored under
 func _acquire_id() -> int:
 	var l_lastFreeIndex: int = _freeIds.size() - 1
@@ -472,7 +480,10 @@ func _acquire_id() -> int:
 	_centerNext.append(NO_ENTITY)
 	_centerPrev.append(NO_ENTITY)
 	
-	return _entityTeam.size() - 1
+	var l_id: int = _entityTeam.size() - 1
+	entity_slot_appended.emit(l_id)
+	
+	return l_id
 
 
 ## Calculates the chunk rectangle a position and radius cover, clamped to the map. [br]

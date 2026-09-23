@@ -227,7 +227,7 @@ ul.rules li::marker{color:var(--accent);}
       <div><dt>Classes</dt><dd>ChunkingServer · C_ChunkingServer</dd></div>
       <div><dt>Grid</dt><dd>square, derived on class load</dd></div>
       <div><dt>Aggregates</dt><dd>chunk · column · map</dd></div>
-      <div><dt>Entry point</dt><dd><a href="https://claude.ai/code/artifact/0d9287cb-457b-48ea-9ef2-3a2dd010bd6b">Entity Api Server</a></dd></div>
+      <div><dt>Owns</dt><dd>entity ids and their lifecycle</dd></div>
       <div><dt>Built on it</dt><dd><a href="https://claude.ai/code/artifact/7ae2df9a-5771-4e21-828b-c7e355edf7c8">Hit</a> · <a href="https://claude.ai/code/artifact/92730234-6886-4756-960e-a5a896e4dee4">Targeting</a></dd></div>
     </div>
   </div>
@@ -402,7 +402,7 @@ ul.rules li::marker{color:var(--accent);}
   <section id="api">
     <span class="eyebrow">Reference</span>
     <h2>Public API</h2>
-    <p class="prose">In normal use the index is reached through the <a href="https://claude.ai/code/artifact/0d9287cb-457b-48ea-9ef2-3a2dd010bd6b">api server</a>, which extends it. These are the functions the index itself provides.</p>
+    <p class="prose">Entities call the index directly. It is the one server that hands out ids and runs their lifecycle; the hit and targeting servers are built with a reference to it and follow that lifecycle through its signals.</p>
 
     <p class="group-title">Lifecycle</p>
     <div class="fn">
@@ -422,6 +422,17 @@ ul.rules li::marker{color:var(--accent);}
         <tr><td>pre_unregister_entity(p_id)</td><td>Marks it; it stays fully active and hittable</td><td>O(1)</td></tr>
         <tr><td>unregister_entity(p_id)</td><td>Removes it from every chunk, locks its id</td><td>O(covered chunks)</td></tr>
         <tr><td>release_removed_ids()</td><td>Hands the locked ids back for reuse</td><td>O(removed)</td></tr>
+      </table>
+    </div>
+
+    <p class="group-title">Signals</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Signal</th><th>Emitted when</th><th>Hit server</th><th>Targeting server</th></tr>
+        <tr><td>entity_slot_appended(p_id)</td><td>A fresh id is handed out for the first time</td><td>appends a slot</td><td>appends a slot</td></tr>
+        <tr><td>entity_pre_unregistered(p_id)</td><td>pre_unregister_entity() marks an entity</td><td>—</td><td>drops its targeters</td></tr>
+        <tr><td>entity_unregistered(p_id)</td><td>unregister_entity() removes it, once per id</td><td>—</td><td>unlinks both sides</td></tr>
+        <tr><td>entity_released(p_id)</td><td>release_removed_ids() hands the id back</td><td>clears its slot</td><td>clears its slot</td></tr>
       </table>
     </div>
 

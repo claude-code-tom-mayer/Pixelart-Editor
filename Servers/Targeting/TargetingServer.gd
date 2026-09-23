@@ -1,9 +1,12 @@
-extends A_EntityServer
+extends RefCounted
 class_name TargetingServer
 ## Picks and holds a target per entity and reports where it should move. [br]
 ## Searches are chunk counted and event driven: a target is only ever lost, never re-checked.
 
 #region EXPORTS_AND_VARS
+
+## Chunk index, entity ids and shared entity columns this server reads.
+var _chunking: ChunkingServer = null
 
 ## Bitmask of the groups an entity may go after.
 var _entityTargetedGroups: PackedInt64Array = PackedInt64Array()
@@ -79,6 +82,12 @@ var _searchBestNormalScore: float = 0.0
 
 # Cached constants, assigned once in _init().
 
+## Cached C_ChunkingServer.MAP_CHUNK_COLUMNS; the ring scan reads it constantly.
+var MAP_CHUNK_COLUMNS: int
+
+## Cached C_ChunkingServer.MAP_CHUNK_ROWS.
+var MAP_CHUNK_ROWS: int
+
 ## Cached C_ChunkingServer.NO_ENTITY.
 var NO_ENTITY: int
 
@@ -131,10 +140,18 @@ var WEIGHT_MUTUAL: float
 
 #region LIFECYCLE_AND_METHODS
 
-## Binds the server to the chunk index and caches the constants its loops read. [br]
-## @param p_chunking The index and shared entity columns every server reads
+## Binds the server to the chunk index and follows its id lifecycle from now on. [br]
+## Build it before the first entity registers, so it sees every id the index hands out. [br]
+## @param p_chunking The index whose ids and entity columns this server shares
 func _init(p_chunking: ChunkingServer) -> void:
-	super(p_chunking)
+	_chunking = p_chunking
+	_chunking.entity_slot_appended.connect(_append_slot)
+	_chunking.entity_pre_unregistered.connect(drop_targeters)
+	_chunking.entity_unregistered.connect(_unlink_entity)
+	_chunking.entity_released.connect(_reset_slot)
+	
+	MAP_CHUNK_COLUMNS = C_ChunkingServer.MAP_CHUNK_COLUMNS
+	MAP_CHUNK_ROWS = C_ChunkingServer.MAP_CHUNK_ROWS
 	NO_ENTITY = C_ChunkingServer.NO_ENTITY
 	NO_TARGET = C_TargetingServer.NO_TARGET
 	FLAG_INVISIBLE = C_TargetingServer.FLAG_INVISIBLE
@@ -153,12 +170,10 @@ func _init(p_chunking: ChunkingServer) -> void:
 	WEIGHT_MUTUAL = C_TargetingServer.WEIGHT_MUTUAL
 
 
-## Gives an entity its targeting side; the api server calls this while it registers. [br]
-## @param p_id The entity to set up [br]
+## Gives an entity its targeting side; without it the entity never searches or picks a target. [br]
+## @param p_id The id ChunkingServer.register_entity() returned [br]
 ## @param p_targetingData Groups, ranges and flags of the entity
 func register(p_id: int, p_targetingData: R_TargetingData) -> void:
-	ensure_slot(p_id)
-	
 	var l_targetingData: R_TargetingData = p_targetingData
 	
 	if (l_targetingData == null):
@@ -203,6 +218,7 @@ func search_target(p_id: int) -> int:
 
 
 ## Makes every entity that targets this one drop it and look for something else. [br]
+## Also runs on ChunkingServer.entity_pre_unregistered, so an announced entity is let go at once. [br]
 ## @param p_id The entity that is no longer worth targeting
 func drop_targeters(p_id: int) -> void:
 	var l_targeters: PackedInt32Array = _targetersOf[p_id].duplicate()
@@ -320,24 +336,19 @@ func get_targeters(p_id: int) -> PackedInt32Array:
 	return _targetersOf[p_id]
 
 
-## Sends everyone targeting an announced entity back to searching. [br]
-## Overrides A_EntityServer. [br]
-## @param p_id The entity that was announced for removal
-func on_pre_unregister(p_id: int) -> void:
-	drop_targeters(p_id)
-
-
 ## Unlinks a removed entity from both sides of the targeting graph. [br]
-## Overrides A_EntityServer. [br]
+## Connected to ChunkingServer.entity_unregistered. [br]
 ## @param p_id The entity that was removed
-func on_unregister(p_id: int) -> void:
+func _unlink_entity(p_id: int) -> void:
 	_drop_target(p_id)
 	drop_targeters(p_id)
 
 
 ## Appends one fresh slot to every column of this server. [br]
-## Overrides A_EntityServer.
-func _append_slot() -> void:
+## Connected to ChunkingServer.entity_slot_appended, so ids of both servers always match. [br]
+## @param p_id The id the slot is appended for
+@warning_ignore("unused_parameter")
+func _append_slot(p_id: int) -> void:
 	_entityTargetedGroups.append(0)
 	_entityState.append(C_TargetingServer.STATE.SEARCH)
 	_entitySearchChunks.append(0)
@@ -350,8 +361,8 @@ func _append_slot() -> void:
 	_targetersOf.append(PackedInt32Array())
 
 
-## Resets one slot so a reused id inherits neither the target nor the flags of its predecessor. [br]
-## Overrides A_EntityServer. [br]
+## Clears one slot once its id is handed back, so a reused id inherits no target or flag. [br]
+## Connected to ChunkingServer.entity_released. [br]
 ## @param p_id The entity slot to reset
 func _reset_slot(p_id: int) -> void:
 	_entityTargetedGroups[p_id] = 0
@@ -364,13 +375,6 @@ func _reset_slot(p_id: int) -> void:
 	_entityTarget[p_id] = NO_TARGET
 	_entityTargeterIndex[p_id] = 0
 	_targetersOf[p_id] = PackedInt32Array()
-
-
-## Reads how many slots this server currently holds. [br]
-## Overrides A_EntityServer. [br]
-## @return The number of slots
-func _get_slot_count() -> int:
-	return _entityState.size()
 
 
 ## Packs the flag booleans of a targeting setup into one byte. [br]
