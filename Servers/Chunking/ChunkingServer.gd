@@ -48,9 +48,6 @@ var NO_ENTITY: int
 
 #region EXPORTS_AND_VARS
 
-# Private to the chunking system, but read directly by the servers built on top of it.
-# Reading them from a sibling server is intended; writing them from anywhere else corrupts the index.
-
 ## Team per entity id, as a C_ChunkingServer.TEAM value.
 var _entityTeam: PackedByteArray = PackedByteArray()
 
@@ -103,8 +100,6 @@ var _columnCounts: PackedInt32Array = PackedInt32Array()
 
 ## Ids removed since the last release; moved into the free list by release_removed_ids().
 var _pendingFreeIds: PackedInt32Array = PackedInt32Array()
-
-# Only ever read and written by the chunking system itself.
 
 ## Chunk rectangle an entity covers as (minColumn, minRow, maxColumn, maxRow). [br]
 ## Lets set_position() and set_radius() drop out before touching any chunk.

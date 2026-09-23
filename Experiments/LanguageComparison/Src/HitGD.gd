@@ -5,8 +5,6 @@ class_name HitGD
 
 #region ENUMS_AND_CONSTANTS
 
-# Kept inside the kernel, like the ports in hit_core.h, so the measured loop compiles them in.
-
 ## Chunks per row.
 const COLS: int = 32
 

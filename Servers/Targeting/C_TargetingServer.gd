@@ -29,8 +29,6 @@ const BASE_REACHED_EPSILON: float = 32.0
 ## What a diagonal chunk step costs against a straight one.
 const DIAGONAL_CHUNK_COST: float = 1.45
 
-# Derived once on class load, so they are static vars instead of consts.
-
 ## The x every team retreats towards; attackers hold the left side, defenders the right one.
 static var TEAM_BASE_X: PackedFloat32Array
 
@@ -39,8 +37,6 @@ static var TEAM_MARCH_X: PackedFloat32Array
 
 ## The direction a team marches in along x; 1 towards a larger x, -1 towards a smaller one.
 static var TEAM_FORWARD_SIGN: PackedInt32Array
-
-# Scoring weights.
 
 ## Score per chunk the candidate is closer than the edge of the search area.
 const WEIGHT_CLOSENESS: float = 1.0

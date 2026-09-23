@@ -92,9 +92,6 @@ var _entityTargeterIndex: PackedInt32Array = PackedInt32Array()
 ## Ids that currently target this entity; its size is the crowding count.
 var _targetersOf: Array[PackedInt32Array] = []
 
-# State of the running search, hoisted out of the candidate loop because none of it changes there.
-# Only meaningful while _find_best_target() runs.
-
 ## The entity the running search belongs to.
 var _searchId: int = C_TargetingServer.NO_TARGET
 

@@ -29,8 +29,6 @@ const NO_SLOT: int = -1
 ## Stored as a center link that points nowhere, in every center chain.
 const NO_ENTITY: int = -1
 
-# Derived once on class load, so they are static vars instead of consts.
-
 ## Edge length of one chunk; identical on both axes, so chunks are square.
 static var CHUNK_SIZE: float
 

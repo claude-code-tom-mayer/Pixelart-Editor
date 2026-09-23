@@ -5,9 +5,6 @@ class_name KernelGD
 
 #region ENUMS_AND_CONSTANTS
 
-# Named exactly as in SPEC.md and kept inside the kernel, so every port reads the same values
-# and the measured loop compiles them in instead of reading them from members.
-
 ## Chunks per row.
 const COLS: int = 32
 

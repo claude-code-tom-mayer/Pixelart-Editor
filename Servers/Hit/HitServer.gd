@@ -76,9 +76,6 @@ var _defaultHitProfile: R_HitProfile = null
 ## Keeps the warning about that out of the per hit path after it was reported.
 var _hasWarnedPreferredMisuse: bool = false
 
-# Reused across hits and only ever grown, so a hit allocates nothing once the buffers are warm.
-# Everything up to the matching count is live, everything behind it belongs to an earlier hit.
-
 ## Candidates of the running hit, live up to _candidateCount.
 var _candidateIds: PackedInt32Array = PackedInt32Array()
 
