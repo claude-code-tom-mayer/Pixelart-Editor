@@ -111,28 +111,28 @@ func _run_pass(p_count: int) -> void:
 		var l_start: int = Time.get_ticks_usec()
 		for l_id: int in l_ids:
 			_positions[l_id] = _get_drifted_position(l_id, l_random)
-			ChunkingServer.set_position(l_id, _positions[l_id])
+			G_ChunkingServer.set_position(l_id, _positions[l_id])
 		l_moveTime += Time.get_ticks_usec() - l_start
 		
 		l_start = Time.get_ticks_usec()
 		for l_id: int in l_ids:
-			TargetingServer.update_entity(l_id)
+			G_TargetingServer.update_entity(l_id)
 		l_updateTime += Time.get_ticks_usec() - l_start
 		
 		l_start = Time.get_ticks_usec()
 		for l_id: int in l_ids:
-			TargetingServer.get_target_position(l_id)
+			G_TargetingServer.get_target_position(l_id)
 		l_positionTime += Time.get_ticks_usec() - l_start
 		
 		l_start = Time.get_ticks_usec()
 		for l_step: int in l_budget:
-			TargetingServer.search_target(l_ids[(l_cursor + l_step) % p_count])
+			G_TargetingServer.search_target(l_ids[(l_cursor + l_step) % p_count])
 		l_searchTime += Time.get_ticks_usec() - l_start
 		l_cursor = (l_cursor + l_budget) % p_count
 		
 		l_start = Time.get_ticks_usec()
 		for l_id: int in l_ids:
-			l_landed += HitServer.hit_circle_ordered(l_id, _positions[l_id], HIT_RADIUS, HIT_Y_BAND,
+			l_landed += G_HitServer.hit_circle_ordered(l_id, _positions[l_id], HIT_RADIUS, HIT_Y_BAND,
 				1, NO_PREFERRED_TARGET, l_hitData).size()
 		l_hitTime += Time.get_ticks_usec() - l_start
 	
@@ -146,9 +146,9 @@ func _run_pass(p_count: int) -> void:
 		int(l_landed / l_frames)])
 	
 	for l_id: int in l_ids:
-		ChunkingServer.unregister_entity(l_id)
+		G_ChunkingServer.unregister_entity(l_id)
 	
-	ChunkingServer.release_removed_ids()
+	G_ChunkingServer.release_removed_ids()
 
 
 ## Registers two fronts facing each other along x on all three servers, armed so their hits connect. [br]
@@ -177,10 +177,10 @@ func _build_world(p_count: int, p_random: RandomNumberGenerator) -> PackedInt32A
 			clampf(p_random.randfn(l_frontX, l_width * FRONT_SPREAD), 0.0, l_width - 1.0),
 			clampf(p_random.randfn(l_height * 0.5, l_height * 0.17), 0.0, l_height - 1.0))
 		
-		var l_id: int = ChunkingServer.register_entity(l_position, ENTITY_RADII[l_index % ENTITY_RADII.size()],
+		var l_id: int = G_ChunkingServer.register_entity(l_position, ENTITY_RADII[l_index % ENTITY_RADII.size()],
 			l_team, 1 << (l_index % 3))
-		HitServer.register(l_id, M_ModuleManager.new(), l_hitProfile)
-		TargetingServer.register(l_id, l_targetingData)
+		G_HitServer.register(l_id, M_ModuleManager.new(), l_hitProfile)
+		G_TargetingServer.register(l_id, l_targetingData)
 		_positions[l_id] = l_position
 		l_ids.append(l_id)
 	

@@ -135,13 +135,13 @@ var _searchBestNormalScore: float = 0.0
 
 #region LIFECYCLE_AND_METHODS
 
-## Follows the id lifecycle of the ChunkingServer autoload, which is loaded before this one. [br]
+## Follows the id lifecycle of the G_ChunkingServer autoload, which is loaded before this one. [br]
 ## Runs before any entity can register, so every id the index hands out gets a slot here.
 func _ready() -> void:
-	ChunkingServer.s_entitySlotAppended.connect(_append_slot)
-	ChunkingServer.s_entityPreUnregistered.connect(drop_targeters)
-	ChunkingServer.s_entityUnregistered.connect(_unlink_entity)
-	ChunkingServer.s_entityReleased.connect(_reset_slot)
+	G_ChunkingServer.s_entitySlotAppended.connect(_append_slot)
+	G_ChunkingServer.s_entityPreUnregistered.connect(drop_targeters)
+	G_ChunkingServer.s_entityUnregistered.connect(_unlink_entity)
+	G_ChunkingServer.s_entityReleased.connect(_reset_slot)
 	
 	MAP_CHUNK_COLUMNS = C_ChunkingServer.MAP_CHUNK_COLUMNS
 	MAP_CHUNK_ROWS = C_ChunkingServer.MAP_CHUNK_ROWS
@@ -164,13 +164,13 @@ func _ready() -> void:
 
 
 ## Gives an entity its targeting side; without it the entity never searches or picks a target. [br]
-## @param p_id The id ChunkingServer.register_entity() returned [br]
+## @param p_id The id G_ChunkingServer.register_entity() returned [br]
 ## @param p_targetingData Groups, ranges and flags of the entity
 func register(p_id: int, p_targetingData: R_TargetingData) -> void:
 	var l_targetingData: R_TargetingData = p_targetingData
 	
 	if (l_targetingData == null):
-		push_error("TargetingServer: entity %d was registered without targeting data, using the defaults." % p_id)
+		push_error("G_TargetingServer: entity %d was registered without targeting data, using the defaults." % p_id)
 		l_targetingData = R_TargetingData.new()
 	
 	_entityTargetedGroups[p_id] = l_targetingData.targetedGroups
@@ -211,7 +211,7 @@ func search_target(p_id: int) -> int:
 
 
 ## Makes every entity that targets this one drop it and look for something else. [br]
-## Also runs on ChunkingServer.s_entityPreUnregistered, so an announced entity is let go at once. [br]
+## Also runs on G_ChunkingServer.s_entityPreUnregistered, so an announced entity is let go at once. [br]
 ## @param p_id The entity that is no longer worth targeting
 func drop_targeters(p_id: int) -> void:
 	var l_targeters: PackedInt32Array = _targetersOf[p_id].duplicate()
@@ -291,15 +291,15 @@ func set_priority_targeted_groups(p_id: int, p_priorityTargetedGroups: int) -> v
 ## @param p_id The entity to move [br]
 ## @return The position the movement should head for
 func get_target_position(p_id: int) -> Vector2:
-	var l_team: int = ChunkingServer._entityTeam[p_id]
-	var l_ownY: float = ChunkingServer._entityPosition[p_id].y
+	var l_team: int = G_ChunkingServer._entityTeam[p_id]
+	var l_ownY: float = G_ChunkingServer._entityPosition[p_id].y
 	
 	if (_entityState[p_id] == C_TargetingServer.STATE.FLEE):
 		return Vector2(TEAM_BASE_X[l_team], l_ownY)
 	
 	var l_targetId: int = _entityTarget[p_id]
 	if (l_targetId != NO_TARGET):
-		return ChunkingServer._entityPosition[l_targetId]
+		return G_ChunkingServer._entityPosition[l_targetId]
 	
 	if (_has_enemy_behind(p_id) or not _has_opponent_on_map(p_id)):
 		return Vector2(TEAM_BASE_X[l_team], l_ownY)
@@ -330,7 +330,7 @@ func get_targeters(p_id: int) -> PackedInt32Array:
 
 
 ## Unlinks a removed entity from both sides of the targeting graph. [br]
-## Connected to ChunkingServer.s_entityUnregistered. [br]
+## Connected to G_ChunkingServer.s_entityUnregistered. [br]
 ## @param p_id The entity that was removed
 func _unlink_entity(p_id: int) -> void:
 	_drop_target(p_id)
@@ -338,7 +338,7 @@ func _unlink_entity(p_id: int) -> void:
 
 
 ## Appends one fresh slot to every column of this server. [br]
-## Connected to ChunkingServer.s_entitySlotAppended, so ids of both servers always match. [br]
+## Connected to G_ChunkingServer.s_entitySlotAppended, so ids of both servers always match. [br]
 ## @param p_id The id the slot is appended for
 @warning_ignore("unused_parameter")
 func _append_slot(p_id: int) -> void:
@@ -355,7 +355,7 @@ func _append_slot(p_id: int) -> void:
 
 
 ## Clears one slot once its id is handed back, so a reused id inherits no target or flag. [br]
-## Connected to ChunkingServer.s_entityReleased. [br]
+## Connected to G_ChunkingServer.s_entityReleased. [br]
 ## @param p_id The entity slot to reset
 func _reset_slot(p_id: int) -> void:
 	_entityTargetedGroups[p_id] = 0
@@ -412,8 +412,8 @@ func _evaluate_state(p_id: int) -> int:
 	if (l_targetId == NO_TARGET):
 		return C_TargetingServer.STATE.SEARCH
 	
-	var l_squaredDistance: float = ChunkingServer._entityPosition[p_id].distance_squared_to(ChunkingServer._entityPosition[l_targetId])
-	var l_reach: float = _entityHitRange[p_id] + ChunkingServer._entityRadius[l_targetId]
+	var l_squaredDistance: float = G_ChunkingServer._entityPosition[p_id].distance_squared_to(G_ChunkingServer._entityPosition[l_targetId])
+	var l_reach: float = _entityHitRange[p_id] + G_ChunkingServer._entityRadius[l_targetId]
 	
 	if (l_squaredDistance <= l_reach * l_reach):
 		return C_TargetingServer.STATE.COMBAT
@@ -425,8 +425,8 @@ func _evaluate_state(p_id: int) -> int:
 ## @param p_id The entity to check [br]
 ## @return true while it has not reached its own side
 func _can_still_flee(p_id: int) -> bool:
-	var l_baseX: float = TEAM_BASE_X[ChunkingServer._entityTeam[p_id]]
-	return absf(ChunkingServer._entityPosition[p_id].x - l_baseX) > BASE_REACHED_EPSILON
+	var l_baseX: float = TEAM_BASE_X[G_ChunkingServer._entityTeam[p_id]]
+	return absf(G_ChunkingServer._entityPosition[p_id].x - l_baseX) > BASE_REACHED_EPSILON
 
 
 ## Checks whether any entity targeting this one is inside its flee distance. [br]
@@ -434,8 +434,8 @@ func _can_still_flee(p_id: int) -> bool:
 ## @return true if it should run
 func _is_threatened(p_id: int) -> bool:
 	var l_fleeChunks: int = _entityFleeChunks[p_id]
-	var l_column: int = ChunkingServer._entityCenterColumn[p_id]
-	var l_row: int = ChunkingServer._entityCenterRow[p_id]
+	var l_column: int = G_ChunkingServer._entityCenterColumn[p_id]
+	var l_row: int = G_ChunkingServer._entityCenterRow[p_id]
 	
 	for l_targeterId: int in _targetersOf[p_id]:
 		if (_get_chunk_distance(l_column, l_row, l_targeterId) <= l_fleeChunks):
@@ -451,15 +451,15 @@ func _is_threatened(p_id: int) -> bool:
 func _find_best_target(p_id: int) -> int:
 	var l_priorityGroups: int = _entityPriorityTargetedGroups[p_id]
 	var l_searchedGroups: int = l_priorityGroups | _entityTargetedGroups[p_id]
-	var l_team: int = ChunkingServer._entityTeam[p_id]
+	var l_team: int = G_ChunkingServer._entityTeam[p_id]
 	
-	if (not ChunkingServer.map_has_opponent_group(l_team, l_searchedGroups)):
+	if (not G_ChunkingServer.map_has_opponent_group(l_team, l_searchedGroups)):
 		return NO_TARGET
 	
 	_searchId = p_id
 	_searchTeam = l_team
-	_searchColumn = ChunkingServer._entityCenterColumn[p_id]
-	_searchRow = ChunkingServer._entityCenterRow[p_id]
+	_searchColumn = G_ChunkingServer._entityCenterColumn[p_id]
+	_searchRow = G_ChunkingServer._entityCenterRow[p_id]
 	_searchFlags = _entityFlags[p_id]
 	_searchReach = _entitySearchChunks[p_id]
 	_searchForwardSign = TEAM_FORWARD_SIGN[l_team]
@@ -471,7 +471,7 @@ func _find_best_target(p_id: int) -> int:
 	_searchBestNormalScore = 0.0
 	
 	var l_isPriorityPossible: bool = l_priorityGroups != 0 \
-		and ChunkingServer.map_has_opponent_group(l_team, l_priorityGroups)
+		and G_ChunkingServer.map_has_opponent_group(l_team, l_priorityGroups)
 	var l_maxBonus: float = _get_max_score_bonus()
 	
 	for l_ring: int in range(0, _searchReach + 1):
@@ -528,7 +528,7 @@ func _scan_ring(p_ring: int) -> void:
 	var l_lastRow: int = mini(l_bottomRow, MAP_CHUNK_ROWS - 1)
 	
 	for l_column: int in range(maxi(l_leftColumn, 0), mini(l_rightColumn, MAP_CHUNK_COLUMNS - 1) + 1):
-		if (not ChunkingServer.column_has_opponent_group(l_column, _searchTeam, _searchGroups)):
+		if (not G_ChunkingServer.column_has_opponent_group(l_column, _searchTeam, _searchGroups)):
 			continue
 		
 		if (l_column == l_leftColumn or l_column == l_rightColumn):
@@ -548,12 +548,12 @@ func _scan_ring(p_ring: int) -> void:
 ## Only centers hang in this chain, so an entity spanning several chunks is still seen exactly once. [br]
 ## @param p_chunkId The chunk to open
 func _scan_chunk(p_chunkId: int) -> void:
-	if (not ChunkingServer.chunk_has_opponent_group(p_chunkId, _searchTeam, _searchGroups)):
+	if (not G_ChunkingServer.chunk_has_opponent_group(p_chunkId, _searchTeam, _searchGroups)):
 		return
 	
-	var l_candidateId: int = ChunkingServer._centerHead[p_chunkId]
+	var l_candidateId: int = G_ChunkingServer._centerHead[p_chunkId]
 	while (l_candidateId != NO_ENTITY):
-		var l_nextId: int = ChunkingServer._centerNext[l_candidateId]
+		var l_nextId: int = G_ChunkingServer._centerNext[l_candidateId]
 		
 		if (not _can_target(l_candidateId)):
 			l_candidateId = l_nextId
@@ -561,7 +561,7 @@ func _scan_chunk(p_chunkId: int) -> void:
 		
 		var l_score: float = _score_candidate(l_candidateId)
 		
-		if ((ChunkingServer._entityGroups[l_candidateId] & _searchPriorityGroups) != 0):
+		if ((G_ChunkingServer._entityGroups[l_candidateId] & _searchPriorityGroups) != 0):
 			if (_is_better(l_score, l_candidateId, _searchBestPriorityScore, _searchBestPriorityId)):
 				_searchBestPriorityScore = l_score
 				_searchBestPriorityId = l_candidateId
@@ -590,13 +590,13 @@ func _is_better(p_score: float, p_candidateId: int, p_bestScore: float, p_bestId
 ## @param p_candidateId The entity to check [br]
 ## @return true if the candidate is worth scoring
 func _can_target(p_candidateId: int) -> bool:
-	if (ChunkingServer._entityTeam[p_candidateId] == _searchTeam):
+	if (G_ChunkingServer._entityTeam[p_candidateId] == _searchTeam):
 		return false
 	
-	if (ChunkingServer._entityPreUnregistered[p_candidateId] == 1 or ChunkingServer._entityUnregistering[p_candidateId] == 1):
+	if (G_ChunkingServer._entityPreUnregistered[p_candidateId] == 1 or G_ChunkingServer._entityUnregistering[p_candidateId] == 1):
 		return false
 	
-	if ((ChunkingServer._entityGroups[p_candidateId] & _searchGroups) == 0):
+	if ((G_ChunkingServer._entityGroups[p_candidateId] & _searchGroups) == 0):
 		return false
 	
 	return (_entityFlags[p_candidateId] & FLAG_INVISIBLE) == 0 \
@@ -614,7 +614,7 @@ func _score_candidate(p_candidateId: int) -> float:
 			and (_searchFlags & FLAG_IGNORES_FOCUS) == 0):
 		l_score += WEIGHT_FOCUS
 	
-	if ((ChunkingServer._entityCenterColumn[p_candidateId] - _searchColumn) * _searchForwardSign < 0):
+	if ((G_ChunkingServer._entityCenterColumn[p_candidateId] - _searchColumn) * _searchForwardSign < 0):
 		l_score += WEIGHT_BEHIND
 	
 	if (_entityTarget[p_candidateId] == _searchId):
@@ -629,8 +629,8 @@ func _score_candidate(p_candidateId: int) -> float:
 ## @param p_otherId The entity to measure to [br]
 ## @return The steps, diagonals counted as C_TargetingServer.DIAGONAL_CHUNK_COST
 func _get_chunk_distance(p_column: int, p_row: int, p_otherId: int) -> float:
-	var l_columnDelta: int = absi(ChunkingServer._entityCenterColumn[p_otherId] - p_column)
-	var l_rowDelta: int = absi(ChunkingServer._entityCenterRow[p_otherId] - p_row)
+	var l_columnDelta: int = absi(G_ChunkingServer._entityCenterColumn[p_otherId] - p_column)
+	var l_rowDelta: int = absi(G_ChunkingServer._entityCenterRow[p_otherId] - p_row)
 	var l_diagonal: int = mini(l_columnDelta, l_rowDelta)
 	var l_straight: int = maxi(l_columnDelta, l_rowDelta) - l_diagonal
 	
@@ -642,13 +642,13 @@ func _get_chunk_distance(p_column: int, p_row: int, p_otherId: int) -> float:
 ## @param p_id The entity to check [br]
 ## @return true if an opponent stands behind it
 func _has_enemy_behind(p_id: int) -> bool:
-	var l_team: int = ChunkingServer._entityTeam[p_id]
-	var l_column: int = ChunkingServer._entityCenterColumn[p_id]
+	var l_team: int = G_ChunkingServer._entityTeam[p_id]
+	var l_column: int = G_ChunkingServer._entityCenterColumn[p_id]
 	
 	if (TEAM_FORWARD_SIGN[l_team] > 0):
-		return ChunkingServer.has_opponent_before_column(l_column, l_team)
+		return G_ChunkingServer.has_opponent_before_column(l_column, l_team)
 	
-	return ChunkingServer.has_opponent_after_column(l_column, l_team)
+	return G_ChunkingServer.has_opponent_after_column(l_column, l_team)
 
 
 ## Checks whether anything the entity may go after exists anywhere on the map. [br]
@@ -656,7 +656,7 @@ func _has_enemy_behind(p_id: int) -> bool:
 ## @return true if a search could find something
 func _has_opponent_on_map(p_id: int) -> bool:
 	var l_searchedGroups: int = _entityPriorityTargetedGroups[p_id] | _entityTargetedGroups[p_id]
-	return ChunkingServer.map_has_opponent_group(ChunkingServer._entityTeam[p_id], l_searchedGroups)
+	return G_ChunkingServer.map_has_opponent_group(G_ChunkingServer._entityTeam[p_id], l_searchedGroups)
 
 
 ## Links an entity to a target and records its slot in the targeter list. [br]

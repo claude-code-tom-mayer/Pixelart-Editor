@@ -104,11 +104,11 @@ var _visitStamp: int = 0
 
 #region LIFECYCLE_AND_METHODS
 
-## Follows the id lifecycle of the ChunkingServer autoload, which is loaded before this one. [br]
+## Follows the id lifecycle of the G_ChunkingServer autoload, which is loaded before this one. [br]
 ## Runs before any entity can register, so every id the index hands out gets a slot here.
 func _ready() -> void:
-	ChunkingServer.s_entitySlotAppended.connect(_append_slot)
-	ChunkingServer.s_entityReleased.connect(_reset_slot)
+	G_ChunkingServer.s_entitySlotAppended.connect(_append_slot)
+	G_ChunkingServer.s_entityReleased.connect(_reset_slot)
 	
 	MAP_CHUNK_COLUMNS = C_ChunkingServer.MAP_CHUNK_COLUMNS
 	NO_SLOT = C_ChunkingServer.NO_SLOT
@@ -121,14 +121,14 @@ func _ready() -> void:
 
 
 ## Gives an entity its hit side; an entity that never calls this can never be hit. [br]
-## @param p_id The id ChunkingServer.register_entity() returned [br]
+## @param p_id The id G_ChunkingServer.register_entity() returned [br]
 ## @param p_module Module management that receives its hits [br]
 ## @param p_hitProfile Band, groups and radius profile of the entity
 func register(p_id: int, p_module: M_ModuleManager, p_hitProfile: R_HitProfile) -> void:
 	var l_hitProfile: R_HitProfile = p_hitProfile
 	
 	if (l_hitProfile == null):
-		push_error("HitServer: entity %d was registered without a hit profile, using the default one." % p_id)
+		push_error("G_HitServer: entity %d was registered without a hit profile, using the default one." % p_id)
 		l_hitProfile = _get_default_hit_profile()
 	
 	_entityModules[p_id] = p_module
@@ -334,7 +334,7 @@ func _test_circle(p_emitterId: int, p_origin: Vector2, p_radius: float, p_hitYBa
 		p_maxHits: int, p_hitData: R_HitData, p_isOrdered: bool) -> PackedVector3Array:
 	_hitCount = 0
 	
-	var l_positions: PackedVector2Array = ChunkingServer._entityPosition
+	var l_positions: PackedVector2Array = G_ChunkingServer._entityPosition
 	
 	for l_slot: int in _candidateCount:
 		var l_id: int = _candidateIds[l_slot]
@@ -407,7 +407,7 @@ func _test_directional_rect(p_emitterId: int, p_origin: Vector2, p_direction: Ve
 		p_isOrdered: bool, p_startEdge: int) -> PackedVector3Array:
 	_hitCount = 0
 	
-	var l_positions: PackedVector2Array = ChunkingServer._entityPosition
+	var l_positions: PackedVector2Array = G_ChunkingServer._entityPosition
 	var l_forward: Vector2 = p_direction.normalized()
 	var l_side: Vector2 = -l_forward.orthogonal()
 	var l_halfWidth: float = p_width * 0.5
@@ -478,7 +478,7 @@ func _test_cake_slice(p_emitterId: int, p_origin: Vector2, p_direction: Vector2,
 		p_isOrdered: bool, p_isReversed: bool) -> PackedVector3Array:
 	_hitCount = 0
 	
-	var l_positions: PackedVector2Array = ChunkingServer._entityPosition
+	var l_positions: PackedVector2Array = G_ChunkingServer._entityPosition
 	var l_forward: Vector2 = p_direction.normalized()
 	var l_halfAngle: float = p_angle * 0.5
 	var l_rightEdge: Vector2 = p_origin + l_forward.rotated(l_halfAngle) * p_radius
@@ -506,7 +506,7 @@ func _test_cake_slice(p_emitterId: int, p_origin: Vector2, p_direction: Vector2,
 
 
 ## Appends one fresh slot to every column of this server. [br]
-## Connected to ChunkingServer.s_entitySlotAppended, so ids of both servers always match. [br]
+## Connected to G_ChunkingServer.s_entitySlotAppended, so ids of both servers always match. [br]
 ## @param p_id The id the slot is appended for
 @warning_ignore("unused_parameter")
 func _append_slot(p_id: int) -> void:
@@ -520,7 +520,7 @@ func _append_slot(p_id: int) -> void:
 
 
 ## Clears one slot once its id is handed back, so a reused id inherits nothing. [br]
-## Connected to ChunkingServer.s_entityReleased. [br]
+## Connected to G_ChunkingServer.s_entityReleased. [br]
 ## @param p_id The entity slot to reset
 func _reset_slot(p_id: int) -> void:
 	_entityModules[p_id] = null
@@ -636,22 +636,22 @@ func _gather_chunk_candidates(p_emitterId: int, p_minCorner: Vector2, p_maxCorne
 	_candidateCount = 0
 	_visitStamp += 1
 	
-	var l_area: Vector4i = ChunkingServer.compute_chunk_area_from_bounds(p_minCorner, p_maxCorner)
-	var l_emitterTeam: int = ChunkingServer._entityTeam[p_emitterId]
+	var l_area: Vector4i = G_ChunkingServer.compute_chunk_area_from_bounds(p_minCorner, p_maxCorner)
+	var l_emitterTeam: int = G_ChunkingServer._entityTeam[p_emitterId]
 	var l_stamp: int = _visitStamp
 	var l_columns: int = MAP_CHUNK_COLUMNS
-	var l_chunkHead: PackedInt32Array = ChunkingServer._chunkHead
-	var l_slotEntity: PackedInt32Array = ChunkingServer._slotEntity
-	var l_slotChunkNext: PackedInt32Array = ChunkingServer._slotChunkNext
+	var l_chunkHead: PackedInt32Array = G_ChunkingServer._chunkHead
+	var l_slotEntity: PackedInt32Array = G_ChunkingServer._slotEntity
+	var l_slotChunkNext: PackedInt32Array = G_ChunkingServer._slotChunkNext
 	
 	for l_column: int in range(l_area.x, l_area.z + 1):
-		if (not ChunkingServer.has_opponent_in_column(l_column, l_emitterTeam)):
+		if (not G_ChunkingServer.has_opponent_in_column(l_column, l_emitterTeam)):
 			continue
 		
 		for l_row: int in range(l_area.y, l_area.w + 1):
 			var l_chunkId: int = l_row * l_columns + l_column
 			
-			if (not ChunkingServer.has_opponent_in_chunk(l_chunkId, l_emitterTeam)):
+			if (not G_ChunkingServer.has_opponent_in_chunk(l_chunkId, l_emitterTeam)):
 				continue
 			
 			var l_slot: int = l_chunkHead[l_chunkId]
@@ -685,7 +685,7 @@ func _gather_preferred_candidate(p_emitterId: int, p_preferredId: int, p_maxHits
 	if (p_maxHits != 1):
 		if (not _hasWarnedPreferredMisuse):
 			_hasWarnedPreferredMisuse = true
-			push_warning("HitServer: a preferred target is only used when p_maxHits is 1, ignoring it.")
+			push_warning("G_HitServer: a preferred target is only used when p_maxHits is 1, ignoring it.")
 		
 		return false
 	
@@ -702,10 +702,10 @@ func _gather_preferred_candidate(p_emitterId: int, p_preferredId: int, p_maxHits
 ## @param p_hitYBand Vertical extent of the hit [br]
 ## @return true if only the geometry is left to decide
 func _can_be_hit(p_emitterId: int, p_targetId: int, p_hitYBand: Vector2) -> bool:
-	if (ChunkingServer._entityTeam[p_targetId] == ChunkingServer._entityTeam[p_emitterId]):
+	if (G_ChunkingServer._entityTeam[p_targetId] == G_ChunkingServer._entityTeam[p_emitterId]):
 		return false
 	
-	if (ChunkingServer._entityPreUnregistered[p_targetId] == 1 or ChunkingServer._entityUnregistering[p_targetId] == 1):
+	if (G_ChunkingServer._entityPreUnregistered[p_targetId] == 1 or G_ChunkingServer._entityUnregistering[p_targetId] == 1):
 		return false
 	
 	if ((_entityHitGroups[p_emitterId] & _entityHurtGroups[p_targetId]) == 0):
@@ -730,7 +730,7 @@ func _get_sample_height(p_id: int, p_hitYBand: Vector2) -> float:
 ## @param p_sampleHeight The height the hit lands at [br]
 ## @return The radius that counts for this hit
 func _get_effective_radius(p_id: int, p_sampleHeight: float) -> float:
-	var l_radius: float = ChunkingServer._entityRadius[p_id]
+	var l_radius: float = G_ChunkingServer._entityRadius[p_id]
 	var l_curveIndex: int = _entityCurveIndex[p_id]
 	
 	if (l_curveIndex == NO_CURVE):
@@ -759,7 +759,7 @@ func _get_effective_radius(p_id: int, p_sampleHeight: float) -> float:
 ## @param p_origin Where the hit comes from [br]
 ## @return The impact as (x, y, height)
 func _get_impact_position(p_id: int, p_radius: float, p_height: float, p_origin: Vector2) -> Vector3:
-	var l_position: Vector2 = ChunkingServer._entityPosition[p_id]
+	var l_position: Vector2 = G_ChunkingServer._entityPosition[p_id]
 	var l_toOrigin: Vector2 = p_origin - l_position
 	var l_distance: float = l_toOrigin.length()
 	

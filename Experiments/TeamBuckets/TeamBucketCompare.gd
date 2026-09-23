@@ -88,8 +88,8 @@ func _build_positions(p_count: int) -> Array[Vector2]:
 ## @param p_count How many entities to register [br]
 ## @return The microseconds per search and the target every entity ended up with
 func _run_shared(p_count: int) -> Array:
-	var l_chunking: ChunkingServer = ChunkingServer.new()
-	var l_targeting: TargetingServer = TargetingServer.new(l_chunking)
+	var l_chunking: G_ChunkingServer = G_ChunkingServer.new()
+	var l_targeting: G_TargetingServer = G_TargetingServer.new(l_chunking)
 	var l_targetingData: R_TargetingData = _build_targeting_data()
 	var l_positions: Array[Vector2] = _build_positions(p_count)
 	var l_ids: PackedInt32Array = PackedInt32Array()

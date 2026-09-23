@@ -1,6 +1,6 @@
 extends Node
 ## Autoload that owns the entity ids and sorts entities into square chunks, columns and one map aggregate. [br]
-## HitServer and TargetingServer read the index directly and follow the id lifecycle through its signals.
+## G_HitServer and G_TargetingServer read the index directly and follow the id lifecycle through its signals.
 
 #region SIGNALS
 
@@ -194,7 +194,7 @@ func _init() -> void:
 ## @param p_groups Bitmask of the groups the entity belongs to [br]
 ## @return The assigned entity id
 func register_entity(p_position: Vector2, p_radius: float, p_team: int, p_groups: int) -> int:
-	assert(p_team >= 0 and p_team < TEAM_COUNT, "ChunkingServer: register_entity() got an unknown team.")
+	assert(p_team >= 0 and p_team < TEAM_COUNT, "G_ChunkingServer: register_entity() got an unknown team.")
 	
 	var l_id: int = _acquire_id()
 	
