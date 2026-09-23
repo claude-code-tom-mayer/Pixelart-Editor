@@ -18,6 +18,34 @@ signal s_entityReleased(p_id: int)
 
 #endregion
 
+#region CACHED_VARS
+
+## Cached C_ChunkingServer.MAP_CHUNK_COLUMNS; every loop here reads it.
+var MAP_CHUNK_COLUMNS: int
+
+## Cached C_ChunkingServer.MAP_CHUNK_ROWS.
+var MAP_CHUNK_ROWS: int
+
+## Cached C_ChunkingServer.CHUNK_COUNT.
+var CHUNK_COUNT: int
+
+## Cached C_ChunkingServer.CHUNK_SIZE.
+var CHUNK_SIZE: float
+
+## Cached C_ChunkingServer.TEAM_COUNT.
+var TEAM_COUNT: int
+
+## Cached C_ChunkingServer.NO_COLUMN.
+var NO_COLUMN: int
+
+## Cached C_ChunkingServer.NO_SLOT.
+var NO_SLOT: int
+
+## Cached C_ChunkingServer.NO_ENTITY.
+var NO_ENTITY: int
+
+#endregion
+
 #region EXPORTS_AND_VARS
 
 # Private to the chunking system, but read directly by the servers built on top of it.
@@ -126,30 +154,6 @@ var _teamMinColumn: PackedInt32Array = PackedInt32Array()
 
 ## Highest column a team occupies, or C_ChunkingServer.NO_COLUMN while it holds nothing.
 var _teamMaxColumn: PackedInt32Array = PackedInt32Array()
-
-## Cached C_ChunkingServer.MAP_CHUNK_COLUMNS; every loop here reads it.
-var MAP_CHUNK_COLUMNS: int
-
-## Cached C_ChunkingServer.MAP_CHUNK_ROWS.
-var MAP_CHUNK_ROWS: int
-
-## Cached C_ChunkingServer.CHUNK_COUNT.
-var CHUNK_COUNT: int
-
-## Cached C_ChunkingServer.CHUNK_SIZE.
-var CHUNK_SIZE: float
-
-## Cached C_ChunkingServer.TEAM_COUNT.
-var TEAM_COUNT: int
-
-## Cached C_ChunkingServer.NO_COLUMN.
-var NO_COLUMN: int
-
-## Cached C_ChunkingServer.NO_SLOT.
-var NO_SLOT: int
-
-## Cached C_ChunkingServer.NO_ENTITY.
-var NO_ENTITY: int
 
 #endregion
 
