@@ -168,6 +168,3 @@ Use this fixed, ordered set of `#region` blocks in every script; skip any that d
 #region MISC
 #endregion
 ```
-
-- `CACHED_VARS` holds the member variables cached in `_init()` (see Caching) — cached `C_` constants and cached autoload references. Keep them out of `EXPORTS_AND_VARS`.
-- `MISC` is the catch-all for anything that doesn't belong in any of the other regions. Keep it last, and prefer fitting content into a more specific region whenever one applies.
