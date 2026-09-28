@@ -835,7 +835,7 @@ radius   = 40 * 71 / 100            = <span class="t">28.4</span></div>
       <details class="var">
         <summary><span class="vn">_hitCandidateIds · _hitCandidateCount</span><span class="vt">PackedInt32Array · int</span><span class="vh">Entities worth a geometry test in the running hit</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>Only the first <code>_candidateCount</code> entries are live. The count is reset to 0 per hit; the array itself keeps its size and just doubles when full (16 → 32 → 64 …, see <code>BUFFER_MIN_CAPACITY</code>). After a few hits it has reached its working size and never allocates again.</p>
+          <p>Only the first <code>_hitCandidateCount</code> entries are live. The count is reset to 0 per hit; the array itself keeps its size and just doubles when full (16 → 32 → 64 …, see <code>BUFFER_MIN_CAPACITY</code>). After a few hits it has reached its working size and never allocates again.</p>
         </div>
       </details>
 
@@ -1061,17 +1061,17 @@ p_maxHits != 1                         →  preference ignored, one warning per 
       </details>
 
       <details class="var">
-        <summary><span class="vn">hurtGroups</span><span class="vt">int · 0</span><span class="vh"><code>_entityHurtGroups</code> — what harms it</span><span class="chev"></span></summary>
+        <summary><span class="vn">hurtGroups</span><span class="vt">int · 0</span><span class="vh"><code>_hitEntityHurtGroups</code> — what harms it</span><span class="chev"></span></summary>
         <div class="var-body"><p>Leave it 0 and the entity can never be hit. See <a href="#groups">Group spaces</a>.</p></div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">hitGroups</span><span class="vt">int · 0</span><span class="vh"><code>_entityHitGroups</code> — what its hits carry</span><span class="chev"></span></summary>
+        <summary><span class="vn">hitGroups</span><span class="vt">int · 0</span><span class="vh"><code>_hitEntityHitGroups</code> — what its hits carry</span><span class="chev"></span></summary>
         <div class="var-body"><p>Leave it 0 and its hits connect with nothing.</p></div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">stopGroups</span><span class="vt">int · 0</span><span class="vh"><code>_entityStopGroups</code> — what ends its ordered hits</span><span class="chev"></span></summary>
+        <summary><span class="vn">stopGroups</span><span class="vt">int · 0</span><span class="vh"><code>_hitEntityStopGroups</code> — what ends its ordered hits</span><span class="chev"></span></summary>
         <div class="var-body"><p>0 means its ordered hits pierce everything up to the hit limit.</p></div>
       </details>
 
@@ -1102,12 +1102,12 @@ p_maxHits != 1                         →  preference ignored, one warning per 
     <h2>What the caller has to respect</h2>
     <ul class="rules">
       <li><strong>Only the other team is ever hit.</strong> There is no friendly fire path and no flag to enable one.</li>
-      <li><strong>Announced entities are skipped.</strong> An entity marked by <code>pre_unregister_entity()</code> takes no more hits — that is what the flag is for.</li>
+      <li><strong>Announced entities are skipped.</strong> An entity marked by <code>pre_unregister()</code> takes no more hits — that is what the flag is for.</li>
       <li><strong>A preferred target needs a hit limit of exactly 1.</strong> Anything else logs a warning and runs as a normal hit.</li>
       <li><strong>Radius curves run 0 to 100 on both axes.</strong> A curve on the default domain behaves like no curve at all. Curves are shared by resource identity, so give an archetype one <code>.tres</code>.</li>
       <li><strong>Always pass a profile.</strong> Without one the entity gets all-zero masks: it can never be hit and its hits connect with nothing.</li>
       <li><strong>Hit, hurt and stop groups are one 64 bit space, separate from the chunking groups.</strong> Define the channel bits once and use them in all three masks; do not reuse the group bits of the chunk masks here.</li>
-      <li><strong>Entities call the hit server directly.</strong> It is an autoload loaded after <code>G_ChunkingServer</code> and has no id space of its own.</li>
+      <li><strong>Entities call the hit server directly, but register through G_ChunkingServer.</strong> G_HitServer has no id space of its own — ids and the lifecycle that hands them out live on the shared <code>A_CoreServers</code> base every server extends.</li>
       <li><strong>A module may kill its own entity inside <code>hit()</code>.</strong> That is safe, because dispatch happens after the target list is closed.</li>
     </ul>
 
