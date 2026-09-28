@@ -40,11 +40,12 @@ func _ready() -> void:
 	_hitData = R_HitData.new()
 	_hitData.damage = 5.0
 
+	_check_shared_static_data()
 	_check_targeting_flow()
 	_check_hits()
 	_check_removal_lifecycle()
 	_check_id_reuse()
-	_check_partial_registration()
+	_check_inert_registration()
 
 	print("")
 	print("%d of %d checks passed" % [_checkCount - _failureCount, _checkCount])
@@ -54,32 +55,32 @@ func _ready() -> void:
 ## Removes every entity of the previous check, so each check starts on empty servers.
 func _clear_world() -> void:
 	for l_id: int in _liveIds:
-		G_ChunkingServer.unregister_entity(l_id)
-	
+		G_ChunkingServer.unregister(l_id)
+
 	G_ChunkingServer.release_removed_ids()
 	_liveIds.clear()
 
 
-## Registers an entity on the index only and remembers it for _clear_world(). [br]
-## @param p_position Start position [br]
-## @param p_team Team, a C_ChunkingServer.TEAM value [br]
-## @return The id the entity uses on every server
-func _register(p_position: Vector2, p_team: int) -> int:
-	var l_id: int = G_ChunkingServer.register_entity(p_position, 24.0, p_team, 0b1)
-	_liveIds.append(l_id)
-	
-	return l_id
-
-
-## Registers one entity on all three servers, the way an entity does on spawn. [br]
+## Registers one fully armed entity on every server at once, the way an entity does on spawn. [br]
 ## @param p_position Start position [br]
 ## @param p_team Team, a C_ChunkingServer.TEAM value [br]
 ## @param p_module Module management that receives its hits [br]
 ## @return The id the entity uses on every server
 func _spawn(p_position: Vector2, p_team: int, p_module: M_ModuleManager) -> int:
-	var l_id: int = _register(p_position, p_team)
-	G_HitServer.register(l_id, p_module, _hitProfile)
-	G_TargetingServer.register(l_id, _targetingData)
+	var l_id: int = G_ChunkingServer.register(p_position, 24.0, p_team, 0b1, p_module, _hitProfile, _targetingData)
+	_liveIds.append(l_id)
+
+	return l_id
+
+
+## Registers one entity with every domain defaulted, so it carries no hit or targeting groups. [br]
+## The new architecture always sets up every server; an entity stays inert by getting zeroed groups, not by skipping a call. [br]
+## @param p_position Start position [br]
+## @param p_team Team, a C_ChunkingServer.TEAM value [br]
+## @return The id the entity uses on every server
+func _spawn_inert(p_position: Vector2, p_team: int) -> int:
+	var l_id: int = G_ChunkingServer.register(p_position, 24.0, p_team, 0b1, null, null, null)
+	_liveIds.append(l_id)
 
 	return l_id
 
@@ -104,6 +105,26 @@ func _expect(p_isMet: bool, p_description: String) -> void:
 
 	_failureCount += 1
 	print("FAIL: " + p_description)
+
+
+## Proves the new architecture: the three autoload instances are separate objects that share one data pool.
+func _check_shared_static_data() -> void:
+	print("shared static data")
+	_clear_world()
+
+	_expect(G_ChunkingServer.get_instance_id() != G_HitServer.get_instance_id()
+		and G_HitServer.get_instance_id() != G_TargetingServer.get_instance_id(),
+		"the three servers are three distinct autoload instances")
+
+	var l_id: int = _spawn(Vector2(500.0, 600.0), C_ChunkingServer.TEAM.ATTACKER, M_ModuleManager.new())
+
+	_expect(G_HitServer._chunkEntityPosition[l_id] == Vector2(500.0, 600.0),
+		"G_HitServer reads the exact position G_ChunkingServer wrote, from the same static array")
+
+	G_ChunkingServer.set_position(l_id, Vector2(700.0, 600.0))
+
+	_expect(G_TargetingServer._chunkEntityPosition[l_id] == Vector2(700.0, 600.0),
+		"a position written through G_ChunkingServer is visible through G_TargetingServer at once")
 
 
 ## Search, approach, combat and flee between two entities of opposing teams.
@@ -171,22 +192,22 @@ func _check_removal_lifecycle() -> void:
 
 	G_TargetingServer.search_target(l_attacker)
 	G_TargetingServer.search_target(l_defender)
-	G_ChunkingServer.pre_unregister_entity(l_defender)
+	G_ChunkingServer.pre_unregister(l_defender)
 
 	_expect(G_TargetingServer.get_target(l_attacker) == C_TargetingServer.NO_TARGET, "announcing an entity drops its targeters")
 	_expect(G_TargetingServer.search_target(l_attacker) == C_TargetingServer.NO_TARGET, "an announced entity cannot be found")
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0 and l_defenderModule.hitCount == 0, "an announced entity cannot be hit")
 	_expect(G_TargetingServer.get_target(l_defender) == l_attacker, "an announced entity keeps acting until it is removed")
 
-	G_ChunkingServer.unregister_entity(l_defender)
+	G_ChunkingServer.unregister(l_defender)
 	_expect(G_TargetingServer.get_targeters(l_attacker).is_empty(), "removing an entity drops its own target")
 
-	G_ChunkingServer.unregister_entity(l_defender)
+	G_ChunkingServer.unregister(l_defender)
 	G_ChunkingServer.release_removed_ids()
 	G_ChunkingServer.release_removed_ids()
 
-	var l_first: int = _register(Vector2(3000.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER)
-	var l_second: int = _register(Vector2(3000.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER)
+	var l_first: int = _spawn_inert(Vector2(3000.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER)
+	var l_second: int = _spawn_inert(Vector2(3000.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER)
 	_expect(l_first == l_defender and l_second != l_defender, "a double removal frees the id only once")
 
 
@@ -208,36 +229,34 @@ func _check_id_reuse() -> void:
 	G_TargetingServer.search_target(l_defender)
 	G_TargetingServer.search_target(l_attacker)
 
-	G_ChunkingServer.pre_unregister_entity(l_defender)
-	G_ChunkingServer.unregister_entity(l_defender)
+	G_ChunkingServer.pre_unregister(l_defender)
+	G_ChunkingServer.unregister(l_defender)
 	G_ChunkingServer.release_removed_ids()
 
 	var l_reusedModule: M_ModuleManager = M_ModuleManager.new()
-	var l_reused: int = _register(Vector2(1040.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER)
+	var l_reused: int = G_ChunkingServer.register(Vector2(1040.0, 2000.0), 24.0, C_ChunkingServer.TEAM.DEFENDER, 0b1,
+		l_reusedModule, _hitProfile, _targetingData)
+	_liveIds.append(l_reused)
 
 	_expect(l_reused == l_defender, "the released id is handed out again")
 	_expect(G_TargetingServer.get_target(l_reused) == C_TargetingServer.NO_TARGET, "a reused id holds no target")
 	_expect(G_TargetingServer.get_targeters(l_reused).is_empty(), "a reused id has no targeters")
 	_expect(G_TargetingServer.get_state(l_reused) == C_TargetingServer.STATE.SEARCH, "a reused id starts searching")
-	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0, "a reused id is not hittable before it registers a hit side")
-
-	G_HitServer.register(l_reused, l_reusedModule, _hitProfile)
-	G_TargetingServer.register(l_reused, _targetingData)
-	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 1 and l_reusedModule.hitCount == 1, "the reused id is hit once it registers")
+	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 1 and l_reusedModule.hitCount == 1, "the reused id registers fresh on every server in one call")
 	_expect(G_TargetingServer.search_target(l_decoy) == l_reused, "the reused id can be targeted again")
 
 
-## An entity only needs the servers it uses; the index alone never makes it hittable.
-func _check_partial_registration() -> void:
-	print("partial registration")
+## An entity given zeroed groups is inert: never hit, never searches, but still standing on the index.
+func _check_inert_registration() -> void:
+	print("inert registration")
 	_clear_world()
 
 	var l_attacker: int = _spawn(Vector2(1000.0, 2000.0), C_ChunkingServer.TEAM.ATTACKER, M_ModuleManager.new())
-	var l_obstacle: int = _register(Vector2(1040.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER)
+	var l_obstacle: int = _spawn_inert(Vector2(1040.0, 2000.0), C_ChunkingServer.TEAM.DEFENDER)
 
-	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0, "an entity without a hit side is never hit")
-	_expect(G_TargetingServer.search_target(l_attacker) == l_obstacle, "an entity only on the index can still be targeted")
-	_expect(G_TargetingServer.update_entity(l_obstacle) == C_TargetingServer.STATE.SEARCH, "an unregistered side answers with defaults")
-
+	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0, "an entity with a default hit profile carries no hurt groups, so it is never hit")
+	_expect(G_TargetingServer.search_target(l_attacker) == l_obstacle, "it still sits on the chunking index and can be targeted by its chunking groups")
+	_expect(G_TargetingServer.update_entity(l_obstacle) == C_TargetingServer.STATE.SEARCH, "a default targeting profile answers with defaults")
+	_expect(G_TargetingServer.search_target(l_obstacle) == C_TargetingServer.NO_TARGET, "a default targeting profile carries no targeted groups, so it never finds anything")
 
 #endregion
