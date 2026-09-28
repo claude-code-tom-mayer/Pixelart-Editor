@@ -295,7 +295,7 @@ details[open]>summary .chev::before{content:"\2212";}
     <h1>Entity Hit System</h1>
     <p class="sub">Area hits resolved through the chunk index: a shape narrows to a handful of chunks, and only what is left gets tested.</p>
     <div class="meta">
-      <div><dt>Classes</dt><dd>G_HitServer · C_HitServer · R_HitProfile · R_HitData</dd></div>
+      <div><dt>Classes</dt><dd>G_HitServer (extends A_CoreServers) · C_HitServer · R_HitProfile · R_HitData</dd></div>
       <div><dt>Reads</dt><dd><a href="chunking-system.html">the shared chunk index</a></dd></div>
       <div><dt>Shapes</dt><dd>circle · directional rect · cake slice</dd></div>
       <div><dt>Public API</dt><dd>6 hits · 5 setters</dd></div>
@@ -307,7 +307,7 @@ details[open]>summary .chev::before{content:"\2212";}
     <span class="eyebrow">Overview</span>
     <h2>A hit is a shape, not a scan</h2>
     <div class="prose">
-      <p>The <code>G_HitServer</code> autoload reads the one shared <code>G_ChunkingServer</code> autoload, follows its id lifecycle through its signals, and keeps only the hit side of every entity — the module references, the bands, the group masks and the radius profiles. A hit never walks the entity list: it turns its shape into an axis aligned box, asks the chunk grid which chunks that box touches, drops every chunk holding no opponent, and only then tests geometry.</p>
+      <p>The <code>G_HitServer</code> autoload extends the abstract base class <code>A_CoreServers</code>, which owns every server's per entity data as shared <code>static var</code>s plus the one entity lifecycle (<code>register()</code>, <code>pre_unregister()</code>, <code>unregister()</code>, <code>release_removed_ids()</code>). G_HitServer's own file keeps only the hit side of that data and the hit query logic — the module references, the bands, the group masks and the radius profiles — and reads chunking's position, radius and team fields straight off the inherited arrays. A hit never walks the entity list: it turns its shape into an axis aligned box, asks the chunk grid which chunks that box touches, drops every chunk holding no opponent, and only then tests geometry.</p>
       <p>That narrowing is exact, not approximate. An entity is registered in <strong>every</strong> chunk its radius touches, so any entity whose silhouette reaches into the box is already sitting in one of the chunks being walked. Nothing that a full scan would find can slip through.</p>
       <p>Each shape comes twice. The plain version collects whatever it finds and is the cheap choice for a simple blast. The <code>_ordered</code> version sorts the targets along an axis that suits the shape, which is what makes a hit limit mean "the nearest three" and lets a stop group end the hit at the first thing that blocks it.</p>
     </div>
@@ -324,21 +324,21 @@ details[open]>summary .chev::before{content:"\2212";}
       <div class="vlist-head"><span>Mask</span><span>Width · owner</span><span>Answers</span><span></span></div>
 
       <details class="var">
-        <summary><span class="vn">_entityGroups</span><span class="vt">int64 · Chunking</span><span class="vh">What the entity is — ground, air, armored. Aggregated per chunk, column and map</span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntityGroups</span><span class="vt">int64 · Chunking</span><span class="vh">What the entity is — ground, air, armored. Aggregated per chunk, column and map</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>Lives in <code>G_ChunkingServer</code>. Only targeting reads it — a hit never looks at it. Example: <code>GROUND = 0b01</code>, <code>AIR = 0b10</code>; a bat is <code>0b10</code>.</p>
+          <p>Declared on the shared <code>A_CoreServers</code> base; <code>G_ChunkingServer</code> is its query surface. Only targeting reads it — a hit never looks at it. Example: <code>GROUND = 0b01</code>, <code>AIR = 0b10</code>; a bat is <code>0b10</code>.</p>
         </div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityTargetedGroups</span><span class="vt">int64 · Targeting</span><span class="vh">What it is allowed to go after</span><span class="chev"></span></summary>
+        <summary><span class="vn">_targetingEntityTargetedGroups</span><span class="vt">int64 · Targeting</span><span class="vh">What it is allowed to go after</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>Lives in <code>G_TargetingServer</code>, same bit meanings as <code>_entityGroups</code>. An anti-air tower with <code>0b10</code> only ever picks bats as targets. Whether its shot then <em>harms</em> the bat is decided by the three masks below.</p>
+          <p>Declared on <code>A_CoreServers</code>, same bit meanings as <code>_chunkEntityGroups</code>; <code>G_TargetingServer</code> is its query surface. An anti-air tower with <code>0b10</code> only ever picks bats as targets. Whether its shot then <em>harms</em> the bat is decided by the three masks below.</p>
         </div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityHitGroups</span><span class="vt">int64 · Hit</span><span class="vh">What its hits are made of — projectile, melee, magic</span><span class="chev"></span></summary>
+        <summary><span class="vn">_hitEntityHitGroups</span><span class="vt">int64 · Hit</span><span class="vh">What its hits are made of — projectile, melee, magic</span><span class="chev"></span></summary>
         <div class="var-body">
           <p>The damage channels every hit of this entity carries. Hit, hurt and stop groups share <strong>one</strong> bit space — they are ANDed with each other — so define the channels once:</p>
           <div class="code"><span class="k">const</span> CH_PROJECTILE: <span class="t">int</span> = 1 &lt;&lt; 0   <span class="c"># 0b001</span>
@@ -349,7 +349,7 @@ details[open]>summary .chev::before{content:"\2212";}
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityHurtGroups</span><span class="vt">int64 · Hit</span><span class="vh">What can physically harm it — a ghost simply has no projectile bit</span><span class="chev"></span></summary>
+        <summary><span class="vn">_hitEntityHurtGroups</span><span class="vt">int64 · Hit</span><span class="vh">What can physically harm it — a ghost simply has no projectile bit</span><span class="chev"></span></summary>
         <div class="var-body">
           <p>A hit connects when <code>emitter hit groups &amp; target hurt groups != 0</code>. Also what a stop group is matched against, so it carries "I am a blocker" bits like <code>CH_SHIELD</code> too.</p>
           <div class="table-wrap">
@@ -365,7 +365,7 @@ details[open]>summary .chev::before{content:"\2212";}
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityStopGroups</span><span class="vt">int64 · Hit</span><span class="vh">Which hurt groups end its hit on the target that matches</span><span class="chev"></span></summary>
+        <summary><span class="vn">_hitEntityStopGroups</span><span class="vt">int64 · Hit</span><span class="vh">Which hurt groups end its hit on the target that matches</span><span class="chev"></span></summary>
         <div class="var-body">
           <p>Checked only by the <code>_ordered</code> hits, on targets that were already hit: once <code>emitter stop groups &amp; target hurt groups != 0</code>, that target still takes the hit, and everything after it is spared. An archer with <code>stopGroups = CH_SHIELD</code> fires a piercing arrow:</p>
           <figure class="var-fig" style="margin:0;">
@@ -393,10 +393,10 @@ details[open]>summary .chev::before{content:"\2212";}
     </div>
 
     <div class="code" style="margin-top:16px;"><span class="c">## A hit connects when the two hit space masks overlap.</span>
-emitter._entityHitGroups &amp; target._entityHurtGroups != 0
+emitter._hitEntityHitGroups &amp; target._hitEntityHurtGroups != 0
 
 <span class="c">## An ordered hit ends on the target that blocks it.</span>
-emitter._entityStopGroups &amp; target._entityHurtGroups != 0</div>
+emitter._hitEntityStopGroups &amp; target._hitEntityHurtGroups != 0</div>
 
     <p class="note-inline">A shield that stops projectiles is a stop group on the attack, matched against the shield's hurt groups. A ghost immune to arrows simply lacks the projectile bit in its hurt groups — no special case anywhere in the code.</p>
   </section>
@@ -574,7 +574,7 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
     <span class="eyebrow">How to use</span>
     <h2>Arming an entity, then hitting with it</h2>
     <div class="prose">
-      <p>An entity takes its id from the chunk index, then hands the hit server that id, its module manager and an <code>R_HitProfile</code>. An entity that never registers here can never be hit. A recycled id always starts clean — the hit server clears the slot when the index emits <code>s_entityReleased</code>, so an entity can never inherit the groups or the profile of whoever held its id before. The setters exist for changes during a round.</p>
+      <p>Registration is a single call: <code>A_CoreServers.register()</code>, called by convention as <code>G_ChunkingServer.register(...)</code>, sets up an entity's chunking, hit and targeting sides at once and hands back its id. Pass <code>null</code> for the module manager or the targeting data to skip that side, but a <code>null</code> hit profile still falls back to a shared, all-zero default — such an entity can never be hit and its hits connect with nothing, same as never registering a hit side at all. A recycled id always starts clean — <code>release_removed_ids()</code> resets every field of every server for it, including the hit side, before the id is handed out again. The setters exist for changes during a round.</p>
     </div>
 
     <div class="code" style="margin-top:16px;"><span class="c">## Hit channels — one bit space shared by hit, hurt and stop groups.</span>
@@ -582,14 +582,18 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
 <span class="k">const</span> CH_MELEE: <span class="t">int</span> = 1 &lt;&lt; 1
 <span class="k">const</span> CH_SHIELD: <span class="t">int</span> = 1 &lt;&lt; 2
 
-<span class="c">## Spawns one archer and arms it.</span>
+<span class="c">## Spawns one archer and arms it, in one call.</span>
 <span class="c">## @param p_position Where it spawns</span>
 <span class="c">## @return Its id on every server</span>
 <span class="k">func</span> spawn_archer(p_position: <span class="t">Vector2</span>) -&gt; <span class="t">int</span>:
-    <span class="k">var</span> l_id: <span class="t">int</span> = G_ChunkingServer.register_entity(p_position, 24.0, C_ChunkingServer.TEAM.ATTACKER, 0b1)
-    G_HitServer.register(l_id, M_ModuleManager.new(), build_archer_profile())
-    
-    <span class="k">return</span> l_id
+    <span class="k">return</span> G_ChunkingServer.register(
+        p_position,
+        24.0,
+        C_ChunkingServer.TEAM.ATTACKER,
+        0b1,
+        M_ModuleManager.new(),
+        build_archer_profile(),
+        <span class="k">null</span>)
 
 
 <span class="c">## The hit side of the archer archetype, shared by every archer.</span>
@@ -630,8 +634,9 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
     <span class="eyebrow">Data</span>
     <h2>What the hit server stores</h2>
     <div class="prose">
-      <p>Like the chunk index, every per entity field is a packed array indexed by the entity id, grown by <code>s_entitySlotAppended</code> and cleared by <code>s_entityReleased</code>. Positions, radii and teams are not copied — they are read straight from <code>G_ChunkingServer</code>. On top come the shared radius curve storage and a few buffers reused by every hit, so a hit allocates nothing but its result array.</p>
+      <p>Like the chunk index, every per entity field is a packed array indexed by the entity id, grown when a fresh id is acquired and reset by <code>release_removed_ids()</code>. Positions, radii and teams are not copied — they are the very same fields chunking's own queries use. On top come the shared radius curve storage and a few buffers reused by every hit, so a hit allocates nothing but its result array.</p>
     </div>
+    <p class="note-inline"><strong>Where this data actually lives:</strong> hit's per entity fields, along with chunking's and targeting's, are declared once as <code>static var</code>s on the abstract base class <code>A_CoreServers</code>. <code>G_HitServer</code> extends it — the same way <code>G_ChunkingServer</code> and <code>G_TargetingServer</code> do — which is why it can read chunking's position, radius and team data directly as <code>_chunkEntityPosition</code>, <code>_chunkEntityRadius</code>, <code>_chunkEntityTeam</code> below, unqualified by <code>G_ChunkingServer</code>'s name. The same base class owns the one entity lifecycle: <code>register()</code>, <code>pre_unregister()</code>, <code>unregister()</code> and <code>release_removed_ids()</code>.</p>
     <p class="hint">Every row opens for a worked example.</p>
 
     <p class="group-title">Per entity</p>
@@ -639,14 +644,14 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
       <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
 
       <details class="var">
-        <summary><span class="vn">_entityModules</span><span class="vt">Array[M_ModuleManager]</span><span class="vh">Who receives the hits of each entity</span><span class="chev"></span></summary>
+        <summary><span class="vn">_hitEntityModules</span><span class="vt">Array[M_ModuleManager]</span><span class="vh">Who receives the hits of each entity</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>When a hit lands on id 5, the server calls <code>_entityModules[5].hit(p_hitData)</code>. <code>null</code> is allowed: the target is still hit — it counts towards the hit limit, can stop the hit, and its impact is returned — but nobody is told. The call happens only after the whole target list is final, so <code>hit()</code> may unregister its own entity safely.</p>
+          <p>When a hit lands on id 5, the server calls <code>_hitEntityModules[5].hit(p_hitData)</code>. <code>null</code> is allowed: the target is still hit — it counts towards the hit limit, can stop the hit, and its impact is returned — but nobody is told. The call happens only after the whole target list is final, so <code>hit()</code> may unregister its own entity safely.</p>
         </div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityYBand</span><span class="vt">PackedVector2Array</span><span class="vh">Vertical extent as (bottom, top) — the third axis</span><span class="chev"></span></summary>
+        <summary><span class="vn">_hitEntityYBand</span><span class="vt">PackedVector2Array</span><span class="vh">Vertical extent as (bottom, top) — the third axis</span><span class="chev"></span></summary>
         <div class="var-body">
           <p>Positions are 2D; height lives here. A hit carries its own band, and the two must overlap: <code>hit.bottom ≤ target.top and hit.top ≥ target.bottom</code>.</p>
           <figure class="var-fig" style="margin:0;">
@@ -678,24 +683,24 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityHitGroups · _entityHurtGroups · _entityStopGroups</span><span class="vt">PackedInt64Array</span><span class="vh">The three hit channel masks</span><span class="chev"></span></summary>
+        <summary><span class="vn">_hitEntityHitGroups · _hitEntityHurtGroups · _hitEntityStopGroups</span><span class="vt">PackedInt64Array</span><span class="vh">The three hit channel masks</span><span class="chev"></span></summary>
         <div class="var-body">
           <p>Explained bit by bit, with the arrow-and-shield example, under <a href="#groups">Group spaces</a>.</p>
         </div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityCurveIndex</span><span class="vt">PackedInt32Array</span><span class="vh">Curve slot per entity, or <code>NO_CURVE</code> for a constant radius</span><span class="chev"></span></summary>
+        <summary><span class="vn">_hitEntityCurveIndex</span><span class="vt">PackedInt32Array</span><span class="vh">Curve slot per entity, or <code>NO_CURVE</code> for a constant radius</span><span class="chev"></span></summary>
         <div class="var-body">
           <p>Which shared radius profile an entity uses (see the storage below). Ids 0 and 1 are goblins, 2 a troll, 3 an archer without a curve:</p>
-          <div class="arrs"><div class="arr" data-name="_entityCurveIndex" data-v="0 0 1 -1" data-hl="2"></div></div>
+          <div class="arrs"><div class="arr" data-name="_hitEntityCurveIndex" data-v="0 0 1 -1" data-hl="2"></div></div>
         </div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityVisitStamp</span><span class="vt">PackedInt32Array</span><span class="vh">The last hit that looked at each entity — dedup in one compare</span><span class="chev"></span></summary>
+        <summary><span class="vn">_hitEntityVisitStamp</span><span class="vt">PackedInt32Array</span><span class="vh">The last hit that looked at each entity — dedup in one compare</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>An entity stands in every chunk its radius touches, so a hit walking chunks 1, 2, 5, 6 meets a large entity up to four times. Each hit first increments <code>_visitStamp</code>, then:</p>
+          <p>An entity stands in every chunk its radius touches, so a hit walking chunks 1, 2, 5, 6 meets a large entity up to four times. Each hit first increments <code>_hitVisitStamp</code>, then:</p>
           <div class="code">hit #17 walks chunk 1:  id 2 stamp 16 ≠ 17 → stamp = 17, test it
 hit #17 walks chunk 2:  id 2 stamp 17 = 17 → skip
 hit #17 walks chunk 5:  id 2 stamp 17 = 17 → skip
@@ -805,7 +810,7 @@ radius   = 40 * 71 / 100            = <span class="t">28.4</span></div>
       <summary style="grid-template-columns:minmax(0,1fr) 16px;"><span class="vh"><strong>One ordered hit, buffer by buffer</strong> <span style="color:var(--ink-soft)">— <code>hit_circle_ordered</code>, limit 3, emitter stops at shields</span></span><span class="chev"></span></summary>
       <div class="var-body">
         <p><strong>1 · Gather.</strong> The chunk walk finds four opponents that pass team, flags, groups and band. Cells past the count are leftovers from earlier hits and are ignored.</p>
-        <div class="arrs"><div class="arr" data-name="_candidateIds (count 4)" data-v="7 3 9 4 … … …" data-hl2="0 1 2 3"></div></div>
+        <div class="arrs"><div class="arr" data-name="_hitCandidateIds (count 4)" data-v="7 3 9 4 … … …" data-hl2="0 1 2 3"></div></div>
         <p><strong>2 · Geometry.</strong> Id 9 is out of reach and dropped. The other three are pushed with their key — for a circle, the squared distance to the origin:</p>
         <div class="arrs">
           <div class="arr" data-name="_hitIds (count 3)" data-v="7 3 4" data-hl2="0 1 2"></div>
@@ -821,14 +826,14 @@ radius   = 40 * 71 / 100            = <span class="t">28.4</span></div>
       <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
 
       <details class="var">
-        <summary><span class="vn">_visitStamp</span><span class="vt">int</span><span class="vh">Counter handed to every gather</span><span class="chev"></span></summary>
+        <summary><span class="vn">_hitVisitStamp</span><span class="vt">int</span><span class="vh">Counter handed to every gather</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>Incremented at the start of every chunk gather; entities compare their <code>_entityVisitStamp</code> against it (example above). The preferred target path tests a single id and does not need it.</p>
+          <p>Incremented at the start of every chunk gather; entities compare their <code>_hitEntityVisitStamp</code> against it (example above). The preferred target path tests a single id and does not need it.</p>
         </div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_candidateIds · _candidateCount</span><span class="vt">PackedInt32Array · int</span><span class="vh">Entities worth a geometry test in the running hit</span><span class="chev"></span></summary>
+        <summary><span class="vn">_hitCandidateIds · _hitCandidateCount</span><span class="vt">PackedInt32Array · int</span><span class="vh">Entities worth a geometry test in the running hit</span><span class="chev"></span></summary>
         <div class="var-body">
           <p>Only the first <code>_candidateCount</code> entries are live. The count is reset to 0 per hit; the array itself keeps its size and just doubles when full (16 → 32 → 64 …, see <code>BUFFER_MIN_CAPACITY</code>). After a few hits it has reached its working size and never allocates again.</p>
         </div>
@@ -876,7 +881,7 @@ radius   = 40 * 71 / 100            = <span class="t">28.4</span></div>
       <details class="var">
         <summary><span class="vn">_defaultHitProfile</span><span class="vt">R_HitProfile</span><span class="vh">Fallback for an entity registered with <code>null</code></span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>Built once, on first need, with the <code>R_HitProfile</code> defaults: band (0, 64) and every mask 0. That means such an entity <strong>can never be hit and its hits connect with nothing</strong> — which is why registering without a profile logs an error rather than passing silently.</p>
+          <p>Built once, on first need, with the <code>R_HitProfile</code> defaults: band (0, 64) and every mask 0. That means such an entity <strong>can never be hit and its hits connect with nothing</strong> — <code>register()</code> falls back to it silently for a <code>null</code> profile, so treat this as inert, not as an error the framework will catch for you.</p>
         </div>
       </details>
 
@@ -894,13 +899,13 @@ radius   = 40 * 71 / 100            = <span class="t">28.4</span></div>
     <h2>Public API</h2>
     <p class="prose">Five setters and six hit functions, on top of everything <code>G_ChunkingServer</code> already offers.</p>
 
-    <p class="group-title">Registration</p>
+    <p class="group-title">Registration — lives on A_CoreServers, not on G_HitServer itself</p>
     <div class="table-wrap">
       <table class="vars">
         <tr><th>Function</th><th>Called by</th><th>Does</th></tr>
-        <tr><td>register(p_id, p_module, p_hitProfile)</td><td>the entity, after G_ChunkingServer.register_entity()</td><td>Writes the profile into the slot of that id</td></tr>
-        <tr><td>_append_slot(p_id)</td><td>G_ChunkingServer.s_entitySlotAppended</td><td>Grows every hit side array by one, empty slot</td></tr>
-        <tr><td>_reset_slot(p_id)</td><td>G_ChunkingServer.s_entityReleased</td><td>Drops the module reference, the groups and the radius curve slot</td></tr>
+        <tr><td>register(p_position, p_radius, p_team, p_groups, p_module, p_hitProfile, p_targetingData)</td><td>the entity, once, by convention as G_ChunkingServer.register(...)</td><td>Acquires a fresh id and fills in its chunking, hit and targeting sides together, including the profile of that id</td></tr>
+        <tr><td>pre_unregister(p_id) · unregister(p_id)</td><td>the entity, when it is removed</td><td>Marks the id inert everywhere, then locks it (still queryable in between)</td></tr>
+        <tr><td>release_removed_ids()</td><td>once every server that could hold a removed id has run</td><td>Resets every field of every removed id — module reference, groups, radius curve slot included — and frees it for reuse</td></tr>
       </table>
     </div>
 
@@ -912,7 +917,7 @@ radius   = 40 * 71 / 100            = <span class="t">28.4</span></div>
         <tr><td>set_hurt_groups(p_id, p_hurtGroups)</td><td>What can physically harm the entity</td></tr>
         <tr><td>set_hit_groups(p_id, p_hitGroups)</td><td>What its own hits are made of</td></tr>
         <tr><td>set_stop_groups(p_id, p_stopGroups)</td><td>Which hurt groups end its hits</td></tr>
-        <tr><td>set_radius_curve(p_id, p_curve)</td><td>The radius profile; <code>null</code> restores a constant radius</td></tr>
+        <tr><td>set_radius_curve(p_id, p_curve)</td><td>The radius profile; <code>null</code> restores a constant radius. A thin wrapper — the curve slot mechanics live in <code>A_CoreServers._apply_radius_curve()</code>, shared with <code>register()</code></td></tr>
       </table>
     </div>
 
@@ -1021,7 +1026,7 @@ p_maxHits != 1                         →  preference ignored, one warning per 
 
       <details class="var">
         <summary><span class="vn">NO_CURVE</span><span class="vt">const int</span><span class="vh"><code>−1</code>: curve slot of an entity with a constant radius</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Stored in <code>_entityCurveIndex</code>. Such an entity is a plain cylinder: its full <code>_entityRadius</code> at every height.</p></div>
+        <div class="var-body"><p>Stored in <code>_hitEntityCurveIndex</code>. Such an entity is a plain cylinder: its full <code>_chunkEntityRadius</code> at every height.</p></div>
       </details>
 
       <details class="var">
@@ -1051,7 +1056,7 @@ p_maxHits != 1                         →  preference ignored, one warning per 
       <div class="vlist-head"><span>Field</span><span>Type · default</span><span>Becomes</span><span></span></div>
 
       <details class="var">
-        <summary><span class="vn">yBand</span><span class="vt">Vector2 · (0, 64)</span><span class="vh"><code>_entityYBand</code> — (bottom, top)</span><span class="chev"></span></summary>
+        <summary><span class="vn">yBand</span><span class="vt">Vector2 · (0, 64)</span><span class="vh"><code>_hitEntityYBand</code> — (bottom, top)</span><span class="chev"></span></summary>
         <div class="var-body"><p>A foot soldier: <code>(0, 64)</code>. A bat: <code>(80, 140)</code>. A giant: <code>(0, 200)</code>. See the <a href="#data">band drawing</a>.</p></div>
       </details>
 

@@ -293,10 +293,10 @@ details[open]>summary .chev::before{content:"\2212";}
     <h1>Entity Chunk System</h1>
     <p class="sub">The spatial index underneath everything else: entities sorted into square chunks, columns and one map aggregate.</p>
     <div class="meta">
-      <div><dt>Classes</dt><dd>G_ChunkingServer · C_ChunkingServer</dd></div>
+      <div><dt>Classes</dt><dd>G_ChunkingServer · C_ChunkingServer · A_CoreServers</dd></div>
       <div><dt>Grid</dt><dd>square, derived on class load</dd></div>
       <div><dt>Aggregates</dt><dd>chunk · column · map</dd></div>
-      <div><dt>Owns</dt><dd>entity ids and their lifecycle</dd></div>
+      <div><dt>Owns</dt><dd>entity ids and their lifecycle — on A_CoreServers, shared with Hit and Targeting</dd></div>
       <div><dt>Built on it</dt><dd><a href="hit-system.html">Hit</a> · <a href="targeting-system.html">Targeting</a></dd></div>
       <div><dt>State</dt><dd>tested end to end in Godot 4.7</dd></div>
     </div>
@@ -311,6 +311,7 @@ details[open]>summary .chev::before{content:"\2212";}
       <p>The rule that keeps it cheap: <strong>counts are always written through, masks only cascade upwards while they actually change.</strong> A removal can never force a rescan of the whole map — it stops at the first level whose value comes out unchanged.</p>
       <p>Entities are pure data. There is no node and no object per entity: an entity <em>is</em> an integer id, and every property is one slot in a packed array at that index.</p>
       <p>Membership comes in two independent flavours. The <strong>coverage</strong> chains list an entity in <em>every</em> chunk its radius touches — that is what an area hit walks. The <strong>center</strong> chain lists it in exactly <em>one</em> chunk, the one its position falls into — that is what a targeting search walks, so an entity spanning six chunks is still scored exactly once.</p>
+      <p class="note-inline">All of this data — chunking's, and the hit and targeting data described in their own docs — actually lives on <code>A_CoreServers</code>, an abstract base class every autoload extends. Its per-entity fields are declared as <code>static var</code>, which Godot 4.3+ GDScript shares across every subclass that does not redeclare them; <code>G_ChunkingServer</code>, <code>G_HitServer</code> and <code>G_TargetingServer</code> are three separate autoload instances that all read and write the same underlying arrays. It is also where the id lifecycle lives now: one <code>register()</code> call sets up an entity's chunking, hit and targeting side at once, where three separate calls — one of them chunking-only — used to be needed.</p>
     </div>
 
     <div class="figure-panel">
@@ -408,7 +409,7 @@ details[open]>summary .chev::before{content:"\2212";}
     <span class="eyebrow">Data</span>
     <h2>Everything is private; some of it is read from outside anyway</h2>
     <div class="prose">
-      <p>Every field carries the <code>_</code> private prefix the style guide asks for — GDScript cannot enforce access control across classes, so <code>_</code> here means "the index's own bookkeeping," not "nobody else may touch it." <code>G_HitServer</code> and <code>G_TargetingServer</code> read a handful of these arrays directly (<code>G_ChunkingServer._entityPosition[id]</code> and the like), which keeps a function call out of every inner loop. Writing to one of these from outside skips the chunk update and corrupts the grid — see <a href="#rules">Rules</a>.</p>
+      <p>Every field carries the <code>_</code> private prefix the style guide asks for — GDScript cannot enforce access control across classes, so <code>_</code> here means "the index's own bookkeeping," not "nobody else may touch it." The fields below are declared once, as <code>static var</code>s on the shared base class <code>A_CoreServers</code>, which <code>G_ChunkingServer</code>, <code>G_HitServer</code> and <code>G_TargetingServer</code> all extend and therefore all see the same storage for. <code>G_HitServer</code> and <code>G_TargetingServer</code> read a handful of them directly (<code>_chunkEntityPosition[id]</code> and the like) with no <code>G_ChunkingServer.</code> qualification needed, which keeps a function call out of every inner loop. Writing to one of these from outside the lifecycle code skips the chunk update and corrupts the grid — see <a href="#rules">Rules</a>.</p>
       <p>Each per team aggregate is a single packed array where the team selects a block and the chunk or column selects the slot, so adding a third team means adding one enum entry and nothing else.</p>
     </div>
 
@@ -461,27 +462,27 @@ details[open]>summary .chev::before{content:"\2212";}
       <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
 
       <details class="var">
-        <summary><span class="vn">_entityTeam</span><span class="vt">PackedByteArray</span><span class="vh">Team, as a <code>TEAM</code> value</span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntityTeam</span><span class="vt">PackedByteArray</span><span class="vh">Team, as a <code>TEAM</code> value</span><span class="chev"></span></summary>
         <div class="var-body">
           <p>One byte per id: <code>0</code> = <code>ATTACKER</code>, <code>1</code> = <code>DEFENDER</code>. It does two jobs — it answers "is this an opponent?" for every hit and every search, and it picks which team block of the aggregate arrays an add or remove writes into.</p>
-          <div class="arrs"><div class="arr" data-name="_entityTeam" data-v="0 1 1" data-hl2="0" data-hl="1 2"></div></div>
+          <div class="arrs"><div class="arr" data-name="_chunkEntityTeam" data-v="0 1 1" data-hl2="0" data-hl="1 2"></div></div>
           <p>Fixed at registration; there is no setter. An entity that changes sides has to be unregistered and registered again.</p>
         </div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityGroups</span><span class="vt">PackedInt64Array</span><span class="vh">Bitmask of the groups the entity belongs to</span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntityGroups</span><span class="vt">PackedInt64Array</span><span class="vh">Bitmask of the groups the entity belongs to</span><span class="chev"></span></summary>
         <div class="var-body">
           <p>What the entity <em>is</em>, as up to 64 bits whose meaning the game defines. The index never interprets a bit — it only ORs them into the chunk, column and map masks so a search can ask "is there any AIR here?" without opening a chunk.</p>
-          <div class="arrs"><div class="arr" data-name="_entityGroups" data-v="0b01 0b01 0b10" data-hl="2"></div></div>
-          <p>An entity can be several things at once: a flying mount carrying a rider could be <code>GROUND | AIR = 0b11</code>. Like the team it is set once, in <code>register_entity()</code>; the masks it was ORed into could not be updated otherwise.</p>
+          <div class="arrs"><div class="arr" data-name="_chunkEntityGroups" data-v="0b01 0b01 0b10" data-hl="2"></div></div>
+          <p>An entity can be several things at once: a flying mount carrying a rider could be <code>GROUND | AIR = 0b11</code>. Like the team it is set once, in <code>register()</code>; the masks it was ORed into could not be updated otherwise.</p>
         </div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityPosition</span><span class="vt">PackedVector2Array</span><span class="vh">Current position, in world units</span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntityPosition</span><span class="vt">PackedVector2Array</span><span class="vh">Current position, in world units</span><span class="chev"></span></summary>
         <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_entityPosition" data-v="(64,64) (300,200) (256,128)"></div></div>
+          <div class="arrs"><div class="arr" data-name="_chunkEntityPosition" data-v="(64,64) (300,200) (256,128)"></div></div>
           <p>The chunk a position falls into is <code>floor(position / CHUNK_SIZE)</code> per axis, clamped to the grid:</p>
           <div class="code">id 2 at (256, 128):  column = floor(256 / 128) = 2
                      row    = floor(128 / 128) = 1
@@ -491,9 +492,9 @@ details[open]>summary .chev::before{content:"\2212";}
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityRadius</span><span class="vt">PackedFloat32Array</span><span class="vh">Effect radius — what decides chunk coverage</span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntityRadius</span><span class="vt">PackedFloat32Array</span><span class="vh">Effect radius — what decides chunk coverage</span><span class="chev"></span></summary>
         <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_entityRadius" data-v="20 20 40" data-hl="2"></div></div>
+          <div class="arrs"><div class="arr" data-name="_chunkEntityRadius" data-v="20 20 40" data-hl="2"></div></div>
           <p>The index turns <code>position ± radius</code> into a square and lists the entity in every chunk that square touches:</p>
           <div class="code">id 2: square (256-40, 128-40) … (256+40, 128+40) = (216, 88) … (296, 168)
       columns floor(216/128) … floor(296/128) = 1 … 2
@@ -504,15 +505,15 @@ details[open]>summary .chev::before{content:"\2212";}
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityPreUnregistered</span><span class="vt">PackedByteArray</span><span class="vh">1 while announced for removal but still in the grid</span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntityPreUnregistered</span><span class="vt">PackedByteArray</span><span class="vh">1 while announced for removal but still in the grid</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>Set by <code>pre_unregister_entity()</code>. The entity stays in every chunk, keeps counting and can still move and hit — but the hit server skips it as a target and the targeting server never picks it, and drops everyone already aiming at it. Typical use: a unit starts its death animation. It should still take up space for half a second, but nothing should waste an attack on it.</p>
+          <p>Set by <code>pre_unregister()</code>. The entity stays in every chunk, keeps counting and can still move and hit — but the hit server skips it as a target and the targeting server never picks it, and drops everyone already aiming at it. Typical use: a unit starts its death animation. It should still take up space for half a second, but nothing should waste an attack on it.</p>
           <figure class="var-fig" style="margin:0;">
-            <svg viewBox="0 0 760 180" role="img" aria-label="Lifetime of one id: alive, announced after pre_unregister_entity, removed with the id locked after unregister_entity, and free again after release_removed_ids. The two flags and whether the entity is in the chunks or can be hit are shown per phase." style="color:var(--ink)">
+            <svg viewBox="0 0 760 180" role="img" aria-label="Lifetime of one id: alive, announced after pre_unregister, removed with the id locked after unregister, and free again after release_removed_ids. The two flags and whether the entity is in the chunks or can be hit are shown per phase." style="color:var(--ink)">
               <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
                 <g fill="var(--ink-soft)" text-anchor="middle" font-size="9.5">
-                  <text x="300" y="16">pre_unregister_entity()</text>
-                  <text x="440" y="32">unregister_entity()</text>
+                  <text x="300" y="16">pre_unregister()</text>
+                  <text x="440" y="32">unregister()</text>
                   <text x="580" y="16">release_removed_ids()</text>
                 </g>
                 <g stroke="currentColor" stroke-opacity=".35">
@@ -525,8 +526,8 @@ details[open]>summary .chev::before{content:"\2212";}
                   <text x="650" y="50" fill="var(--ink-soft)">id free for reuse</text>
                 </g>
                 <g fill="var(--ink-soft)" text-anchor="end">
-                  <text x="150" y="80">_entityPreUnregistered</text>
-                  <text x="150" y="106">_entityUnregistering</text>
+                  <text x="150" y="80">_chunkEntityPreUnregistered</text>
+                  <text x="150" y="106">_chunkEntityUnregistering</text>
                   <text x="150" y="132">stands in chunks</text>
                   <text x="150" y="158">can be hit / targeted</text>
                 </g>
@@ -540,23 +541,23 @@ details[open]>summary .chev::before{content:"\2212";}
             </svg>
             <figcaption>One id, from alive to reusable. Both flags go back to 0 together, in <code>release_removed_ids()</code>.</figcaption>
           </figure>
-          <p>Skipping it is optional: <code>unregister_entity()</code> works on an entity that was never announced.</p>
+          <p>Skipping it is optional: <code>unregister()</code> works on an entity that was never announced.</p>
         </div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityUnregistering</span><span class="vt">PackedByteArray</span><span class="vh">1 while removed but the id is still locked</span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntityUnregistering</span><span class="vt">PackedByteArray</span><span class="vh">1 while removed but the id is still locked</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>Set by <code>unregister_entity()</code>, cleared by <code>release_removed_ids()</code> (see the timeline above). While it is 1 the entity is out of every chunk, but its id cannot be handed out again yet.</p>
+          <p>Set by <code>unregister()</code>, cleared by <code>release_removed_ids()</code> (see the timeline above). While it is 1 the entity is out of every chunk, but its id cannot be handed out again yet.</p>
           <p><strong>Why the lock:</strong> say id 1 dies mid-frame while an explosion is still queued to hit id 1 later in the same frame. If the id were free at once, a new entity spawned in between would get id 1 and eat the damage. With the lock, the old id 1 is simply skipped (hit and targeting both check this flag) until the end of the frame.</p>
-          <p>It also makes removal idempotent: a second <code>unregister_entity(1)</code> sees the 1 and returns, so id 1 cannot land in the free list twice.</p>
+          <p>It also makes removal idempotent: a second <code>unregister(1)</code> sees the 1 and returns, so id 1 cannot land in the free list twice.</p>
         </div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityChunkArea</span><span class="vt">Array[Vector4i]</span><span class="vh">Covered rectangle as (minColumn, minRow, maxColumn, maxRow)</span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntityChunkArea</span><span class="vt">Array[Vector4i]</span><span class="vh">Covered rectangle as (minColumn, minRow, maxColumn, maxRow)</span><span class="chev"></span></summary>
         <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_entityChunkArea" data-v="(0,0,0,0) (2,1,2,1) (1,0,2,1)" data-hl="2"></div></div>
+          <div class="arrs"><div class="arr" data-name="_chunkEntityChunkArea" data-v="(0,0,0,0) (2,1,2,1) (1,0,2,1)" data-hl="2"></div></div>
           <p>The last coverage rectangle, kept so a move can be compared against it. If the new rectangle is identical, <code>set_position()</code> leaves every chunk alone — the <a href="#fastpath">fast path</a>.</p>
           <figure class="var-fig" style="margin:0;">
             <svg viewBox="0 0 600 190" role="img" aria-label="Left: entity 2 at x 256 covers columns 1 to 2 and rows 0 to 1. Right: after moving to x 300 it covers only column 2, so it left chunks 1 and 5." style="color:var(--ink)">
@@ -589,13 +590,13 @@ details[open]>summary .chev::before{content:"\2212";}
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityCenterColumn · _entityCenterRow</span><span class="vt">PackedInt32Array</span><span class="vh">Column and row of the entity's center chunk — what search reads</span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntityCenterColumn · _chunkEntityCenterRow</span><span class="vt">PackedInt32Array</span><span class="vh">Column and row of the entity's center chunk — what search reads</span><span class="chev"></span></summary>
         <div class="var-body">
           <div class="arrs">
-            <div class="arr" data-name="_entityCenterColumn" data-v="0 2 2"></div>
-            <div class="arr" data-name="_entityCenterRow" data-v="0 1 1"></div>
+            <div class="arr" data-name="_chunkEntityCenterColumn" data-v="0 2 2"></div>
+            <div class="arr" data-name="_chunkEntityCenterRow" data-v="0 1 1"></div>
           </div>
-          <p>The same chunk as <code>_entityCenterChunk</code>, pre-split into column and row. Targeting measures chunk distances between two entities thousands of times per search; reading two ints saves a <code>%</code> and a <code>/</code> each time. Written only when the center chunk actually changes.</p>
+          <p>The same chunk as <code>_chunkEntityCenterChunk</code>, pre-split into column and row. Targeting measures chunk distances between two entities thousands of times per search; reading two ints saves a <code>%</code> and a <code>/</code> each time. Written only when the center chunk actually changes.</p>
         </div>
       </details>
     </div>
@@ -644,7 +645,7 @@ details[open]>summary .chev::before{content:"\2212";}
               <path d="M596,24 L596,91" fill="none" stroke="var(--accent)" marker-end="url(#chA)"/>
               <path d="M556,95 C556,40 184,40 184,91" fill="none" stroke="var(--accent)" marker-end="url(#chA)"/>
               <text x="370" y="36" text-anchor="middle" fill="var(--accent)">_slotChunkNext[5] = 1   (then −1: end)</text>
-              <text x="632" y="244" text-anchor="end" fill="var(--accent-2)">_entitySlotHead[2]</text>
+              <text x="632" y="244" text-anchor="end" fill="var(--accent-2)">_chunkEntitySlotHead[2]</text>
               <path d="M596,228 L596,168" fill="none" stroke="var(--accent-2)" marker-end="url(#chB)"/>
               <path d="M556,168 C556,205 484,205 484,172" fill="none" stroke="var(--accent-2)" marker-end="url(#chB)"/>
               <path d="M456,168 C456,205 384,205 384,172" fill="none" stroke="var(--accent-2)" marker-end="url(#chB)"/>
@@ -664,7 +665,7 @@ slot = _slotChunkNext[5]      <span class="c"># 1  → _slotEntity[1] = id 1</sp
 slot = _slotChunkNext[1]      <span class="c"># −1 → done: ids 2, 1</span>
 
 <span class="c">## Where does entity 2 stand?</span>
-slot = _entitySlotHead[2]     <span class="c"># 5 → chunk 6, then 4 → chunk 5, 3 → chunk 2, 2 → chunk 1, −1</span></div>
+slot = _chunkEntitySlotHead[2]     <span class="c"># 5 → chunk 6, then 4 → chunk 5, 3 → chunk 2, 2 → chunk 1, −1</span></div>
         <p><strong>Removing one slot</strong>, e.g. slot 4 when id 2 leaves chunk 5: in chunk 5's chain its prev is −1, so <code>_chunkHead[5] = −1</code>. In id 2's chain its prev is 5 and its next is 3, so <code>_slotEntityNext[5] = 3</code> and <code>_slotEntityPrev[3] = 5</code>. Slot 4 goes to <code>_freeSlots</code>. Four writes, whatever the chunk holds.</p>
       </div>
     </details>
@@ -686,10 +687,10 @@ slot = _entitySlotHead[2]     <span class="c"># 5 → chunk 6, then 4 → chunk 
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entitySlotHead</span><span class="vt">PackedInt32Array</span><span class="vh">First slot of each entity's own chain, or <code>NO_SLOT</code></span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntitySlotHead</span><span class="vt">PackedInt32Array</span><span class="vh">First slot of each entity's own chain, or <code>NO_SLOT</code></span><span class="chev"></span></summary>
         <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_entitySlotHead" data-v="0 1 5" data-hl="2"></div></div>
-          <p>One entry per entity id. Following it lists every chunk the entity stands in (for id 2: slots 5, 4, 3, 2 → chunks 6, 5, 2, 1). <code>unregister_entity()</code> and a move that changes the rectangle walk this chain to find the slots to unlink, instead of searching every chunk.</p>
+          <div class="arrs"><div class="arr" data-name="_chunkEntitySlotHead" data-v="0 1 5" data-hl="2"></div></div>
+          <p>One entry per entity id. Following it lists every chunk the entity stands in (for id 2: slots 5, 4, 3, 2 → chunks 6, 5, 2, 1). <code>unregister()</code> and a move that changes the rectangle walk this chain to find the slots to unlink, instead of searching every chunk.</p>
         </div>
       </details>
 
@@ -744,9 +745,9 @@ slot = _entitySlotHead[2]     <span class="c"># 5 → chunk 6, then 4 → chunk 
       <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
 
       <details class="var">
-        <summary><span class="vn">_entityCenterChunk</span><span class="vt">PackedInt32Array</span><span class="vh">The chunk an entity's center link sits in, or <code>NO_COLUMN</code></span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntityCenterChunk</span><span class="vt">PackedInt32Array</span><span class="vh">The chunk an entity's center link sits in, or <code>NO_COLUMN</code></span><span class="chev"></span></summary>
         <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_entityCenterChunk" data-v="0 6 6" data-hl="1 2"></div></div>
+          <div class="arrs"><div class="arr" data-name="_chunkEntityCenterChunk" data-v="0 6 6" data-hl="1 2"></div></div>
           <p>Compared on every <code>set_position()</code>: if the position still falls into the same chunk, the center chain is not touched. <code>−1</code> (it reuses <code>NO_COLUMN</code> as its "nowhere" value) while the entity is not linked — before its first placement and after it was unregistered.</p>
         </div>
       </details>
@@ -910,17 +911,17 @@ slot = _entitySlotHead[2]     <span class="c"># 5 → chunk 6, then 4 → chunk 
       <details class="var">
         <summary><span class="vn">_pendingFreeIds</span><span class="vt">PackedInt32Array</span><span class="vh">Ids removed since the last <code>release_removed_ids()</code></span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>The waiting room between "removed" and "reusable" (the locked phase in the <code>_entityPreUnregistered</code> timeline above).</p>
-          <div class="code">frame 10   unregister_entity(1)     _pendingFreeIds = [1]    _freeIds = []
+          <p>The waiting room between "removed" and "reusable" (the locked phase in the <code>_chunkEntityPreUnregistered</code> timeline above).</p>
+          <div class="code">frame 10   unregister(1)            _pendingFreeIds = [1]    _freeIds = []
 frame 10   release_removed_ids()    _pendingFreeIds = []     _freeIds = [1]   <span class="c"># s_entityReleased(1)</span>
-frame 11   register_entity(…)       returns 1                _freeIds = []</div>
+frame 11   register(…)              returns 1                _freeIds = []</div>
         </div>
       </details>
 
       <details class="var">
         <summary><span class="vn">_freeIds</span><span class="vt">PackedInt32Array</span><span class="vh">Ids ready to be handed out again</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>A stack: <code>register_entity()</code> pops the most recently freed id. Only when it is empty does a brand-new id get appended to every per-entity array — and only then is <code>s_entitySlotAppended</code> emitted, so the other servers grow along. The id space therefore never shrinks; it is as large as the most entities alive at once.</p>
+          <p>A stack: <code>register()</code> pops the most recently freed id. Only when it is empty does a brand-new id get appended to every per-entity array — and only then is <code>s_entitySlotAppended</code> emitted, so the other servers grow along. The id space therefore never shrinks; it is as large as the most entities alive at once.</p>
         </div>
       </details>
     </div>
@@ -953,15 +954,16 @@ frame 11   register_entity(…)       returns 1                _freeIds = []</di
   <section id="api">
     <span class="eyebrow">Reference</span>
     <h2>Public API</h2>
-    <p class="prose"><code>G_ChunkingServer</code> is an autoload, the first of the three, and entities call it directly. It is the one server that hands out ids and runs their lifecycle; the <code>G_HitServer</code> and <code>G_TargetingServer</code> autoloads are loaded after it and follow that lifecycle through its signals.</p>
+    <p class="prose"><code>G_ChunkingServer</code> is an autoload, the first of the three, and entities call it directly. The id lifecycle itself — <code>register()</code>, <code>pre_unregister()</code>, <code>unregister()</code> and <code>release_removed_ids()</code> — is defined once on <code>A_CoreServers</code>, the abstract base every autoload extends; calling it as <code>G_ChunkingServer.register(...)</code> is convention, not a special role of that autoload. <code>G_HitServer</code> and <code>G_TargetingServer</code> extend the same base and inherit the same lifecycle, which is why one call now sets up all three sides of an entity.</p>
 
-    <p class="group-title">Lifecycle</p>
+    <p class="group-title">Lifecycle — defined on A_CoreServers</p>
     <div class="fn">
-      <div class="fn-head"><span class="fn-name">register_entity</span><span class="tag pub">public</span><span class="tag cost">O(covered chunks)</span></div>
+      <div class="fn-head"><span class="fn-name">register</span><span class="tag pub">public</span><span class="tag cost">O(covered chunks)</span></div>
       <div class="fn-body">
-        <div class="code"><span class="k">func</span> register_entity(p_position: <span class="t">Vector2</span>, p_radius: <span class="t">float</span>,
-        p_team: <span class="t">int</span>, p_groups: <span class="t">int</span>) -&gt; <span class="t">int</span></div>
-        <p class="fn-note">Four arguments, all of them about <strong>placing something in space</strong>. Takes an id from the free list or appends a slot, then adds the entity to every chunk its radius covers.</p>
+        <div class="code"><span class="k">func</span> register(p_position: <span class="t">Vector2</span>, p_radius: <span class="t">float</span>, p_team: <span class="t">int</span>, p_groups: <span class="t">int</span>,
+        p_module: <span class="t">M_ModuleManager</span>, p_hitProfile: <span class="t">R_HitProfile</span>, p_targetingData: <span class="t">R_TargetingData</span>) -&gt; <span class="t">int</span></div>
+        <p class="fn-note">One call sets up <strong>chunking, hit and targeting</strong> at once — where up to three separate calls, one of them chunking-only, used to be needed. Takes an id from the free list or appends a slot, then adds the entity to every chunk its radius covers, fills in its hit profile and fills in its targeting data.</p>
+        <p class="fn-note">A null <code>p_hitProfile</code> or <code>p_targetingData</code> falls back to a shared default that carries zero groups, so the entity is inert on that side rather than skipped. There is no more index-only, partial registration — an entity that should not take hits or should not target anything is registered with zeroed groups, not with a missing call.</p>
       </div>
     </div>
 
@@ -970,22 +972,24 @@ frame 11   register_entity(…)       returns 1                _freeIds = []</di
         <tr><th>Function</th><th>Does</th><th>Cost</th></tr>
         <tr><td>set_position(p_id, p_position)</td><td>Moves an entity through the rectangle fast path</td><td>O(1) unchanged</td></tr>
         <tr><td>set_radius(p_id, p_radius)</td><td>Resizes it through the same path</td><td>O(1) unchanged</td></tr>
-        <tr><td>pre_unregister_entity(p_id)</td><td>Marks it; it stays fully active and hittable</td><td>O(1)</td></tr>
-        <tr><td>unregister_entity(p_id)</td><td>Removes it from every chunk, locks its id</td><td>O(covered chunks)</td></tr>
+        <tr><td>pre_unregister(p_id)</td><td>Marks it; it stays fully active and hittable</td><td>O(1)</td></tr>
+        <tr><td>unregister(p_id)</td><td>Removes it from every chunk, locks its id</td><td>O(covered chunks)</td></tr>
         <tr><td>release_removed_ids()</td><td>Hands the locked ids back for reuse</td><td>O(removed)</td></tr>
       </table>
     </div>
+    <p class="note-inline"><code>set_position()</code> and <code>set_radius()</code> stay on <code>G_ChunkingServer</code> itself — only chunking needs them. <code>pre_unregister()</code>, <code>unregister()</code> and <code>release_removed_ids()</code> are inherited from <code>A_CoreServers</code>.</p>
 
-    <p class="group-title">Signals</p>
+    <p class="group-title">Signals — defined on A_CoreServers</p>
     <div class="table-wrap">
       <table class="vars">
-        <tr><th>Signal</th><th>Emitted when</th><th>Hit server</th><th>Targeting server</th></tr>
-        <tr><td>s_entitySlotAppended(p_id)</td><td>A fresh id is handed out for the first time</td><td>appends a slot</td><td>appends a slot</td></tr>
-        <tr><td>s_entityPreUnregistered(p_id)</td><td>pre_unregister_entity() marks an entity</td><td>—</td><td>drops its targeters</td></tr>
-        <tr><td>s_entityUnregistered(p_id)</td><td>unregister_entity() removes it, once per id</td><td>—</td><td>unlinks both sides</td></tr>
-        <tr><td>s_entityReleased(p_id)</td><td>release_removed_ids() hands the id back</td><td>clears its slot</td><td>clears its slot</td></tr>
+        <tr><th>Signal</th><th>Emitted when</th></tr>
+        <tr><td>s_entitySlotAppended(p_id)</td><td>A fresh id is handed out for the first time</td></tr>
+        <tr><td>s_entityPreUnregistered(p_id)</td><td>pre_unregister() marks an entity</td></tr>
+        <tr><td>s_entityUnregistered(p_id)</td><td>unregister() removes it, once per id</td></tr>
+        <tr><td>s_entityReleased(p_id)</td><td>release_removed_ids() hands the id back, every field of it just reset to default</td></tr>
       </table>
     </div>
+    <p class="note-inline">These used to be how the three servers coordinated: chunking appended its containers and emitted, hit and targeting listened and appended their own. Now <code>_acquire_id()</code>, <code>pre_unregister()</code>, <code>unregister()</code> and <code>release_removed_ids()</code> touch every domain's data directly, in one place, so nothing on <code>A_CoreServers</code> itself needs to react to its own signals anymore — they are emitted purely for listeners outside the three servers.</p>
 
     <p class="group-title">Queries</p>
     <div class="table-wrap">
@@ -1059,9 +1063,9 @@ frame 11   register_entity(…)       returns 1                _freeIds = []</di
         <div class="var-body">
           <p>All three are <code>−1</code>; the name says which kind of index is missing, so a comparison reads as what it means:</p>
           <ul>
-            <li><code>NO_SLOT</code> — end of a coverage chain, or an empty <code>_chunkHead</code> / <code>_entitySlotHead</code>.</li>
+            <li><code>NO_SLOT</code> — end of a coverage chain, or an empty <code>_chunkHead</code> / <code>_chunkEntitySlotHead</code>.</li>
             <li><code>NO_ENTITY</code> — end of a center chain, or an empty <code>_centerHead</code>.</li>
-            <li><code>NO_COLUMN</code> — <code>_teamMinColumn</code> / <code>_teamMaxColumn</code> of a team holding nothing, and <code>_entityCenterChunk</code> of an entity that is not linked anywhere.</li>
+            <li><code>NO_COLUMN</code> — <code>_teamMinColumn</code> / <code>_teamMaxColumn</code> of a team holding nothing, and <code>_chunkEntityCenterChunk</code> of an entity that is not linked anywhere.</li>
           </ul>
         </div>
       </details>
@@ -1112,7 +1116,7 @@ MAP_CHUNK_ROWS     = ceil(CONFIGURED_MAP_SIZE.y / CHUNK_SIZE)</div>
     <span class="eyebrow">Contract</span>
     <h2>What the caller has to respect</h2>
     <ul class="rules">
-      <li><strong>The per entity arrays are read only for everyone but the index.</strong> Writing <code>_entityPosition</code> directly skips the chunk update and corrupts the grid — go through <code>set_position()</code>.</li>
+      <li><strong>The per entity arrays are read only for everyone but the index.</strong> Writing <code>_chunkEntityPosition</code> directly skips the chunk update and corrupts the grid — go through <code>set_position()</code>.</li>
       <li><strong><code>release_removed_ids()</code> once per frame, last.</strong> It is the only thing that recycles ids, and the lock it releases is what makes a queued damage event safe.</li>
       <li><strong>An unregistered id is dead until re-registered.</strong> The index does not re-check a caller's id.</li>
       <li><strong>64 groups maximum.</strong> Groups are bits in an <code>int64</code>; their meaning is the caller's to define.</li>

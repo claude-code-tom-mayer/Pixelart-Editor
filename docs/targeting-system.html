@@ -295,7 +295,7 @@ details[open]>summary .chev::before{content:"\2212";}
     <h1>Entity Targeting System</h1>
     <p class="sub">Every entity holds one target and knows where to walk. Targets are lost by event, never re-checked by polling.</p>
     <div class="meta">
-      <div><dt>Classes</dt><dd>G_TargetingServer · C_TargetingServer · R_TargetingData</dd></div>
+      <div><dt>Classes</dt><dd>A_CoreServers · G_TargetingServer · C_TargetingServer · R_TargetingData</dd></div>
       <div><dt>Reads</dt><dd><a href="chunking-system.html">the shared chunk index</a></dd></div>
       <div><dt>States</dt><dd>SEARCH · APPROACH · COMBAT · FLEE</dd></div>
       <div><dt>Link cost</dt><dd>O(1) both ways</dd></div>
@@ -385,7 +385,7 @@ details[open]>summary .chev::before{content:"\2212";}
     <h2>Ranges are chunk counts, not metres</h2>
     <div class="prose">
       <p>Search and flee distances are counted in <strong>chunks</strong>, not world units. A search covers the square of chunks around the entity instead of a circle, and a diagonal step costs <code>DIAGONAL_CHUNK_COST</code> rather than a square root. Nothing in the search or the scoring touches real geometry.</p>
-      <p>"The entity's own chunk" is not the coverage rectangle the index maintains for hits — it is a separate <strong>center chunk</strong>, the single chunk the entity's position falls into (<code>G_ChunkingServer._entityCenterColumn/_entityCenterRow</code>). The index keeps it current on every <code>set_position()</code> call, through its own drop-out check, so reading it here is a plain array lookup.</p>
+      <p>"The entity's own chunk" is not the coverage rectangle the index maintains for hits — it is a separate <strong>center chunk</strong>, the single chunk the entity's position falls into (<code>_chunkEntityCenterColumn/_chunkEntityCenterRow</code>). The index keeps it current on every <code>set_position()</code> call, through its own drop-out check, so reading it here is a plain array lookup.</p>
       <p>Only one distance stays real: the <strong>hit range</strong> that separates <code>APPROACH</code> from <code>COMBAT</code>. Quantising that one to chunks would let a unit open fire from anywhere in a neighbouring chunk, which reads as sloppy in play. It is stored as a plain distance — the target's radius is added on top fresh at check time, since it differs per opponent — and only that sum is squared, so the test itself is one addition, one multiply and one compare.</p>
     </div>
 
@@ -395,7 +395,7 @@ details[open]>summary .chev::before{content:"\2212";}
       <details class="var">
         <summary><span class="vn">searchChunks</span><span class="vt">chunks · 4</span><span class="vh">How far the scan square reaches in each direction</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>Stored per entity as <code>_entitySearchChunks</code>. With 2, the search covers the 5 × 5 chunks around the searcher's center chunk (ring 0, 1 and 2), clamped to the map. With the default 4 it is 9 × 9 = 81 chunks, 1152 × 1152 world units on the default grid.</p>
+          <p>Stored per entity as <code>_targetingEntitySearchChunks</code>. With 2, the search covers the 5 × 5 chunks around the searcher's center chunk (ring 0, 1 and 2), clamped to the map. With the default 4 it is 9 × 9 = 81 chunks, 1152 × 1152 world units on the default grid.</p>
           <figure class="var-fig" style="margin:0;">
             <svg viewBox="0 0 600 330" role="img" aria-label="A 5 by 5 chunk square around the searcher S. Each cell shows its chunk distance: 1 for straight neighbours, 1.45 for diagonal ones, 2, 2.45 and 2.9 in the outer ring. Cells at distance 2 or less are marked as inside a flee distance of 2." style="color:var(--ink)">
               <g font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" fill="currentColor">
@@ -441,7 +441,7 @@ details[open]>summary .chev::before{content:"\2212";}
       <details class="var">
         <summary><span class="vn">fleeChunks</span><span class="vt">chunks · 2</span><span class="vh">How close a targeter has to be to start a flight</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>Stored as <code>_entityFleeChunks</code>. Every tick, <code>update_entity()</code> measures the chunk distance to each entity that targets this one; if any is <code>≤ fleeChunks</code>, it drops its own target and flees. In the drawing above, a targeter standing on any bold orange cell triggers it.</p>
+          <p>Stored as <code>_targetingEntityFleeChunks</code>. Every tick, <code>update_entity()</code> measures the chunk distance to each entity that targets this one; if any is <code>≤ fleeChunks</code>, it drops its own target and flees. In the drawing above, a targeter standing on any bold orange cell triggers it.</p>
           <ul>
             <li><code>0</code> — flees only from a targeter in its own center chunk.</li>
             <li><code>−1</code> — never flees (no distance is below 0).</li>
@@ -454,7 +454,7 @@ details[open]>summary .chev::before{content:"\2212";}
       <details class="var">
         <summary><span class="vn">hitRange</span><span class="vt">world units · 64</span><span class="vh">The real distance at which combat begins</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>Stored as <code>_entityHitRange</code>. Measured to the target's <em>edge</em>, so the target's radius is added at check time:</p>
+          <p>Stored as <code>_targetingEntityHitRange</code>. Measured to the target's <em>edge</em>, so the target's radius is added at check time:</p>
           <div class="code">hitRange 64, target radius 20  →  reach = 84,  reach² = 7056
 distance 80:  80² = 6400 ≤ 7056  →  <span class="t">COMBAT</span>
 distance 90:  90² = 8100 &gt; 7056  →  APPROACH</div>
@@ -477,7 +477,7 @@ distance 90:  90² = 8100 &gt; 7056  →  APPROACH</div>
       <li><span class="n">1</span><p><strong>Map check.</strong> If no opposing team holds any of the searched groups anywhere, the search returns immediately — one bitwise <code>AND</code> per team, before a single chunk is touched.</p></li>
       <li><span class="n">2</span><p><strong>Chunk square, ring by ring.</strong> The entity's own center chunk, grown by <code>searchChunks</code> in each direction and clamped to the map, scanned ring by ring from distance 0 outwards.</p></li>
       <li><span class="n">3</span><p><strong>Skip empty columns and chunks.</strong> <code>column_has_opponent_group()</code> and <code>chunk_has_opponent_group()</code> reject a whole column or chunk on a mask lookup, before any candidate inside it is read.</p></li>
-      <li><span class="n">4</span><p><strong>Walk the center chain, filter, then score.</strong> A chunk's candidates are its <em>center</em> members only — <code>G_ChunkingServer._centerHead/_centerNext</code> — so an entity spanning several chunks is offered exactly once, never rescored, never guarded against. Team, removal flags, group mask and invisibility are checked first; only survivors get weighed.</p></li>
+      <li><span class="n">4</span><p><strong>Walk the center chain, filter, then score.</strong> A chunk's candidates are its <em>center</em> members only — <code>_centerHead/_centerNext</code> — so an entity spanning several chunks is offered exactly once, never rescored, never guarded against. Team, removal flags, group mask and invisibility are checked first; only survivors get weighed.</p></li>
       <li><span class="n">5</span><p><strong>Best priority, else best normal.</strong> Kept across rings; the lower id wins a tied score, so the result cannot depend on chunk iteration order.</p></li>
       <li><span class="n">6</span><p><strong>Stop once no further ring can win.</strong> A chunk at ring <em>r</em> is at least <em>r</em> steps away, so its best possible closeness score is fixed. Once that upper bound — closeness plus every bonus a candidate could still add — cannot beat what the search already holds, the remaining rings are skipped.</p></li>
     </ol>
@@ -532,7 +532,7 @@ distance 90:  90² = 8100 &gt; 7056  →  APPROACH</div>
 
       <details class="var">
         <summary><span class="vn">WEIGHT_MUTUAL</span><span class="vt">+4.0</span><span class="vh">The candidate already targets the searcher</span><span class="chev"></span></summary>
-        <div class="var-body"><p><code>_entityTarget[candidate] == searcher</code>. "Fight whoever is fighting you" — keeps duels stable instead of two units chasing third parties past each other.</p></div>
+        <div class="var-body"><p><code>_targetingEntityTarget[candidate] == searcher</code>. "Fight whoever is fighting you" — keeps duels stable instead of two units chasing third parties past each other.</p></div>
       </details>
     </div>
 
@@ -550,7 +550,7 @@ distance 90:  90² = 8100 &gt; 7056  →  APPROACH</div>
       <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
 
       <details class="var">
-        <summary><span class="vn">_entityTarget</span><span class="vt">PackedInt32Array</span><span class="vh">Who this entity targets, or <code>NO_TARGET</code></span><span class="chev"></span></summary>
+        <summary><span class="vn">_targetingEntityTarget</span><span class="vt">PackedInt32Array</span><span class="vh">Who this entity targets, or <code>NO_TARGET</code></span><span class="chev"></span></summary>
         <div class="var-body">
           <p>The forward link. Three attackers 4, 9 and 12 all target defender 20:</p>
           <figure class="var-fig" style="margin:0;">
@@ -566,7 +566,7 @@ distance 90:  90² = 8100 &gt; 7056  →  APPROACH</div>
                 <g stroke="currentColor" fill="none">
                   <path d="M130,37 L296,74" marker-end="url(#ta)"/><path d="M130,85 L296,85" marker-end="url(#ta)"/><path d="M130,133 L296,96" marker-end="url(#ta)"/>
                 </g>
-                <text x="210" y="16" text-anchor="middle" font-size="9" fill="var(--ink-soft)">_entityTarget = 20</text>
+                <text x="210" y="16" text-anchor="middle" font-size="9" fill="var(--ink-soft)">_targetingEntityTarget = 20</text>
                 <text x="430" y="72" fill="var(--accent)">_targetersOf[20]</text>
                 <g fill="none" stroke="var(--accent)"><rect x="430" y="80" width="36" height="24"/><rect x="466" y="80" width="36" height="24"/><rect x="502" y="80" width="36" height="24"/></g>
                 <g text-anchor="middle"><text x="448" y="96">4</text><text x="484" y="96">9</text><text x="520" y="96">12</text></g>
@@ -589,18 +589,18 @@ distance 90:  90² = 8100 &gt; 7056  →  APPROACH</div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityTargeterIndex</span><span class="vt">PackedInt32Array</span><span class="vh">Own slot inside the target's list — what makes unlinking O(1)</span><span class="chev"></span></summary>
+        <summary><span class="vn">_targetingEntityTargeterIndex</span><span class="vt">PackedInt32Array</span><span class="vh">Own slot inside the target's list — what makes unlinking O(1)</span><span class="chev"></span></summary>
         <div class="var-body">
           <p>Without it, id 4 dropping its target would have to search 20's list. With it, the drop is a <strong>swap-and-pop</strong>: move the last entry into the hole, shrink by one, fix the moved entry's index.</p>
           <div class="arrs">
             <div class="arr" data-name="before: _targetersOf[20]" data-v="4 9 12" data-hl="0"></div>
             <div class="arr" data-name="after 4 drops" data-v="12 9" data-hl="0"></div>
           </div>
-          <div class="code">slot = _entityTargeterIndex[4]      <span class="c"># 0</span>
+          <div class="code">slot = _targetingEntityTargeterIndex[4]      <span class="c"># 0</span>
 list[0] = list[last]                <span class="c"># 12 moves into the hole</span>
 list.resize(last)                   <span class="c"># [12, 9]</span>
-_entityTargeterIndex[12] = 0        <span class="c"># 12 learns its new slot</span>
-_entityTarget[4] = NO_TARGET;  _entityState[4] = SEARCH</div>
+_targetingEntityTargeterIndex[12] = 0        <span class="c"># 12 learns its new slot</span>
+_targetingEntityTarget[4] = NO_TARGET;  _targetingEntityState[4] = SEARCH</div>
         </div>
       </details>
     </div>
@@ -612,7 +612,8 @@ _entityTarget[4] = NO_TARGET;  _entityState[4] = SEARCH</div>
     <span class="eyebrow">Data</span>
     <h2>What the targeting server stores</h2>
     <div class="prose">
-      <p>Per entity packed arrays indexed by id, like the other two servers — most filled once from <code>R_TargetingData</code> at <code>register()</code>. Positions, teams, groups and center chunks are read from <code>G_ChunkingServer</code>, never copied. The <code>_search*</code> members hold the one search that is running.</p>
+      <p>Per entity packed arrays indexed by id, most filled once from <code>R_TargetingData</code> at registration. Positions, teams, groups and center chunks are chunking's own fields, never copied — just read straight off, unqualified. The <code>_search*</code> members hold the one search that is running.</p>
+      <p class="note-inline">All three servers' per-entity data — chunking's, hit's and targeting's alike — is declared once as shared <code>static var</code>s on the abstract base class <code>A_CoreServers</code>, which <code>G_TargetingServer</code> (like <code>G_ChunkingServer</code> and <code>G_HitServer</code>) <code>extends</code>. That is why targeting can read <code>_chunkEntityPosition</code>, <code>_chunkEntityTeam</code> and the center-chunk fields directly, with no <code>G_ChunkingServer.</code> qualifier — they are inherited fields, not another autoload's — and why <code>drop_targeters()</code> lives on <code>A_CoreServers</code> too: its own <code>pre_unregister()</code> and <code>unregister()</code> call it directly, alongside the shared <code>register()</code> and <code>release_removed_ids()</code>.</p>
     </div>
     <p class="hint">Every row opens for a worked example.</p>
 
@@ -621,14 +622,14 @@ _entityTarget[4] = NO_TARGET;  _entityState[4] = SEARCH</div>
       <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
 
       <details class="var">
-        <summary><span class="vn">_entityTargetedGroups</span><span class="vt">PackedInt64Array</span><span class="vh">Groups the entity may go after</span><span class="chev"></span></summary>
+        <summary><span class="vn">_targetingEntityTargetedGroups</span><span class="vt">PackedInt64Array</span><span class="vh">Groups the entity may go after</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>Matched against candidates' <code>_entityGroups</code> in the chunk index, so it uses the same bits. With <code>GROUND = 0b01</code>, <code>AIR = 0b10</code>: a swordsman <code>0b01</code>, an archer <code>0b11</code>, an anti-air tower <code>0b10</code>. 0 means it never finds anything.</p>
+          <p>Matched against candidates' <code>_chunkEntityGroups</code> in the chunk index, so it uses the same bits. With <code>GROUND = 0b01</code>, <code>AIR = 0b10</code>: a swordsman <code>0b01</code>, an archer <code>0b11</code>, an anti-air tower <code>0b10</code>. 0 means it never finds anything.</p>
         </div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityPriorityTargetedGroups</span><span class="vt">PackedInt64Array</span><span class="vh">Groups it goes after before considering the normal ones</span><span class="chev"></span></summary>
+        <summary><span class="vn">_targetingEntityPriorityTargetedGroups</span><span class="vt">PackedInt64Array</span><span class="vh">Groups it goes after before considering the normal ones</span><span class="chev"></span></summary>
         <div class="var-body">
           <p>An archer with targeted <code>0b11</code> and priority <code>0b10</code>: if <em>any</em> AIR enemy is in its square, it takes the best-scoring one of those, even if a ground unit scores far higher. Only with no AIR in reach does it fall back to the best of the rest. Priority groups are searched even if they are missing from the targeted mask.</p>
           <div class="code">priority winner exists  →  take it
@@ -637,12 +638,12 @@ else                     →  take the normal winner (or NO_TARGET)</div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entitySearchChunks · _entityFleeChunks · _entityHitRange</span><span class="vt">Int32 · Int32 · Float32</span><span class="vh">Search reach, flee distance, combat range</span><span class="chev"></span></summary>
+        <summary><span class="vn">_targetingEntitySearchChunks · _targetingEntityFleeChunks · _targetingEntityHitRange</span><span class="vt">Int32 · Int32 · Float32</span><span class="vh">Search reach, flee distance, combat range</span><span class="chev"></span></summary>
         <div class="var-body"><p>Drawn and worked through under <a href="#chunks">Chunk ranges</a>.</p></div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityFlags</span><span class="vt">PackedByteArray</span><span class="vh">Invisible, sees invisible, has focus, ignores focus — four bits</span><span class="chev"></span></summary>
+        <summary><span class="vn">_targetingEntityFlags</span><span class="vt">PackedByteArray</span><span class="vh">Invisible, sees invisible, has focus, ignores focus — four bits</span><span class="chev"></span></summary>
         <div class="var-body">
           <div class="table-wrap">
             <table class="num">
@@ -658,7 +659,7 @@ else                     →  take the normal winner (or NO_TARGET)</div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityState</span><span class="vt">PackedByteArray</span><span class="vh">Current <code>STATE</code>, as last decided</span><span class="chev"></span></summary>
+        <summary><span class="vn">_targetingEntityState</span><span class="vt">PackedByteArray</span><span class="vh">Current <code>STATE</code>, as last decided</span><span class="chev"></span></summary>
         <div class="var-body">
           <div class="arrs"><div class="arr" data-name="STATE" data-v="SEARCH APPROACH COMBAT FLEE" data-idx="0 1 2 3"></div></div>
           <p>Written by <code>update_entity()</code>, and reset to <code>SEARCH</code> right away whenever the entity's target is dropped — so an entity whose target vanished mid-tick already reads <code>SEARCH</code> before its next update. <code>get_state()</code> returns it.</p>
@@ -666,7 +667,7 @@ else                     →  take the normal winner (or NO_TARGET)</div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_entityTarget · _targetersOf · _entityTargeterIndex</span><span class="vt">—</span><span class="vh">The two-way target link</span><span class="chev"></span></summary>
+        <summary><span class="vn">_targetingEntityTarget · _targetersOf · _targetingEntityTargeterIndex</span><span class="vt">—</span><span class="vh">The two-way target link</span><span class="chev"></span></summary>
         <div class="var-body"><p>Drawn with swap-and-pop under <a href="#graph">Target graph</a>.</p></div>
       </details>
     </div>
@@ -685,7 +686,7 @@ else                     →  take the normal winner (or NO_TARGET)</div>
 
       <details class="var">
         <summary><span class="vn">_searchFlags · _searchReach · _searchForwardSign</span><span class="vt">int</span><span class="vh">The searcher's flags, reach in chunks, and march direction</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Copies of <code>_entityFlags</code>, <code>_entitySearchChunks</code> and <code>TEAM_FORWARD_SIGN[team]</code>. In the example: no flags, reach 4, sign +1.</p></div>
+        <div class="var-body"><p>Copies of <code>_targetingEntityFlags</code>, <code>_targetingEntitySearchChunks</code> and <code>TEAM_FORWARD_SIGN[team]</code>. In the example: no flags, reach 4, sign +1.</p></div>
       </details>
 
       <details class="var">
@@ -708,7 +709,7 @@ bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins a
   <section id="api">
     <span class="eyebrow">Reference</span>
     <h2>Public API</h2>
-    <p class="prose">Entities call it directly with the id the chunk index gave them. Everything is set at registration through <code>register(p_id, p_targetingData)</code>; the setters are for changes during a round. Removal needs no call here — the server follows the <code>s_entityPreUnregistered</code>, <code>s_entityUnregistered</code> and <code>s_entityReleased</code> signals of the index.</p>
+    <p class="prose">Entities call it directly with the id registration gave them. Everything is set up front by <code>A_CoreServers.register(p_position, p_radius, p_team, p_groups, p_module, p_hitProfile, p_targetingData)</code> — called by convention as <code>G_ChunkingServer.register(...)</code> — which sets up chunking, hit and targeting together in one call instead of three; a null <code>p_targetingData</code> falls back to a fresh <code>R_TargetingData.new()</code>, which carries no groups, so the entity simply never finds anything. The setters below are for changes during a round. Removal needs no call here either: <code>pre_unregister()</code>, <code>unregister()</code> and <code>release_removed_ids()</code> are inherited from <code>A_CoreServers</code> too, and handle every server's data — targeting's included — directly in one function body, with no signal hand-off needed to reach it.</p>
 
     <div class="fn">
       <div class="fn-head"><span class="fn-name">update_entity</span><span class="tag pub">public</span><span class="tag cost">O(targeters)</span></div>
@@ -739,6 +740,7 @@ bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins a
       <div class="fn-body">
         <div class="code"><span class="k">func</span> drop_targeters(p_id: <span class="t">int</span>) -&gt; <span class="t">void</span></div>
         <p class="fn-note">The manual third way to lose a target. Everyone aiming here goes back to <code>SEARCH</code>.</p>
+        <p class="fn-note">Defined on <code>A_CoreServers</code>, not here — <code>G_TargetingServer</code> inherits it, so it is still called exactly as <code>G_TargetingServer.drop_targeters(p_id)</code>. <code>pre_unregister()</code> and <code>unregister()</code> call it directly too, on top of the runtime call from <code>set_invisible()</code>.</p>
       </div>
     </div>
 
@@ -782,8 +784,8 @@ bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins a
       </details>
 
       <details class="var">
-        <summary><span class="vn">FLAG_INVISIBLE · FLAG_TARGETS_INVISIBLE · FLAG_HAS_FOCUS · FLAG_IGNORES_FOCUS</span><span class="vt">const int</span><span class="vh">Bits 0 … 3 of <code>_entityFlags</code></span><span class="chev"></span></summary>
-        <div class="var-body"><p>1, 2, 4, 8. Table and examples under <a href="#data">_entityFlags</a>.</p></div>
+        <summary><span class="vn">FLAG_INVISIBLE · FLAG_TARGETS_INVISIBLE · FLAG_HAS_FOCUS · FLAG_IGNORES_FOCUS</span><span class="vt">const int</span><span class="vh">Bits 0 … 3 of <code>_targetingEntityFlags</code></span><span class="chev"></span></summary>
+        <div class="var-body"><p>1, 2, 4, 8. Table and examples under <a href="#data">_targetingEntityFlags</a>.</p></div>
       </details>
 
       <details class="var">
@@ -837,11 +839,11 @@ bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins a
     <div class="vlist">
       <div class="vlist-head"><span>Field</span><span>Type · default</span><span>Becomes</span><span></span></div>
       <details class="var">
-        <summary><span class="vn">targetedGroups</span><span class="vt">int · 0</span><span class="vh"><code>_entityTargetedGroups</code></span><span class="chev"></span></summary>
+        <summary><span class="vn">targetedGroups</span><span class="vt">int · 0</span><span class="vh"><code>_targetingEntityTargetedGroups</code></span><span class="chev"></span></summary>
         <div class="var-body"><p>Leave it (and the priority groups) at 0 and the entity never finds a target. Since nothing on the map then counts as something it may go after, <code>get_target_position()</code> sends it back to its own base.</p></div>
       </details>
       <details class="var">
-        <summary><span class="vn">priorityTargetedGroups</span><span class="vt">int · 0</span><span class="vh"><code>_entityPriorityTargetedGroups</code></span><span class="chev"></span></summary>
+        <summary><span class="vn">priorityTargetedGroups</span><span class="vt">int · 0</span><span class="vh"><code>_targetingEntityPriorityTargetedGroups</code></span><span class="chev"></span></summary>
         <div class="var-body"><p>0 means no preference: one pool, best score wins.</p></div>
       </details>
       <details class="var">
@@ -849,8 +851,8 @@ bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins a
         <div class="var-body"><p>See <a href="#chunks">Chunk ranges</a> — note that the default <code>fleeChunks = 2</code> makes an entity flee when targeted from nearby.</p></div>
       </details>
       <details class="var">
-        <summary><span class="vn">isInvisible · canTargetInvisible · hasFocus · isIgnoringFocus</span><span class="vt">bool · false</span><span class="vh">Packed into <code>_entityFlags</code></span><span class="chev"></span></summary>
-        <div class="var-body"><p>One bit each, see <a href="#data">_entityFlags</a>. The <code>set_*</code> functions change them later.</p></div>
+        <summary><span class="vn">isInvisible · canTargetInvisible · hasFocus · isIgnoringFocus</span><span class="vt">bool · false</span><span class="vh">Packed into <code>_targetingEntityFlags</code></span><span class="chev"></span></summary>
+        <div class="var-body"><p>One bit each, see <a href="#data">_targetingEntityFlags</a>. The <code>set_*</code> functions change them later.</p></div>
       </details>
     </div>
   </section>
@@ -865,7 +867,7 @@ bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins a
       <li><strong>Base and march x are fixed per team</strong> in <code>C_TargetingServer</code>. Attackers hold the left of the map, defenders the right.</li>
       <li><strong>Pre-unregistered entities are never targeted</strong>, and neither are invisible ones unless the searcher carries <code>FLAG_TARGETS_INVISIBLE</code>.</li>
       <li><strong><code>get_targeters()</code> returns a snapshot.</strong> Packed arrays copy on write, so editing the result changes nothing on the server and later changes never show up in it.</li>
-      <li><strong>Search only ever visits a candidate through its center chunk.</strong> Reading <code>G_ChunkingServer._entityCenterColumn/_entityCenterRow</code> instead of the coverage rectangle is what makes a multi-chunk entity scored exactly once.</li>
+      <li><strong>Search only ever visits a candidate through its center chunk.</strong> Reading <code>_chunkEntityCenterColumn/_chunkEntityCenterRow</code> instead of the coverage rectangle is what makes a multi-chunk entity scored exactly once.</li>
     </ul>
 
     <p class="group-title">Verification</p>
