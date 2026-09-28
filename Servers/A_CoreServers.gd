@@ -36,20 +36,8 @@ var CHUNK_SIZE: float
 ## Cached C_ChunkingServer.TEAM_COUNT; shared by chunking and the lifecycle container sizing below.
 var TEAM_COUNT: int
 
-## Cached C_ChunkingServer.NO_COLUMN; shared by chunking and the lifecycle.
-var NO_COLUMN: int
-
-## Cached C_ChunkingServer.NO_SLOT; shared by chunking, hit and the lifecycle.
-var NO_SLOT: int
-
-## Cached C_ChunkingServer.NO_ENTITY; shared by chunking, targeting and the lifecycle.
-var NO_ENTITY: int
-
-## Cached C_TargetingServer.NO_TARGET; needed by release_removed_ids() here and by targeting queries.
-var NO_TARGET: int
-
-## Cached C_HitServer.NO_CURVE; needed by the curve slot lifecycle here and by hit queries.
-var NO_CURVE: int
+## Cached C_CoreServers.NO_ID; the empty column, slot, center, target and curve sentinel every server shares.
+var NO_ID: int
 
 #endregion
 
@@ -90,12 +78,12 @@ static var _chunkEntityCenterRow: PackedInt32Array = PackedInt32Array()
 ## Lets set_position() and set_radius() drop out before touching any chunk.
 static var _chunkEntityChunkArea: Array[Vector4i] = []
 
-## First membership slot of every entity, or NO_SLOT while it stands nowhere. [br]
+## First membership slot of every entity, or NO_ID while it stands nowhere. [br]
 ## Walking this chain lists every chunk one entity currently stands in.
 static var _chunkEntitySlotHead: PackedInt32Array = PackedInt32Array()
 
-## First membership slot of every chunk, or NO_SLOT while it is empty. [br]
-## Walk a chunk with: slot = _chunkHead[c]; while slot != NO_SLOT: ... slot = _slotChunkNext[slot]
+## First membership slot of every chunk, or NO_ID while it is empty. [br]
+## Walk a chunk with: slot = _chunkHead[c]; while slot != NO_ID: ... slot = _slotChunkNext[slot]
 static var _chunkHead: PackedInt32Array = PackedInt32Array()
 
 ## Entity every membership slot belongs to; the id a chunk walk reads out.
@@ -119,8 +107,8 @@ static var _slotEntityPrev: PackedInt32Array = PackedInt32Array()
 ## Membership slots that may be handed out again.
 static var _freeSlots: PackedInt32Array = PackedInt32Array()
 
-## First entity whose center sits in a chunk, or NO_ENTITY while none does. [br]
-## Walk it with: id = _centerHead[c]; while id != NO_ENTITY: ... id = _centerNext[id]
+## First entity whose center sits in a chunk, or NO_ID while none does. [br]
+## Walk it with: id = _centerHead[c]; while id != NO_ID: ... id = _centerNext[id]
 static var _centerHead: PackedInt32Array = PackedInt32Array()
 
 ## Next entity inside the center chain of its chunk.
@@ -148,11 +136,11 @@ static var _mapGroups: PackedInt64Array = PackedInt64Array()
 ## Entity count per team over the whole map.
 static var _mapCounts: PackedInt32Array = PackedInt32Array()
 
-## Lowest column a team occupies, or NO_COLUMN while it holds nothing. [br]
+## Lowest column a team occupies, or NO_ID while it holds nothing. [br]
 ## Answers "is anything of that team further left" without walking the columns.
 static var _teamMinColumn: PackedInt32Array = PackedInt32Array()
 
-## Highest column a team occupies, or NO_COLUMN while it holds nothing.
+## Highest column a team occupies, or NO_ID while it holds nothing.
 static var _teamMaxColumn: PackedInt32Array = PackedInt32Array()
 
 ## Ids removed since the last release; moved into the free list by release_removed_ids().
@@ -180,7 +168,7 @@ static var _hitEntityHitGroups: PackedInt64Array = PackedInt64Array()
 ## Bitmask of the hurt groups that end a hit of this entity on the target they match.
 static var _hitEntityStopGroups: PackedInt64Array = PackedInt64Array()
 
-## Curve slot per entity, or NO_CURVE while its radius is constant over the height.
+## Curve slot per entity, or NO_ID while its radius is constant over the height.
 static var _hitEntityCurveIndex: PackedInt32Array = PackedInt32Array()
 
 ## Hit query that last looked at an entity; turns the candidate dedup into one compare.
@@ -258,7 +246,7 @@ static var _targetingEntityPriorityTargetedGroups: PackedInt64Array = PackedInt6
 ## Invisibility and focus flags of an entity, as C_TargetingServer.FLAG bits.
 static var _targetingEntityFlags: PackedByteArray = PackedByteArray()
 
-## Target of an entity, or NO_TARGET.
+## Target of an entity, or NO_ID.
 static var _targetingEntityTarget: PackedInt32Array = PackedInt32Array()
 
 ## Own slot inside the targeter list of the target; makes dropping a target O(1).
@@ -268,7 +256,7 @@ static var _targetingEntityTargeterIndex: PackedInt32Array = PackedInt32Array()
 static var _targetersOf: Array[PackedInt32Array] = []
 
 ## The entity the running search belongs to.
-static var _searchId: int = C_TargetingServer.NO_TARGET
+static var _searchId: int = C_CoreServers.NO_ID
 
 ## Team of the searcher, a C_ChunkingServer.TEAM value.
 static var _searchTeam: int = 0
@@ -294,14 +282,14 @@ static var _searchGroups: int = 0
 ## Groups the searcher goes after before it considers the normal ones.
 static var _searchPriorityGroups: int = 0
 
-## Best priority candidate so far, or NO_TARGET.
-static var _searchBestPriorityId: int = C_TargetingServer.NO_TARGET
+## Best priority candidate so far, or NO_ID.
+static var _searchBestPriorityId: int = C_CoreServers.NO_ID
 
 ## Score of the best priority candidate so far.
 static var _searchBestPriorityScore: float = 0.0
 
-## Best normal candidate so far, or NO_TARGET.
-static var _searchBestNormalId: int = C_TargetingServer.NO_TARGET
+## Best normal candidate so far, or NO_ID.
+static var _searchBestNormalId: int = C_CoreServers.NO_ID
 
 ## Score of the best normal candidate so far.
 static var _searchBestNormalScore: float = 0.0
@@ -310,7 +298,7 @@ static var _searchBestNormalScore: float = 0.0
 
 #region LIFECYCLE_AND_METHODS
 
-## Caches the constants shared by more than one server and allocates the chunk, column and map containers. [br]
+## Caches the constants shared by more than one server, including the C_CoreServers.NO_ID sentinel every server uses, and allocates the chunk, column and map containers. [br]
 ## Runs once per server instance; the resizes it performs are idempotent, so it is harmless that all three run it.
 func _init() -> void:
 	MAP_CHUNK_COLUMNS = C_ChunkingServer.MAP_CHUNK_COLUMNS
@@ -318,11 +306,7 @@ func _init() -> void:
 	CHUNK_COUNT = C_ChunkingServer.CHUNK_COUNT
 	CHUNK_SIZE = C_ChunkingServer.CHUNK_SIZE
 	TEAM_COUNT = C_ChunkingServer.TEAM_COUNT
-	NO_COLUMN = C_ChunkingServer.NO_COLUMN
-	NO_SLOT = C_ChunkingServer.NO_SLOT
-	NO_ENTITY = C_ChunkingServer.NO_ENTITY
-	NO_TARGET = C_TargetingServer.NO_TARGET
-	NO_CURVE = C_HitServer.NO_CURVE
+	NO_ID = C_CoreServers.NO_ID
 
 	var l_chunkSlots: int = TEAM_COUNT * CHUNK_COUNT
 	var l_columnSlots: int = TEAM_COUNT * MAP_CHUNK_COLUMNS
@@ -336,13 +320,13 @@ func _init() -> void:
 
 	_teamMinColumn.resize(TEAM_COUNT)
 	_teamMaxColumn.resize(TEAM_COUNT)
-	_teamMinColumn.fill(NO_COLUMN)
-	_teamMaxColumn.fill(NO_COLUMN)
+	_teamMinColumn.fill(NO_ID)
+	_teamMaxColumn.fill(NO_ID)
 
 	_chunkHead.resize(CHUNK_COUNT)
 	_centerHead.resize(CHUNK_COUNT)
-	_chunkHead.fill(NO_SLOT)
-	_centerHead.fill(NO_ENTITY)
+	_chunkHead.fill(NO_ID)
+	_centerHead.fill(NO_ID)
 
 
 ## Registers a new entity on every server at once; the returned id is what every server addresses it by. [br]
@@ -391,7 +375,7 @@ func unregister(p_id: int) -> void:
 	s_entityUnregistered.emit(p_id)
 
 	var l_slot: int = _chunkEntitySlotHead[p_id]
-	while (l_slot != NO_SLOT):
+	while (l_slot != NO_ID):
 		var l_nextSlot: int = _slotEntityNext[l_slot]
 		_remove_slot_from_chunk(l_slot)
 		l_slot = l_nextSlot
@@ -422,7 +406,7 @@ func release_removed_ids() -> void:
 		_targetingEntityHitRange[l_id] = 0.0
 		_targetingEntityPriorityTargetedGroups[l_id] = 0
 		_targetingEntityFlags[l_id] = 0
-		_targetingEntityTarget[l_id] = NO_TARGET
+		_targetingEntityTarget[l_id] = NO_ID
 		_targetingEntityTargeterIndex[l_id] = 0
 		_targetersOf[l_id] = PackedInt32Array()
 
@@ -451,14 +435,14 @@ func _apply_radius_curve(p_id: int, p_curve: Curve) -> void:
 		_release_curve(p_id)
 		return
 
-	var l_curveIndex: int = _curveSlotOf.get(p_curve, NO_CURVE)
+	var l_curveIndex: int = _curveSlotOf.get(p_curve, NO_ID)
 
-	if (l_curveIndex != NO_CURVE and l_curveIndex == _hitEntityCurveIndex[p_id]):
+	if (l_curveIndex != NO_ID and l_curveIndex == _hitEntityCurveIndex[p_id]):
 		return
 
 	_release_curve(p_id)
 
-	if (l_curveIndex == NO_CURVE):
+	if (l_curveIndex == NO_ID):
 		l_curveIndex = _acquire_curve_slot(p_curve)
 
 	_curveUsers[l_curveIndex] += 1
@@ -486,7 +470,7 @@ func _register_chunking_side(p_id: int, p_position: Vector2, p_radius: float, p_
 		for l_column: int in range(l_area.x, l_area.z + 1):
 			_add_entity_to_chunk(p_id, l_rowOffset + l_column)
 
-	_chunkEntityCenterChunk[p_id] = NO_COLUMN
+	_chunkEntityCenterChunk[p_id] = NO_ID
 	_apply_center_chunk(p_id, p_position)
 
 
@@ -552,7 +536,7 @@ func _build_flags(p_targetingData: R_TargetingData) -> int:
 func _drop_target(p_id: int) -> void:
 	var l_targetId: int = _targetingEntityTarget[p_id]
 
-	if (l_targetId == NO_TARGET):
+	if (l_targetId == NO_ID):
 		return
 
 	var l_targeters: PackedInt32Array = _targetersOf[l_targetId]
@@ -565,7 +549,7 @@ func _drop_target(p_id: int) -> void:
 	_targetersOf[l_targetId] = l_targeters
 	_targetingEntityTargeterIndex[l_movedId] = l_slot
 
-	_targetingEntityTarget[p_id] = NO_TARGET
+	_targetingEntityTarget[p_id] = NO_ID
 	_targetingEntityState[p_id] = C_TargetingServer.STATE.SEARCH
 
 
@@ -586,19 +570,19 @@ func _acquire_id() -> int:
 	_chunkEntityPreUnregistered.append(0)
 	_chunkEntityUnregistering.append(0)
 	_chunkEntityChunkArea.append(Vector4i.ZERO)
-	_chunkEntitySlotHead.append(NO_SLOT)
-	_chunkEntityCenterChunk.append(NO_COLUMN)
+	_chunkEntitySlotHead.append(NO_ID)
+	_chunkEntityCenterChunk.append(NO_ID)
 	_chunkEntityCenterColumn.append(0)
 	_chunkEntityCenterRow.append(0)
-	_centerNext.append(NO_ENTITY)
-	_centerPrev.append(NO_ENTITY)
+	_centerNext.append(NO_ID)
+	_centerPrev.append(NO_ID)
 
 	_hitEntityModules.append(null)
 	_hitEntityYBand.append(Vector2.ZERO)
 	_hitEntityHurtGroups.append(0)
 	_hitEntityHitGroups.append(0)
 	_hitEntityStopGroups.append(0)
-	_hitEntityCurveIndex.append(NO_CURVE)
+	_hitEntityCurveIndex.append(NO_ID)
 	_hitEntityVisitStamp.append(0)
 
 	_targetingEntityTargetedGroups.append(0)
@@ -608,7 +592,7 @@ func _acquire_id() -> int:
 	_targetingEntityHitRange.append(0.0)
 	_targetingEntityPriorityTargetedGroups.append(0)
 	_targetingEntityFlags.append(0)
-	_targetingEntityTarget.append(NO_TARGET)
+	_targetingEntityTarget.append(NO_ID)
 	_targetingEntityTargeterIndex.append(0)
 	_targetersOf.append(PackedInt32Array())
 
@@ -650,7 +634,7 @@ func _apply_chunk_area(p_id: int, p_area: Vector4i) -> void:
 	_chunkEntityChunkArea[p_id] = p_area
 
 	var l_slot: int = _chunkEntitySlotHead[p_id]
-	while (l_slot != NO_SLOT):
+	while (l_slot != NO_ID):
 		var l_nextSlot: int = _slotEntityNext[l_slot]
 
 		if (not _is_chunk_in_area(_slotChunk[l_slot], p_area)):
@@ -698,10 +682,10 @@ func _apply_center_chunk(p_id: int, p_position: Vector2) -> void:
 	_remove_center_from_chunk(p_id)
 
 	var l_head: int = _centerHead[l_chunkId]
-	_centerPrev[p_id] = NO_ENTITY
+	_centerPrev[p_id] = NO_ID
 	_centerNext[p_id] = l_head
 
-	if (l_head != NO_ENTITY):
+	if (l_head != NO_ID):
 		_centerPrev[l_head] = p_id
 
 	_centerHead[l_chunkId] = p_id
@@ -715,21 +699,21 @@ func _apply_center_chunk(p_id: int, p_position: Vector2) -> void:
 func _remove_center_from_chunk(p_id: int) -> void:
 	var l_chunkId: int = _chunkEntityCenterChunk[p_id]
 
-	if (l_chunkId == NO_COLUMN):
+	if (l_chunkId == NO_ID):
 		return
 
 	var l_next: int = _centerNext[p_id]
 	var l_prev: int = _centerPrev[p_id]
 
-	if (l_prev == NO_ENTITY):
+	if (l_prev == NO_ID):
 		_centerHead[l_chunkId] = l_next
 	else:
 		_centerNext[l_prev] = l_next
 
-	if (l_next != NO_ENTITY):
+	if (l_next != NO_ID):
 		_centerPrev[l_next] = l_prev
 
-	_chunkEntityCenterChunk[p_id] = NO_COLUMN
+	_chunkEntityCenterChunk[p_id] = NO_ID
 
 
 ## Adds an entity to a chunk and cascades its groups upwards while they change. [br]
@@ -743,19 +727,19 @@ func _add_entity_to_chunk(p_id: int, p_chunkId: int) -> void:
 	_slotChunk[l_slot] = p_chunkId
 
 	var l_chunkHead: int = _chunkHead[p_chunkId]
-	_slotChunkPrev[l_slot] = NO_SLOT
+	_slotChunkPrev[l_slot] = NO_ID
 	_slotChunkNext[l_slot] = l_chunkHead
 
-	if (l_chunkHead != NO_SLOT):
+	if (l_chunkHead != NO_ID):
 		_slotChunkPrev[l_chunkHead] = l_slot
 
 	_chunkHead[p_chunkId] = l_slot
 
 	var l_entityHead: int = _chunkEntitySlotHead[p_id]
-	_slotEntityPrev[l_slot] = NO_SLOT
+	_slotEntityPrev[l_slot] = NO_ID
 	_slotEntityNext[l_slot] = l_entityHead
 
-	if (l_entityHead != NO_SLOT):
+	if (l_entityHead != NO_ID):
 		_slotEntityPrev[l_entityHead] = l_slot
 
 	_chunkEntitySlotHead[p_id] = l_slot
@@ -786,23 +770,23 @@ func _remove_slot_from_chunk(p_slot: int) -> void:
 	var l_next: int = _slotChunkNext[p_slot]
 	var l_prev: int = _slotChunkPrev[p_slot]
 
-	if (l_prev == NO_SLOT):
+	if (l_prev == NO_ID):
 		_chunkHead[l_chunkId] = l_next
 	else:
 		_slotChunkNext[l_prev] = l_next
 
-	if (l_next != NO_SLOT):
+	if (l_next != NO_ID):
 		_slotChunkPrev[l_next] = l_prev
 
 	l_next = _slotEntityNext[p_slot]
 	l_prev = _slotEntityPrev[p_slot]
 
-	if (l_prev == NO_SLOT):
+	if (l_prev == NO_ID):
 		_chunkEntitySlotHead[l_id] = l_next
 	else:
 		_slotEntityNext[l_prev] = l_next
 
-	if (l_next != NO_SLOT):
+	if (l_next != NO_ID):
 		_slotEntityPrev[l_next] = l_prev
 
 	_freeSlots.append(p_slot)
@@ -827,10 +811,10 @@ func _acquire_slot() -> int:
 
 	_slotEntity.append(0)
 	_slotChunk.append(0)
-	_slotChunkNext.append(NO_SLOT)
-	_slotChunkPrev.append(NO_SLOT)
-	_slotEntityNext.append(NO_SLOT)
-	_slotEntityPrev.append(NO_SLOT)
+	_slotChunkNext.append(NO_ID)
+	_slotChunkPrev.append(NO_ID)
+	_slotEntityNext.append(NO_ID)
+	_slotEntityPrev.append(NO_ID)
 
 	return _slotEntity.size() - 1
 
@@ -858,10 +842,10 @@ func _apply_count_delta(p_chunkId: int, p_team: int, p_delta: int) -> void:
 ## @param p_team The team whose span grows [br]
 ## @param p_columnIndex The column that now holds entities
 func _extend_team_columns(p_team: int, p_columnIndex: int) -> void:
-	if (_teamMinColumn[p_team] == NO_COLUMN or p_columnIndex < _teamMinColumn[p_team]):
+	if (_teamMinColumn[p_team] == NO_ID or p_columnIndex < _teamMinColumn[p_team]):
 		_teamMinColumn[p_team] = p_columnIndex
 
-	if (_teamMaxColumn[p_team] == NO_COLUMN or p_columnIndex > _teamMaxColumn[p_team]):
+	if (_teamMaxColumn[p_team] == NO_ID or p_columnIndex > _teamMaxColumn[p_team]):
 		_teamMaxColumn[p_team] = p_columnIndex
 
 
@@ -871,8 +855,8 @@ func _extend_team_columns(p_team: int, p_columnIndex: int) -> void:
 ## @param p_columnIndex The column that ran empty
 func _shrink_team_columns(p_team: int, p_columnIndex: int) -> void:
 	if (_mapCounts[p_team] == 0):
-		_teamMinColumn[p_team] = NO_COLUMN
-		_teamMaxColumn[p_team] = NO_COLUMN
+		_teamMinColumn[p_team] = NO_ID
+		_teamMaxColumn[p_team] = NO_ID
 		return
 
 	var l_firstColumnIndex: int = p_team * MAP_CHUNK_COLUMNS
@@ -905,7 +889,7 @@ func _rebuild_chunk_groups(p_chunkId: int, p_team: int) -> bool:
 	var l_groups: int = 0
 
 	var l_slot: int = _chunkHead[p_chunkId]
-	while (l_slot != NO_SLOT):
+	while (l_slot != NO_ID):
 		var l_id: int = _slotEntity[l_slot]
 
 		if (_chunkEntityTeam[l_id] == p_team):
@@ -1053,10 +1037,10 @@ func _bake_curve_samples(p_curveIndex: int, p_curve: Curve) -> void:
 func _release_curve(p_id: int) -> void:
 	var l_curveIndex: int = _hitEntityCurveIndex[p_id]
 
-	if (l_curveIndex == NO_CURVE):
+	if (l_curveIndex == NO_ID):
 		return
 
-	_hitEntityCurveIndex[p_id] = NO_CURVE
+	_hitEntityCurveIndex[p_id] = NO_ID
 	_curveUsers[l_curveIndex] -= 1
 
 	if (_curveUsers[l_curveIndex] > 0):

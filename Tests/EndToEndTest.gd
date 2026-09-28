@@ -149,8 +149,8 @@ func _check_targeting_flow() -> void:
 	_expect(G_TargetingServer.get_target_position(l_defender).x == C_ChunkingServer.MAP_SIZE.x, "fleeing heads for the own base")
 
 	G_TargetingServer.set_invisible(l_defender, true)
-	_expect(G_TargetingServer.get_target(l_attacker) == C_TargetingServer.NO_TARGET, "turning invisible drops the targeter")
-	_expect(G_TargetingServer.search_target(l_attacker) == C_TargetingServer.NO_TARGET, "an invisible entity cannot be found")
+	_expect(G_TargetingServer.get_target(l_attacker) == C_CoreServers.NO_ID, "turning invisible drops the targeter")
+	_expect(G_TargetingServer.search_target(l_attacker) == C_CoreServers.NO_ID, "an invisible entity cannot be found")
 
 
 ## Hits land on opponents only, pass the modules the payload and respect the groups.
@@ -194,8 +194,8 @@ func _check_removal_lifecycle() -> void:
 	G_TargetingServer.search_target(l_defender)
 	G_ChunkingServer.pre_unregister(l_defender)
 
-	_expect(G_TargetingServer.get_target(l_attacker) == C_TargetingServer.NO_TARGET, "announcing an entity drops its targeters")
-	_expect(G_TargetingServer.search_target(l_attacker) == C_TargetingServer.NO_TARGET, "an announced entity cannot be found")
+	_expect(G_TargetingServer.get_target(l_attacker) == C_CoreServers.NO_ID, "announcing an entity drops its targeters")
+	_expect(G_TargetingServer.search_target(l_attacker) == C_CoreServers.NO_ID, "an announced entity cannot be found")
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0 and l_defenderModule.hitCount == 0, "an announced entity cannot be hit")
 	_expect(G_TargetingServer.get_target(l_defender) == l_attacker, "an announced entity keeps acting until it is removed")
 
@@ -239,7 +239,7 @@ func _check_id_reuse() -> void:
 	_liveIds.append(l_reused)
 
 	_expect(l_reused == l_defender, "the released id is handed out again")
-	_expect(G_TargetingServer.get_target(l_reused) == C_TargetingServer.NO_TARGET, "a reused id holds no target")
+	_expect(G_TargetingServer.get_target(l_reused) == C_CoreServers.NO_ID, "a reused id holds no target")
 	_expect(G_TargetingServer.get_targeters(l_reused).is_empty(), "a reused id has no targeters")
 	_expect(G_TargetingServer.get_state(l_reused) == C_TargetingServer.STATE.SEARCH, "a reused id starts searching")
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 1 and l_reusedModule.hitCount == 1, "the reused id registers fresh on every server in one call")
@@ -257,6 +257,6 @@ func _check_inert_registration() -> void:
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0, "an entity with a default hit profile carries no hurt groups, so it is never hit")
 	_expect(G_TargetingServer.search_target(l_attacker) == l_obstacle, "it still sits on the chunking index and can be targeted by its chunking groups")
 	_expect(G_TargetingServer.update_entity(l_obstacle) == C_TargetingServer.STATE.SEARCH, "a default targeting profile answers with defaults")
-	_expect(G_TargetingServer.search_target(l_obstacle) == C_TargetingServer.NO_TARGET, "a default targeting profile carries no targeted groups, so it never finds anything")
+	_expect(G_TargetingServer.search_target(l_obstacle) == C_CoreServers.NO_ID, "a default targeting profile carries no targeted groups, so it never finds anything")
 
 #endregion

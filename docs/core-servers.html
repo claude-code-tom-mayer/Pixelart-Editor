@@ -1,0 +1,396 @@
+<title>Core Servers Base</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Literata:ital,opsz,wght@0,18..36,400;0,18..36,500;0,18..36,600;1,18..36,400&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#EEF0EA;
+  --surface:#FFFFFF;
+  --surface-2:#E3E7DD;
+  --ink:#1B2420;
+  --ink-soft:#56635B;
+  --line:#C6CFC0;
+  --accent:#C15A2B;
+  --accent-soft:#EFD9C9;
+  --accent-2:#2B6E6E;
+  --accent-2-soft:#D3E5E3;
+  --code-bg:#1B2420;
+  --code-ink:#E7ECDC;
+  --code-soft:#93A392;
+  --code-accent:#EDA274;
+  --code-accent-2:#7FCFC6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12160F;
+    --surface:#181D16;
+    --surface-2:#20271C;
+    --ink:#E8ECE1;
+    --ink-soft:#A3AFA0;
+    --line:#323C2C;
+    --accent:#E38A56;
+    --accent-soft:#3A2A1D;
+    --accent-2:#63C2B8;
+    --accent-2-soft:#173230;
+    --code-bg:#0B0E08;
+    --code-ink:#DCE6D0;
+    --code-soft:#7C8A78;
+    --code-accent:#F0A878;
+    --code-accent-2:#8AD9CF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12160F;
+  --surface:#181D16;
+  --surface-2:#20271C;
+  --ink:#E8ECE1;
+  --ink-soft:#A3AFA0;
+  --line:#323C2C;
+  --accent:#E38A56;
+  --accent-soft:#3A2A1D;
+  --accent-2:#63C2B8;
+  --accent-2-soft:#173230;
+  --code-bg:#0B0E08;
+  --code-ink:#DCE6D0;
+  --code-soft:#7C8A78;
+  --code-accent:#F0A878;
+  --code-accent-2:#8AD9CF;
+}
+
+*{box-sizing:border-box;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Literata',Georgia,'Times New Roman',serif;
+  font-size:16px;
+  line-height:1.62;
+  padding-inline:20px;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.eyebrow,.nav,.meta dt,.tag,.group-title,figcaption,th,.chip,.strip-label{
+  font-family:'Overpass',system-ui,-apple-system,sans-serif;
+}
+code,.mono,.code,table.vars td:nth-child(1),table.vars td:nth-child(2),.sig{
+  font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;
+}
+h1,h2,h3{text-wrap:balance;margin:0 0 .4em;}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.015em;}
+h2{font-size:1.35rem;font-weight:700;margin-top:0;}
+h3{font-size:1rem;font-weight:700;}
+p{max-width:66ch;margin:0 0 .9em;}
+.prose p:last-child{margin-bottom:0;}
+a{color:var(--accent-2);text-underline-offset:2px;}
+a:focus-visible,.nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+.wrap{max-width:920px;margin-inline:auto;padding-block:28px 80px;}
+
+.nav{
+  position:sticky;top:0;z-index:5;
+  display:flex;gap:2px;overflow-x:auto;
+  background:var(--bg);
+  border-bottom:1px solid var(--line);
+  padding-block:10px;
+  margin-inline:calc(-1 * max(20px, (100vw - 920px)/2));
+  padding-inline:max(20px, (100vw - 920px)/2);
+}
+.nav a{
+  flex:none;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);text-decoration:none;
+  padding:6px 12px;border-radius:99px;border:1px solid transparent;white-space:nowrap;
+}
+.nav a:hover{color:var(--ink);border-color:var(--line);}
+.nav a.active{color:var(--accent);background:var(--accent-soft);border-color:var(--accent-soft);}
+
+.titleblock{
+  margin-top:22px;border:1px solid var(--line);background:var(--surface);
+  border-radius:2px;padding:24px;position:relative;
+}
+.titleblock::before,.titleblock::after{
+  content:"";position:absolute;width:10px;height:10px;border-color:var(--ink-soft);opacity:.5;
+}
+.titleblock::before{top:6px;left:6px;border-top:1px solid;border-left:1px solid;}
+.titleblock::after{top:6px;right:6px;border-top:1px solid;border-right:1px solid;}
+.eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);}
+.titleblock h1{margin-top:.3em;}
+.titleblock .sub{color:var(--ink-soft);font-size:1rem;max-width:58ch;}
+.meta{display:flex;flex-wrap:wrap;gap:22px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--line);}
+.meta div{display:flex;flex-direction:column;gap:2px;}
+.meta dt{font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;}
+.meta dd{margin:0;font-size:.84rem;font-family:'JetBrains Mono',monospace;}
+
+section{margin-top:56px;}
+section > .eyebrow{display:block;margin-bottom:6px;}
+.group-title{
+  font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--ink-soft);margin:30px 0 8px;
+}
+
+.figure-panel{
+  background:var(--surface);border:1px solid var(--line);border-radius:3px;
+  padding:18px 18px 12px;overflow-x:auto;margin-top:16px;
+}
+.figure-panel svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+figcaption{font-size:.8rem;color:var(--ink-soft);margin-top:10px;text-align:center;}
+
+.decisions{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
+.decision{
+  display:grid;grid-template-columns:auto 1fr;gap:14px;
+  padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--accent-2);
+  background:var(--surface);border-radius:2px;
+}
+.decision.warn{border-left-color:var(--accent);}
+.decision .chip{
+  font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--accent-2);white-space:nowrap;padding-top:3px;
+}
+.decision.warn .chip{color:var(--accent);}
+.decision p{margin:0;max-width:62ch;font-size:.94rem;}
+.decision strong{color:var(--ink);}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--surface);}
+table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:560px;}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+th{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);background:var(--surface-2);font-weight:700;}
+tr:last-child td{border-bottom:none;}
+table.vars td:nth-child(1){color:var(--accent-2);white-space:nowrap;}
+table.vars td:nth-child(2){color:var(--ink-soft);white-space:nowrap;}
+table.num td{font-variant-numeric:tabular-nums;}
+table.num td:nth-child(n+2){font-family:'JetBrains Mono',monospace;white-space:nowrap;}
+td .win{color:var(--accent-2);font-weight:700;}
+
+.fn{border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px;overflow:hidden;}
+.fn-head{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
+.fn-name{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.9rem;}
+.tag{font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:99px;}
+.tag.pub{background:var(--accent-2-soft);color:var(--accent-2);}
+.tag.cost{background:var(--surface-2);color:var(--ink-soft);}
+.fn-body{padding:14px 16px 16px;display:grid;gap:12px;}
+.fn-note{margin:0;font-size:.9rem;color:var(--ink-soft);max-width:68ch;}
+.fn-note strong{color:var(--ink);font-weight:600;}
+.fn-note + .fn-note{margin-top:-4px;}
+
+.code{
+  background:var(--code-bg);color:var(--code-ink);border-radius:3px;padding:13px 15px;
+  font-size:.78rem;line-height:1.65;overflow-x:auto;white-space:pre;margin:0;
+}
+.code .c{color:var(--code-soft);}
+.code .k{color:var(--code-accent-2);}
+.code .t{color:var(--code-accent);}
+.code .s{color:#B6C98F;}
+
+.strip{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-top:14px;font-size:.74rem;}
+.strip div{padding:10px 12px;flex:1;text-align:center;font-family:'JetBrains Mono',monospace;}
+.strip .t0{background:var(--accent-2-soft);color:var(--accent-2);border-right:1px solid var(--line);}
+.strip .t1{background:var(--accent-soft);color:var(--accent);}
+.strip-label{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;display:block;opacity:.8;font-weight:700;}
+
+ol.seq{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;}
+ol.seq li{display:grid;grid-template-columns:28px 1fr;gap:14px;padding:12px 0;border-top:1px solid var(--line);}
+ol.seq li:first-child{border-top:none;}
+ol.seq .n{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent-2);}
+ol.seq p{margin:0;font-size:.94rem;}
+ul.rules{margin:14px 0 0;padding-left:1.1em;}
+ul.rules li{margin-bottom:.55em;font-size:.94rem;max-width:66ch;}
+ul.rules li::marker{color:var(--accent);}
+
+.note-inline{
+  border-left:3px solid var(--line);padding:2px 0 2px 14px;margin-top:16px;
+  color:var(--ink-soft);font-size:.9rem;
+}
+/* ---- Collapsible variable reference ---- */
+.vlist{border:1px solid var(--line);border-radius:3px;background:var(--surface);}
+.vlist-head,details.var>summary{
+  display:grid;grid-template-columns:minmax(0,15rem) minmax(0,9.5rem) minmax(0,1fr) 16px;
+  gap:12px;padding:9px 12px;align-items:baseline;
+}
+.vlist-head{
+  font-family:'Overpass',system-ui,sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-soft);background:var(--surface-2);font-weight:700;border-bottom:1px solid var(--line);
+}
+details.var{border-bottom:1px solid var(--line);}
+details.var:last-child{border-bottom:none;}
+details.var>summary{cursor:pointer;list-style:none;font-size:.86rem;}
+details.var>summary::-webkit-details-marker{display:none;}
+details.var>summary:hover{background:var(--surface-2);}
+details.var>summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+details.var[open]>summary{background:var(--surface-2);}
+.vn{font-family:'JetBrains Mono',monospace;color:var(--accent-2);overflow-wrap:anywhere;}
+.vt{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);font-size:.8rem;overflow-wrap:anywhere;}
+.chev{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);text-align:right;}
+.chev::before{content:"+";}
+details[open]>summary .chev::before{content:"\2212";}
+.var-body{padding:14px 16px 18px;border-top:1px dashed var(--line);display:grid;gap:12px;font-size:.92rem;min-width:0;}
+.var-body p{margin:0;max-width:68ch;}
+.var-body ul{margin:0;padding-left:1.1em;max-width:68ch;}
+.var-body li{margin-bottom:.3em;}
+.var-body .code{font-size:.76rem;}
+.lbl{
+  display:block;margin-bottom:2px;font-family:'Overpass',system-ui,sans-serif;font-size:.62rem;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--accent);
+}
+.var-fig{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:12px;overflow-x:auto;}
+.var-fig svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+.var-fig figcaption{margin-top:6px;}
+
+.xall{
+  flex:none;margin-left:auto;font:inherit;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);background:none;border:1px solid var(--line);border-radius:99px;padding:5px 12px;cursor:pointer;
+}
+.xall:hover{color:var(--ink);}
+.xall:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.hint{font-size:.8rem;color:var(--ink-soft);margin:6px 0 0;}
+@media (max-width:640px){
+  .vlist-head{display:none;}
+  details.var>summary{grid-template-columns:minmax(0,1fr) 16px;gap:2px 10px;}
+  details.var>summary>.vn,details.var>summary>.vt,details.var>summary>.vh{grid-column:1;}
+  details.var>summary>.chev{grid-column:2;grid-row:1;}
+}
+@media (max-width:640px){
+  h1{font-size:1.55rem;}
+  .titleblock{padding:18px;}
+  .meta{gap:14px;}
+  section{margin-top:44px;}
+}
+@media (prefers-reduced-motion: no-preference){
+  html{scroll-behavior:smooth;}
+}
+</style>
+
+<div class="nav" id="nav">
+  <a href="#architecture">Architecture</a>
+  <a href="#lifecycle">Lifecycle</a>
+  <a href="#api">API</a>
+  <a href="#constants">Constants</a>
+</div>
+
+<div class="wrap">
+
+  <div class="titleblock">
+    <span class="eyebrow">Implementation reference · Godot 4 / GDScript</span>
+    <h1>Core Servers Base</h1>
+    <p class="sub">The abstract base every autoload server extends: one shared data store, one entity id lifecycle, three query surfaces built on top of it.</p>
+    <div class="meta">
+      <div><dt>Classes</dt><dd>A_CoreServers · C_CoreServers</dd></div>
+      <div><dt>Extended by</dt><dd>G_ChunkingServer · G_HitServer · G_TargetingServer</dd></div>
+      <div><dt>Owns</dt><dd>register() · pre_unregister() · unregister() · release_removed_ids()</dd></div>
+      <div><dt>Documented in full on</dt><dd><a href="chunking-system.html">Chunking</a> · <a href="hit-system.html">Hit</a> · <a href="targeting-system.html">Targeting</a></dd></div>
+      <div><dt>State</dt><dd>tested end to end in Godot 4.7</dd></div>
+    </div>
+  </div>
+
+  <section id="architecture">
+    <span class="eyebrow">Architecture</span>
+    <h2>One base class, three autoloads, one storage</h2>
+    <div class="prose">
+      <p><code>A_CoreServers</code> is not an autoload itself — it is an abstract <code>Node</code> subclass. <code>G_ChunkingServer</code>, <code>G_HitServer</code> and <code>G_TargetingServer</code> each <code>extends A_CoreServers</code> and are the three autoloads the rest of the game actually calls. Every per-entity field chunking, hit and targeting need — <code>_chunkEntityTeam</code>, <code>_hitEntityYBand</code>, <code>_targetingEntityTarget</code>, and everything else — is declared once on <code>A_CoreServers</code> as <code>static var</code>.</p>
+      <p>Godot 4.3+ GDScript shares a <code>static var</code> across every subclass that does not redeclare it. So although there are three separate autoload <em>instances</em>, there is exactly one copy of each array in memory, and any of the three can read or write an entity's chunking, hit or targeting data directly — no cross-autoload call, no signal, no lookup. <code>G_HitServer</code> reading <code>_chunkEntityPosition[id]</code> to resolve a hit is not a layering violation; it is the point of the design.</p>
+      <p>What is <em>not</em> static is the handful of cached scalar constants (<code>MAP_CHUNK_COLUMNS</code>, <code>TEAM_COUNT</code>, <code>NO_ID</code>, and so on) declared as plain <code>var</code> in <a href="#constants">Constants</a> below. Each of the three autoload instances gets its own copy, filled in by <code>_init()</code> once when that instance is created — cheap enough that it not being shared costs nothing, and simple enough not to need the static machinery.</p>
+    </div>
+
+    <div class="figure-panel">
+      <figure style="margin:0;">
+        <svg viewBox="0 0 820 260" role="img" aria-label="A_CoreServers holds the static data and the id lifecycle. G_ChunkingServer, G_HitServer and G_TargetingServer each extend it and add their own query methods, but all three read and write the same underlying arrays." style="color:var(--ink)">
+          <g font-family="JetBrains Mono, monospace" font-size="11" fill="currentColor">
+            <rect x="220" y="20" width="380" height="86" rx="4" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.3"/>
+            <text x="410" y="42" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700" font-size="13" fill="var(--accent)">A_CoreServers</text>
+            <text x="410" y="62" text-anchor="middle" fill="var(--ink-soft)" font-size="10.5">static var _chunkEntity* · _hitEntity* · _targetingEntity*</text>
+            <text x="410" y="78" text-anchor="middle" fill="var(--ink-soft)" font-size="10.5">register() · pre_unregister() · unregister() · release_removed_ids()</text>
+            <text x="410" y="96" text-anchor="middle" fill="var(--ink-soft)" font-size="10.5">one copy of every array, shared by every subclass instance</text>
+
+            <path d="M290,106 L130,160" stroke="var(--ink-soft)" fill="none"/>
+            <path d="M410,106 L410,160" stroke="var(--ink-soft)" fill="none"/>
+            <path d="M530,106 L690,160" stroke="var(--ink-soft)" fill="none"/>
+
+            <rect x="30" y="160" width="200" height="70" rx="4" fill="var(--surface)" stroke="var(--line)"/>
+            <rect x="310" y="160" width="200" height="70" rx="4" fill="var(--surface)" stroke="var(--line)"/>
+            <rect x="590" y="160" width="200" height="70" rx="4" fill="var(--surface)" stroke="var(--line)"/>
+
+            <text x="130" y="182" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700" fill="var(--accent-2)">G_ChunkingServer</text>
+            <text x="130" y="200" text-anchor="middle" fill="var(--ink-soft)" font-size="10">autoload · spatial queries</text>
+            <text x="130" y="216" text-anchor="middle" fill="var(--ink-soft)" font-size="10">set_position() · has_opponent_*</text>
+
+            <text x="410" y="182" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700" fill="var(--accent-2)">G_HitServer</text>
+            <text x="410" y="200" text-anchor="middle" fill="var(--ink-soft)" font-size="10">autoload · area hit resolution</text>
+            <text x="410" y="216" text-anchor="middle" fill="var(--ink-soft)" font-size="10">hit_circle() · hit_directional_rect()</text>
+
+            <text x="690" y="182" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700" fill="var(--accent-2)">G_TargetingServer</text>
+            <text x="690" y="200" text-anchor="middle" fill="var(--ink-soft)" font-size="10">autoload · target selection</text>
+            <text x="690" y="216" text-anchor="middle" fill="var(--ink-soft)" font-size="10">search_target() · update_entity()</text>
+          </g>
+        </svg>
+        <figcaption>Three autoloads, one base, one storage. <code>register()</code> called on any of the three sets up an entity's chunking, hit and targeting side at once.</figcaption>
+      </figure>
+    </div>
+
+    <p class="note-inline">This page documents what lives on <code>A_CoreServers</code> and <code>C_CoreServers</code> only. The data each domain owns and the queries built on top of it are documented on their own pages — <a href="chunking-system.html">Chunking</a>, <a href="hit-system.html">Hit</a>, <a href="targeting-system.html">Targeting</a> — which link back here for anything shared.</p>
+  </section>
+
+  <section id="lifecycle">
+    <span class="eyebrow">Entity ids</span>
+    <h2>One id, four calls, three domains filled in at once</h2>
+    <div class="prose">
+      <p>An entity is never an object — it is an integer id, handed out by <code>register()</code> and reused once <code>release_removed_ids()</code> frees it. Before <code>A_CoreServers</code> existed, chunking, hit and targeting each ran their own id lifecycle and their own free list; an entity that should not take hits still needed a hit-side registration call with empty groups, just to keep the three id spaces in step. Now there is exactly one id space, and one call sets up all three sides.</p>
+    </div>
+
+    <ol class="seq">
+      <li><span class="n">1</span><p><strong><code>register()</code></strong> takes a free id or appends a fresh slot to every array on all three domains, then fills in the chunking side (team, groups, position, radius, chunk membership), the hit side (falling back to a shared default profile when none is given) and the targeting side (falling back to plain zeroed defaults). A null hit profile or targeting data makes the entity inert on that side, not unregistered from it.</p></li>
+      <li><span class="n">2</span><p><strong><code>pre_unregister()</code></strong> marks the id without removing it from anything: it stays fully active and hittable in the grid, but every entity currently targeting it is dropped and told to search again. Typical use is a death animation — the entity should still take up space and keep moving for a moment, but nothing should waste an attack on it.</p></li>
+      <li><span class="n">3</span><p><strong><code>unregister()</code></strong> drops its own target, drops every one of its own targeters, unlinks it from every chunk it covers and from the center chain, and appends the id to the pending-free list. The id is locked from here on — it will not be handed out again yet.</p></li>
+      <li><span class="n">4</span><p><strong><code>release_removed_ids()</code></strong> is called once per frame, after everything that could still reference a removed id has run. It resets every field of every pending id back to default, moves the id onto the reusable free list, and emits <code>s_entityReleased</code>.</p></li>
+    </ol>
+
+    <p class="note-inline">The lock between steps 3 and 4 matters: if an id were reusable the instant <code>unregister()</code> ran, a queued hit resolving later in the same frame could land on a brand-new entity that happens to have been handed the same id. <code>_chunkEntityUnregistering</code> keeps the old id skipped by every query until the frame's cleanup pass runs. The full timeline, drawn with the flag values at each phase, is on the <a href="chunking-system.html#layout">Chunking page</a>.</p>
+  </section>
+
+  <section id="api">
+    <span class="eyebrow">Reference</span>
+    <h2>Public surface of A_CoreServers</h2>
+
+    <p class="group-title">Lifecycle</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Function</th><th>Does</th><th>Cost</th></tr>
+        <tr><td>register(p_position, p_radius, p_team, p_groups, p_module, p_hitProfile, p_targetingData)</td><td>Sets up chunking, hit and targeting for a fresh or reused id</td><td>O(covered chunks)</td></tr>
+        <tr><td>pre_unregister(p_id)</td><td>Marks it; stays fully active and drops its targeters</td><td>O(targeters)</td></tr>
+        <tr><td>unregister(p_id)</td><td>Removes it from every chunk, locks its id, idempotent</td><td>O(covered chunks)</td></tr>
+        <tr><td>release_removed_ids()</td><td>Resets and frees every id pending since the last call</td><td>O(removed)</td></tr>
+        <tr><td>drop_targeters(p_id)</td><td>Makes everyone currently targeting it search again</td><td>O(targeters)</td></tr>
+      </table>
+    </div>
+
+    <p class="group-title">Signals</p>
+    <div class="table-wrap">
+      <table class="vars">
+        <tr><th>Signal</th><th>Emitted when</th></tr>
+        <tr><td>s_entitySlotAppended(p_id)</td><td>A fresh id is handed out for the first time — never on a reused id</td></tr>
+        <tr><td>s_entityPreUnregistered(p_id)</td><td>pre_unregister() marks an entity</td></tr>
+        <tr><td>s_entityUnregistered(p_id)</td><td>unregister() removes it, once per id even if called twice</td></tr>
+        <tr><td>s_entityReleased(p_id)</td><td>release_removed_ids() hands the id back, every field just reset</td></tr>
+      </table>
+    </div>
+    <p class="note-inline">These are for listeners <em>outside</em> the three servers. Chunking, hit and targeting no longer need to hear about each other's registrations — <code>_acquire_id()</code> already appends a slot to all three domains' arrays in one pass.</p>
+  </section>
+
+  <section id="constants">
+    <span class="eyebrow">Reference</span>
+    <h2>C_CoreServers</h2>
+    <div class="prose">
+      <p>A small file on purpose. Chunking, hit and targeting each used to define their own <code>−1</code> "points nowhere" constant — <code>C_ChunkingServer.NO_SLOT</code>, <code>NO_ENTITY</code> and <code>NO_COLUMN</code>, <code>C_TargetingServer.NO_TARGET</code>, <code>C_HitServer.NO_CURVE</code> — five names for the same value, because each domain only ever compared it against its own arrays. <code>C_CoreServers.NO_ID</code> replaces all five.</p>
+    </div>
+
+    <div class="vlist" style="margin-top:16px;">
+      <div class="vlist-head"><span>Name</span><span>Kind</span><span>Meaning</span><span></span></div>
+      <details class="var">
+        <summary><span class="vn">NO_ID</span><span class="vt">const int</span><span class="vh">−1, wherever a slot, chunk, center link, target or curve points nowhere</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Cached onto every autoload instance as <code>NO_ID</code> in <code>A_CoreServers._init()</code>, the same way <code>MAP_CHUNK_COLUMNS</code> and the other shared constants are. Used across every domain:</p>
+          <ul>
+            <li>Chunking — end of a coverage chain (<code>_chunkHead</code>, <code>_chunkEntitySlotHead</code>), end of a center chain (<code>_centerHead</code>), a team's occupied column span when it holds nothing (<code>_teamMinColumn</code>/<code>_teamMaxColumn</code>), and an entity's center chunk before its first placement.</li>
+            <li>Hit — the curve slot of an entity whose radius is constant over its height (<code>_hitEntityCurveIndex</code>).</li>
+            <li>Targeting — the target of an entity that has none (<code>_targetingEntityTarget</code>), and the running search's best-candidate ids before anything has been scored.</li>
+          </ul>
+          <p>One value, one name, everywhere it is compared — a search that used to need to know whether it was comparing a slot, a center link or a target now just compares against <code>NO_ID</code>.</p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+</div>

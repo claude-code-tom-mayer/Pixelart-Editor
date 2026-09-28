@@ -295,7 +295,7 @@ details[open]>summary .chev::before{content:"\2212";}
     <h1>Entity Targeting System</h1>
     <p class="sub">Every entity holds one target and knows where to walk. Targets are lost by event, never re-checked by polling.</p>
     <div class="meta">
-      <div><dt>Classes</dt><dd>A_CoreServers · G_TargetingServer · C_TargetingServer · R_TargetingData</dd></div>
+      <div><dt>Classes</dt><dd><a href="core-servers.html">A_CoreServers</a> · G_TargetingServer · C_TargetingServer · R_TargetingData</dd></div>
       <div><dt>Reads</dt><dd><a href="chunking-system.html">the shared chunk index</a></dd></div>
       <div><dt>States</dt><dd>SEARCH · APPROACH · COMBAT · FLEE</dd></div>
       <div><dt>Link cost</dt><dd>O(1) both ways</dd></div>
@@ -550,7 +550,7 @@ distance 90:  90² = 8100 &gt; 7056  →  APPROACH</div>
       <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
 
       <details class="var">
-        <summary><span class="vn">_targetingEntityTarget</span><span class="vt">PackedInt32Array</span><span class="vh">Who this entity targets, or <code>NO_TARGET</code></span><span class="chev"></span></summary>
+        <summary><span class="vn">_targetingEntityTarget</span><span class="vt">PackedInt32Array</span><span class="vh">Who this entity targets, or <code>NO_ID</code></span><span class="chev"></span></summary>
         <div class="var-body">
           <p>The forward link. Three attackers 4, 9 and 12 all target defender 20:</p>
           <figure class="var-fig" style="margin:0;">
@@ -600,7 +600,7 @@ distance 90:  90² = 8100 &gt; 7056  →  APPROACH</div>
 list[0] = list[last]                <span class="c"># 12 moves into the hole</span>
 list.resize(last)                   <span class="c"># [12, 9]</span>
 _targetingEntityTargeterIndex[12] = 0        <span class="c"># 12 learns its new slot</span>
-_targetingEntityTarget[4] = NO_TARGET;  _targetingEntityState[4] = SEARCH</div>
+_targetingEntityTarget[4] = NO_ID;  _targetingEntityState[4] = SEARCH</div>
         </div>
       </details>
     </div>
@@ -633,7 +633,7 @@ _targetingEntityTarget[4] = NO_TARGET;  _targetingEntityState[4] = SEARCH</div>
         <div class="var-body">
           <p>An archer with targeted <code>0b11</code> and priority <code>0b10</code>: if <em>any</em> AIR enemy is in its square, it takes the best-scoring one of those, even if a ground unit scores far higher. Only with no AIR in reach does it fall back to the best of the rest. Priority groups are searched even if they are missing from the targeted mask.</p>
           <div class="code">priority winner exists  →  take it
-else                     →  take the normal winner (or NO_TARGET)</div>
+else                     →  take the normal winner (or NO_ID)</div>
         </div>
       </details>
 
@@ -723,7 +723,7 @@ bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins a
       <div class="fn-head"><span class="fn-name">search_target</span><span class="tag pub">public</span><span class="tag cost">O(entities in the square)</span></div>
       <div class="fn-body">
         <div class="code"><span class="k">func</span> search_target(p_id: <span class="t">int</span>) -&gt; <span class="t">int</span></div>
-        <p class="fn-note">The scan, triggered by the entity so the work can be spread across ticks. Assigns the winner and returns it, or <code>NO_TARGET</code>.</p>
+        <p class="fn-note">The scan, triggered by the entity so the work can be spread across ticks. Assigns the winner and returns it, or <code>NO_ID</code>.</p>
       </div>
     </div>
 
@@ -749,7 +749,7 @@ bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins a
       <table class="vars">
         <tr><th>Function</th><th>Returns</th><th>Cost</th></tr>
         <tr><td>get_state(p_id)</td><td>Its current <code>STATE</code>, as last set by <code>update_entity()</code></td><td>O(1)</td></tr>
-        <tr><td>get_target(p_id)</td><td>Its target, or <code>NO_TARGET</code></td><td>O(1)</td></tr>
+        <tr><td>get_target(p_id)</td><td>Its target, or <code>NO_ID</code></td><td>O(1)</td></tr>
         <tr><td>get_targeters(p_id)</td><td>A snapshot of who currently targets it</td><td>O(1)</td></tr>
       </table>
     </div>
@@ -789,8 +789,8 @@ bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins a
       </details>
 
       <details class="var">
-        <summary><span class="vn">NO_TARGET</span><span class="vt">const int</span><span class="vh"><code>−1</code>: the target of an entity that has none</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Returned by <code>get_target()</code> and <code>search_target()</code> when there is nothing.</p></div>
+        <summary><span class="vn">NO_ID</span><span class="vt">const int, on <a href="core-servers.html">C_CoreServers</a></span><span class="vh"><code>−1</code>: the target of an entity that has none</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Returned by <code>get_target()</code> and <code>search_target()</code> when there is nothing. Used to be <code>C_TargetingServer.NO_TARGET</code>, its own <code>−1</code>; it is now the same sentinel chunking and hit use for their own "nowhere" slots.</p></div>
       </details>
 
       <details class="var">

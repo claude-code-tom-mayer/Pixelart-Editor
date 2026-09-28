@@ -23,7 +23,7 @@ var UNLIMITED_HITS: int
 
 #region LIFECYCLE_AND_METHODS
 
-## Caches the constants only hit queries need; MAP_CHUNK_COLUMNS, NO_SLOT and NO_CURVE are already inherited.
+## Caches the constants only hit queries need; MAP_CHUNK_COLUMNS and NO_ID are already inherited.
 func _init() -> void:
 	super._init()
 
@@ -441,7 +441,7 @@ func _gather_chunk_candidates(p_emitterId: int, p_minCorner: Vector2, p_maxCorne
 				continue
 
 			var l_slot: int = l_chunkHead[l_chunkId]
-			while (l_slot != NO_SLOT):
+			while (l_slot != NO_ID):
 				var l_id: int = l_slotEntity[l_slot]
 				l_slot = l_slotChunkNext[l_slot]
 
@@ -519,7 +519,7 @@ func _get_effective_radius(p_id: int, p_sampleHeight: float) -> float:
 	var l_radius: float = _chunkEntityRadius[p_id]
 	var l_curveIndex: int = _hitEntityCurveIndex[p_id]
 
-	if (l_curveIndex == NO_CURVE):
+	if (l_curveIndex == NO_ID):
 		return l_radius
 
 	var l_band: Vector2 = _hitEntityYBand[p_id]

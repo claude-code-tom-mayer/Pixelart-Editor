@@ -295,7 +295,7 @@ details[open]>summary .chev::before{content:"\2212";}
     <h1>Entity Hit System</h1>
     <p class="sub">Area hits resolved through the chunk index: a shape narrows to a handful of chunks, and only what is left gets tested.</p>
     <div class="meta">
-      <div><dt>Classes</dt><dd>G_HitServer (extends A_CoreServers) · C_HitServer · R_HitProfile · R_HitData</dd></div>
+      <div><dt>Classes</dt><dd>G_HitServer (extends <a href="core-servers.html">A_CoreServers</a>) · C_HitServer · R_HitProfile · R_HitData</dd></div>
       <div><dt>Reads</dt><dd><a href="chunking-system.html">the shared chunk index</a></dd></div>
       <div><dt>Shapes</dt><dd>circle · directional rect · cake slice</dd></div>
       <div><dt>Public API</dt><dd>6 hits · 5 setters</dd></div>
@@ -690,7 +690,7 @@ l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_hitEntityCurveIndex</span><span class="vt">PackedInt32Array</span><span class="vh">Curve slot per entity, or <code>NO_CURVE</code> for a constant radius</span><span class="chev"></span></summary>
+        <summary><span class="vn">_hitEntityCurveIndex</span><span class="vt">PackedInt32Array</span><span class="vh">Curve slot per entity, or <code>NO_ID</code> for a constant radius</span><span class="chev"></span></summary>
         <div class="var-body">
           <p>Which shared radius profile an entity uses (see the storage below). Ids 0 and 1 are goblins, 2 a troll, 3 an archer without a curve:</p>
           <div class="arrs"><div class="arr" data-name="_hitEntityCurveIndex" data-v="0 0 1 -1" data-hl="2"></div></div>
@@ -1025,8 +1025,8 @@ p_maxHits != 1                         →  preference ignored, one warning per 
       </details>
 
       <details class="var">
-        <summary><span class="vn">NO_CURVE</span><span class="vt">const int</span><span class="vh"><code>−1</code>: curve slot of an entity with a constant radius</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Stored in <code>_hitEntityCurveIndex</code>. Such an entity is a plain cylinder: its full <code>_chunkEntityRadius</code> at every height.</p></div>
+        <summary><span class="vn">NO_ID</span><span class="vt">const int, on <a href="core-servers.html">C_CoreServers</a></span><span class="vh"><code>−1</code>: curve slot of an entity with a constant radius</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Stored in <code>_hitEntityCurveIndex</code>. Such an entity is a plain cylinder: its full <code>_chunkEntityRadius</code> at every height. Used to be <code>C_HitServer.NO_CURVE</code>, its own <code>−1</code>; it is now the same sentinel chunking and targeting use for their own "nowhere" slots.</p></div>
       </details>
 
       <details class="var">

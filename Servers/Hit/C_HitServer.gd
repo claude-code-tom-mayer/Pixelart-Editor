@@ -14,9 +14,6 @@ const UNLIMITED_HITS: int = -1
 ## Passed as the preferred target when the hit has no target to check first.
 const NO_PREFERRED_TARGET: int = -1
 
-## Stored as the curve slot of an entity whose radius is constant over its whole height.
-const NO_CURVE: int = -1
-
 ## Upper end of both curve axes; radius curves run from 0 to 100 in x and y.
 const CURVE_PERCENT_MAX: float = 100.0
 

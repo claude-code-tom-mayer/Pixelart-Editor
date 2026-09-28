@@ -20,9 +20,6 @@ const FLAG_HAS_FOCUS: int = 1 << 2
 ## Set while the entity scores every candidate without the focus bonus.
 const FLAG_IGNORES_FOCUS: int = 1 << 3
 
-## Stored as the target of an entity that has none.
-const NO_TARGET: int = -1
-
 ## How close to its own base x an entity has to be before it stops fleeing.
 const BASE_REACHED_EPSILON: float = 32.0
 

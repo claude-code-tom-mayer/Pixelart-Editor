@@ -55,7 +55,7 @@ func has_opponent_before_column(p_columnIndex: int, p_team: int) -> bool:
 	for l_team: int in TEAM_COUNT:
 		var l_minColumn: int = _teamMinColumn[l_team]
 
-		if (l_team != p_team and l_minColumn != NO_COLUMN and l_minColumn < p_columnIndex):
+		if (l_team != p_team and l_minColumn != NO_ID and l_minColumn < p_columnIndex):
 			return true
 
 	return false
@@ -69,7 +69,7 @@ func has_opponent_after_column(p_columnIndex: int, p_team: int) -> bool:
 	for l_team: int in TEAM_COUNT:
 		var l_maxColumn: int = _teamMaxColumn[l_team]
 
-		if (l_team != p_team and l_maxColumn != NO_COLUMN and l_maxColumn > p_columnIndex):
+		if (l_team != p_team and l_maxColumn != NO_ID and l_maxColumn > p_columnIndex):
 			return true
 
 	return false

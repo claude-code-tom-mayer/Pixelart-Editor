@@ -293,10 +293,10 @@ details[open]>summary .chev::before{content:"\2212";}
     <h1>Entity Chunk System</h1>
     <p class="sub">The spatial index underneath everything else: entities sorted into square chunks, columns and one map aggregate.</p>
     <div class="meta">
-      <div><dt>Classes</dt><dd>G_ChunkingServer · C_ChunkingServer · A_CoreServers</dd></div>
+      <div><dt>Classes</dt><dd>G_ChunkingServer · C_ChunkingServer · A_CoreServers · C_CoreServers</dd></div>
       <div><dt>Grid</dt><dd>square, derived on class load</dd></div>
       <div><dt>Aggregates</dt><dd>chunk · column · map</dd></div>
-      <div><dt>Owns</dt><dd>entity ids and their lifecycle — on A_CoreServers, shared with Hit and Targeting</dd></div>
+      <div><dt>Owns</dt><dd>entity ids and their lifecycle — on <a href="core-servers.html">A_CoreServers</a>, shared with Hit and Targeting</dd></div>
       <div><dt>Built on it</dt><dd><a href="hit-system.html">Hit</a> · <a href="targeting-system.html">Targeting</a></dd></div>
       <div><dt>State</dt><dd>tested end to end in Godot 4.7</dd></div>
     </div>
@@ -674,12 +674,12 @@ slot = _chunkEntitySlotHead[2]     <span class="c"># 5 → chunk 6, then 4 → c
       <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
 
       <details class="var">
-        <summary><span class="vn">_chunkHead</span><span class="vt">PackedInt32Array</span><span class="vh">First slot of each chunk's chain, or <code>NO_SLOT</code></span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkHead</span><span class="vt">PackedInt32Array</span><span class="vh">First slot of each chunk's chain, or <code>NO_ID</code></span><span class="chev"></span></summary>
         <div class="var-body">
           <p>One entry per chunk. The entry to start from when you want everything standing in a chunk; <code>−1</code> means the chunk is empty.</p>
           <div class="arrs"><div class="arr" data-name="_chunkHead" data-v="0 2 3 -1 -1 4 5 -1 -1 -1 -1 -1" data-hl="6"></div></div>
           <div class="code">slot = _chunkHead[c]
-<span class="k">while</span> slot != NO_SLOT:
+<span class="k">while</span> slot != NO_ID:
     id = _slotEntity[slot]      <span class="c"># use id</span>
     slot = _slotChunkNext[slot]</div>
           <p>The hit server walks exactly this loop over the chunks under a hit shape.</p>
@@ -687,7 +687,7 @@ slot = _chunkEntitySlotHead[2]     <span class="c"># 5 → chunk 6, then 4 → c
       </details>
 
       <details class="var">
-        <summary><span class="vn">_chunkEntitySlotHead</span><span class="vt">PackedInt32Array</span><span class="vh">First slot of each entity's own chain, or <code>NO_SLOT</code></span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntitySlotHead</span><span class="vt">PackedInt32Array</span><span class="vh">First slot of each entity's own chain, or <code>NO_ID</code></span><span class="chev"></span></summary>
         <div class="var-body">
           <div class="arrs"><div class="arr" data-name="_chunkEntitySlotHead" data-v="0 1 5" data-hl="2"></div></div>
           <p>One entry per entity id. Following it lists every chunk the entity stands in (for id 2: slots 5, 4, 3, 2 → chunks 6, 5, 2, 1). <code>unregister()</code> and a move that changes the rectangle walk this chain to find the slots to unlink, instead of searching every chunk.</p>
@@ -745,15 +745,15 @@ slot = _chunkEntitySlotHead[2]     <span class="c"># 5 → chunk 6, then 4 → c
       <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
 
       <details class="var">
-        <summary><span class="vn">_chunkEntityCenterChunk</span><span class="vt">PackedInt32Array</span><span class="vh">The chunk an entity's center link sits in, or <code>NO_COLUMN</code></span><span class="chev"></span></summary>
+        <summary><span class="vn">_chunkEntityCenterChunk</span><span class="vt">PackedInt32Array</span><span class="vh">The chunk an entity's center link sits in, or <code>NO_ID</code></span><span class="chev"></span></summary>
         <div class="var-body">
           <div class="arrs"><div class="arr" data-name="_chunkEntityCenterChunk" data-v="0 6 6" data-hl="1 2"></div></div>
-          <p>Compared on every <code>set_position()</code>: if the position still falls into the same chunk, the center chain is not touched. <code>−1</code> (it reuses <code>NO_COLUMN</code> as its "nowhere" value) while the entity is not linked — before its first placement and after it was unregistered.</p>
+          <p>Compared on every <code>set_position()</code>: if the position still falls into the same chunk, the center chain is not touched. <code>−1</code> (the shared <code>NO_ID</code> sentinel) while the entity is not linked — before its first placement and after it was unregistered.</p>
         </div>
       </details>
 
       <details class="var">
-        <summary><span class="vn">_centerHead</span><span class="vt">PackedInt32Array</span><span class="vh">First entity of a chunk's center chain, or <code>NO_ENTITY</code></span><span class="chev"></span></summary>
+        <summary><span class="vn">_centerHead</span><span class="vt">PackedInt32Array</span><span class="vh">First entity of a chunk's center chain, or <code>NO_ID</code></span><span class="chev"></span></summary>
         <div class="var-body">
           <div class="arrs"><div class="arr" data-name="_centerHead" data-v="0 -1 -1 -1 -1 -1 2 -1 -1 -1 -1 -1" data-hl="6"></div></div>
           <p>Unlike the coverage chains, this one needs no slot array: an entity has exactly one center, so the links live directly on the entity id. Chunks 1, 2 and 5 are covered by id 2 but hold no center — a search opening them finds nothing, and so never scores id 2 four times.</p>
@@ -789,7 +789,7 @@ slot = _chunkEntitySlotHead[2]     <span class="c"># 5 → chunk 6, then 4 → c
               </defs>
             </svg>
           </figure>
-          <p>Id 1 was placed first, id 2 was pushed in front of it. Walk it with <code>id = _centerHead[c]; while id != NO_ENTITY: … id = _centerNext[id]</code> — the loop targeting's <code>_scan_chunk()</code> runs.</p>
+          <p>Id 1 was placed first, id 2 was pushed in front of it. Walk it with <code>id = _centerHead[c]; while id != NO_ID: … id = _centerNext[id]</code> — the loop targeting's <code>_scan_chunk()</code> runs.</p>
         </div>
       </details>
     </div>
@@ -878,7 +878,7 @@ slot = _chunkEntitySlotHead[2]     <span class="c"># 5 → chunk 6, then 4 → c
       </details>
 
       <details class="var">
-        <summary><span class="vn">_teamMinColumn · _teamMaxColumn</span><span class="vt">PackedInt32Array</span><span class="vh">Outermost occupied column per team, or <code>NO_COLUMN</code></span><span class="chev"></span></summary>
+        <summary><span class="vn">_teamMinColumn · _teamMaxColumn</span><span class="vt">PackedInt32Array</span><span class="vh">Outermost occupied column per team, or <code>NO_ID</code></span><span class="chev"></span></summary>
         <div class="var-body">
           <div class="arrs">
             <div class="arr" data-name="_teamMinColumn" data-v="0 1" data-idx="ATK DEF" data-hl="1"></div>
@@ -926,7 +926,7 @@ frame 11   register(…)              returns 1                _freeIds = []</di
       </details>
     </div>
 
-    <p class="note-inline">Both membership lists are doubly linked, so unlinking a slot or a center entry is a fixed number of index rewrites — no swap, no search, and no per entity index to keep in step. <code>_teamMinColumn</code>/<code>_teamMaxColumn</code> only rescan when the column that just emptied <em>was</em> the span edge, so the amortised cost stays near zero. The UPPER_CASE members every server sees (<code>MAP_CHUNK_COLUMNS</code>, <code>CHUNK_COUNT</code>, <code>NO_SLOT</code> and the like) are cached copies of the <a href="#constants">C_ChunkingServer</a> values, declared and filled in once on <code>A_CoreServers</code>'s own <code>_init()</code>, per the style guide's caching rule.</p>
+    <p class="note-inline">Both membership lists are doubly linked, so unlinking a slot or a center entry is a fixed number of index rewrites — no swap, no search, and no per entity index to keep in step. <code>_teamMinColumn</code>/<code>_teamMaxColumn</code> only rescan when the column that just emptied <em>was</em> the span edge, so the amortised cost stays near zero. The UPPER_CASE members every server sees (<code>MAP_CHUNK_COLUMNS</code>, <code>CHUNK_COUNT</code> and the like) are cached copies of the <a href="#constants">C_ChunkingServer</a> values, declared and filled in once on <code>A_CoreServers</code>'s own <code>_init()</code>, per the style guide's caching rule. <code>NO_ID</code> is cached the same way but comes from <a href="core-servers.html">C_CoreServers</a> instead — the one "nowhere" sentinel chunking, hit and targeting all share.</p>
   </section>
 
   <section id="fastpath">
@@ -1024,7 +1024,7 @@ frame 11   register(…)              returns 1                _freeIds = []</di
     <span class="eyebrow">Reference</span>
     <h2>C_ChunkingServer</h2>
     <div class="prose">
-      <p>Configuration is four constants; the grid the server actually uses is derived from them once, in <code>_static_init()</code>, on class load. They are <code>static var</code> rather than <code>const</code> because GDScript cannot call <code>ceili()</code> or <code>maxi()</code> in a constant expression.</p>
+      <p>Configuration is four constants; the grid the server actually uses is derived from them once, in <code>_static_init()</code>, on class load. They are <code>static var</code> rather than <code>const</code> because GDScript cannot call <code>ceili()</code> or <code>maxi()</code> in a constant expression. The <code>NO_ID</code> sentinel used throughout this page used to live here as three separate <code>−1</code> constants; it now lives on <a href="core-servers.html">C_CoreServers</a>, shared with hit and targeting.</p>
     </div>
 
     <div class="vlist" style="margin-top:16px;">
@@ -1055,18 +1055,6 @@ frame 11   register(…)              returns 1                _freeIds = []</di
         <summary><span class="vn">TEAM</span><span class="vt">enum</span><span class="vh"><code>ATTACKER</code>, <code>DEFENDER</code> — the values index every per-team container</span><span class="chev"></span></summary>
         <div class="var-body">
           <p><code>ATTACKER = 0</code>, <code>DEFENDER = 1</code>. These numbers are array indices: <code>_mapGroups[TEAM.DEFENDER]</code>, <code>TEAM_BASE_X[team]</code>. A third team needs one more enum entry here — and one more entry in each <code>TEAM_*</code> array of <code>C_TargetingServer</code>, which asserts that the sizes match.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">NO_COLUMN · NO_SLOT · NO_ENTITY</span><span class="vt">const int</span><span class="vh">"Points nowhere" markers, all <code>−1</code></span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>All three are <code>−1</code>; the name says which kind of index is missing, so a comparison reads as what it means:</p>
-          <ul>
-            <li><code>NO_SLOT</code> — end of a coverage chain, or an empty <code>_chunkHead</code> / <code>_chunkEntitySlotHead</code>.</li>
-            <li><code>NO_ENTITY</code> — end of a center chain, or an empty <code>_centerHead</code>.</li>
-            <li><code>NO_COLUMN</code> — <code>_teamMinColumn</code> / <code>_teamMaxColumn</code> of a team holding nothing, and <code>_chunkEntityCenterChunk</code> of an entity that is not linked anywhere.</li>
-          </ul>
         </div>
       </details>
 

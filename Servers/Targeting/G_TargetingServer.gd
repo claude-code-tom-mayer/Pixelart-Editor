@@ -50,7 +50,7 @@ var WEIGHT_MUTUAL: float
 
 #region LIFECYCLE_AND_METHODS
 
-## Caches the constants only targeting queries need; MAP_CHUNK_COLUMNS, MAP_CHUNK_ROWS, NO_ENTITY and NO_TARGET are already inherited.
+## Caches the constants only targeting queries need; MAP_CHUNK_COLUMNS, MAP_CHUNK_ROWS and NO_ID are already inherited.
 func _init() -> void:
 	super._init()
 
@@ -89,11 +89,11 @@ func update_entity(p_id: int) -> int:
 
 ## Scans the search area of an entity and gives it the best scoring target. [br]
 ## @param p_id The entity that searches [br]
-## @return The target it got, or C_TargetingServer.NO_TARGET
+## @return The target it got, or C_CoreServers.NO_ID
 func search_target(p_id: int) -> int:
 	var l_targetId: int = _find_best_target(p_id)
 
-	if (l_targetId != NO_TARGET):
+	if (l_targetId != NO_ID):
 		_assign_target(p_id, l_targetId)
 
 	return l_targetId
@@ -177,7 +177,7 @@ func get_target_position(p_id: int) -> Vector2:
 		return Vector2(TEAM_BASE_X[l_team], l_ownY)
 
 	var l_targetId: int = _targetingEntityTarget[p_id]
-	if (l_targetId != NO_TARGET):
+	if (l_targetId != NO_ID):
 		return _chunkEntityPosition[l_targetId]
 
 	if (_has_enemy_behind(p_id) or not _has_opponent_on_map(p_id)):
@@ -195,7 +195,7 @@ func get_state(p_id: int) -> int:
 
 ## Returns the target of an entity. [br]
 ## @param p_id The entity to read [br]
-## @return Its target, or C_TargetingServer.NO_TARGET
+## @return Its target, or C_CoreServers.NO_ID
 func get_target(p_id: int) -> int:
 	return _targetingEntityTarget[p_id]
 
@@ -226,7 +226,7 @@ func _set_flag(p_id: int, p_flag: int, p_isEnabled: bool) -> void:
 func _evaluate_state(p_id: int) -> int:
 	var l_targetId: int = _targetingEntityTarget[p_id]
 
-	if (l_targetId == NO_TARGET):
+	if (l_targetId == NO_ID):
 		return C_TargetingServer.STATE.SEARCH
 
 	var l_squaredDistance: float = _chunkEntityPosition[p_id].distance_squared_to(_chunkEntityPosition[l_targetId])
@@ -264,14 +264,14 @@ func _is_threatened(p_id: int) -> bool:
 ## Scans the search area ring by ring and keeps the best priority and the best normal candidate. [br]
 ## Stops as soon as no further ring can beat what was already found. [br]
 ## @param p_id The entity that searches [br]
-## @return The best target, or C_TargetingServer.NO_TARGET
+## @return The best target, or C_CoreServers.NO_ID
 func _find_best_target(p_id: int) -> int:
 	var l_priorityGroups: int = _targetingEntityPriorityTargetedGroups[p_id]
 	var l_searchedGroups: int = l_priorityGroups | _targetingEntityTargetedGroups[p_id]
 	var l_team: int = _chunkEntityTeam[p_id]
 
 	if (not G_ChunkingServer.map_has_opponent_group(l_team, l_searchedGroups)):
-		return NO_TARGET
+		return NO_ID
 
 	_searchId = p_id
 	_searchTeam = l_team
@@ -282,9 +282,9 @@ func _find_best_target(p_id: int) -> int:
 	_searchForwardSign = TEAM_FORWARD_SIGN[l_team]
 	_searchGroups = l_searchedGroups
 	_searchPriorityGroups = l_priorityGroups
-	_searchBestPriorityId = NO_TARGET
+	_searchBestPriorityId = NO_ID
 	_searchBestPriorityScore = 0.0
-	_searchBestNormalId = NO_TARGET
+	_searchBestNormalId = NO_ID
 	_searchBestNormalScore = 0.0
 
 	var l_isPriorityPossible: bool = l_priorityGroups != 0 \
@@ -297,7 +297,7 @@ func _find_best_target(p_id: int) -> int:
 
 		_scan_ring(l_ring)
 
-	if (_searchBestPriorityId != NO_TARGET):
+	if (_searchBestPriorityId != NO_ID):
 		return _searchBestPriorityId
 
 	return _searchBestNormalId
@@ -324,13 +324,13 @@ func _get_max_score_bonus() -> float:
 func _is_search_settled(p_ring: int, p_maxBonus: float, p_isPriorityPossible: bool) -> bool:
 	var l_bound: float = (_searchReach - p_ring) * WEIGHT_CLOSENESS + p_maxBonus
 
-	if (_searchBestPriorityId != NO_TARGET):
+	if (_searchBestPriorityId != NO_ID):
 		return _searchBestPriorityScore >= l_bound
 
 	if (p_isPriorityPossible):
 		return false
 
-	return _searchBestNormalId != NO_TARGET and _searchBestNormalScore >= l_bound
+	return _searchBestNormalId != NO_ID and _searchBestNormalScore >= l_bound
 
 
 ## Scans every chunk at exactly one ring distance around the searcher. [br]
@@ -369,7 +369,7 @@ func _scan_chunk(p_chunkId: int) -> void:
 		return
 
 	var l_candidateId: int = _centerHead[p_chunkId]
-	while (l_candidateId != NO_ENTITY):
+	while (l_candidateId != NO_ID):
 		var l_nextId: int = _centerNext[l_candidateId]
 
 		if (not _can_target(l_candidateId)):
@@ -394,10 +394,10 @@ func _scan_chunk(p_chunkId: int) -> void:
 ## @param p_score Score of the candidate [br]
 ## @param p_candidateId The candidate itself [br]
 ## @param p_bestScore Score of the best candidate so far [br]
-## @param p_bestId The best candidate so far, or C_TargetingServer.NO_TARGET [br]
+## @param p_bestId The best candidate so far, or C_CoreServers.NO_ID [br]
 ## @return true if the candidate takes the lead
 func _is_better(p_score: float, p_candidateId: int, p_bestScore: float, p_bestId: int) -> bool:
-	if (p_bestId == NO_TARGET or p_score > p_bestScore):
+	if (p_bestId == NO_ID or p_score > p_bestScore):
 		return true
 
 	return p_score == p_bestScore and p_candidateId < p_bestId
