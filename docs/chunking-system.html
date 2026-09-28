@@ -926,7 +926,7 @@ frame 11   register(…)              returns 1                _freeIds = []</di
       </details>
     </div>
 
-    <p class="note-inline">Both membership lists are doubly linked, so unlinking a slot or a center entry is a fixed number of index rewrites — no swap, no search, and no per entity index to keep in step. <code>_teamMinColumn</code>/<code>_teamMaxColumn</code> only rescan when the column that just emptied <em>was</em> the span edge, so the amortised cost stays near zero. The UPPER_CASE members at the top of <code>G_ChunkingServer</code> are cached copies of the <a href="#constants">C_ChunkingServer</a> values, per the style guide's caching rule.</p>
+    <p class="note-inline">Both membership lists are doubly linked, so unlinking a slot or a center entry is a fixed number of index rewrites — no swap, no search, and no per entity index to keep in step. <code>_teamMinColumn</code>/<code>_teamMaxColumn</code> only rescan when the column that just emptied <em>was</em> the span edge, so the amortised cost stays near zero. The UPPER_CASE members every server sees (<code>MAP_CHUNK_COLUMNS</code>, <code>CHUNK_COUNT</code>, <code>NO_SLOT</code> and the like) are cached copies of the <a href="#constants">C_ChunkingServer</a> values, declared and filled in once on <code>A_CoreServers</code>'s own <code>_init()</code>, per the style guide's caching rule.</p>
   </section>
 
   <section id="fastpath">
