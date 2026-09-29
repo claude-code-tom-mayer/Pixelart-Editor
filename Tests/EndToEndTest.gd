@@ -23,6 +23,19 @@ class ReentrantModuleManager extends M_ModuleManager:
 			G_HitServer.hit_circle(ownerId, A_CoreServer._entityPosition[ownerId], 300.0, Vector2(0.0, 64.0),
 				C_HitServer.UNLIMITED_HITS, C_CoreServer.NO_ID, counterHitData, false)
 
+## Module manager that announces another entity for removal while it takes a hit, like a death explosion would.
+class RemovingModuleManager extends M_ModuleManager:
+	## The entity announced for removal on the first hit.
+	var victimId: int = C_CoreServer.NO_ID
+
+	## Takes the hit, then announces the victim for removal once. [br]
+	## @param p_hitData The payload of the hit that connected
+	func hit(p_hitData: R_HitData) -> void:
+		super.hit(p_hitData)
+
+		if (hitCount == 1):
+			A_CoreServer.pre_unregister(victimId)
+
 ## Every id the running check registered; removed again before the next check starts.
 var _liveIds: PackedInt32Array = PackedInt32Array()
 
@@ -67,6 +80,7 @@ func _ready() -> void:
 	_check_targeter_chain()
 	_check_ordered_hits()
 	_check_reentrant_hit()
+	_check_removal_during_dispatch()
 
 	print("")
 	print("%d of %d checks passed" % [_checkCount - _failureCount, _checkCount])
@@ -94,8 +108,8 @@ func _spawn(p_position: Vector2, p_team: C_CoreServer.TEAM, p_moduleManager: M_M
 	return l_id
 
 
-## Registers one entity with every domain defaulted, so it carries no hit or targeting groups. [br]
-## The new architecture always sets up every server; an entity stays inert by getting zeroed groups, not by skipping a call. [br]
+## Registers one entity without hit profile and targeting data, so it carries no hit or targeting groups. [br]
+## It still stands on the chunk index, so it can be targeted: the entity is inert. [br]
 ## @param p_position Start position [br]
 ## @param p_team Team, a C_CoreServer.TEAM value [br]
 ## @return The id the entity uses on every server
@@ -128,7 +142,7 @@ func _expect(p_isMet: bool, p_description: String) -> void:
 	print("FAIL: " + p_description)
 
 
-## Proves the new architecture: the three autoload instances are separate objects that share one data pool.
+## The three autoload instances are separate objects, yet they share one pool of static data.
 func _check_shared_static_data() -> void:
 	print("shared static data")
 	_clear_world()
@@ -184,12 +198,12 @@ func _check_hits() -> void:
 	var l_defenderModule: M_ModuleManager = M_ModuleManager.new()
 	var l_attacker: int = _spawn(Vector2(1000.0, 2000.0), C_CoreServer.TEAM.ATTACKER, l_attackerModule)
 	var l_defender: int = _spawn(Vector2(1040.0, 2000.0), C_CoreServer.TEAM.DEFENDER, l_defenderModule)
-	var l_ally: int = _spawn(Vector2(1020.0, 2000.0), C_CoreServer.TEAM.ATTACKER, M_ModuleManager.new())
+	_spawn(Vector2(1020.0, 2000.0), C_CoreServer.TEAM.ATTACKER, l_allyModule)
 
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 1, "a hit lands on the one opponent in reach")
 	_expect(l_defenderModule.hitCount == 1 and l_defenderModule.lastHitData == _hitData, "the module of the target gets the payload")
 	_expect(l_attackerModule.hitCount == 0, "a hit never lands on its emitter")
-	_expect(l_ally != l_attacker, "an ally was placed right beside the emitter")
+	_expect(l_allyModule.hitCount == 0, "a hit never lands on an ally right beside the emitter")
 
 	G_ChunkingServer.set_position(l_defender, Vector2(1500.0, 2000.0))
 	_expect(_hit_at(l_attacker, Vector2(1000.0, 2000.0)) == 0, "a target moved out of reach is not hit")
@@ -282,7 +296,6 @@ func _check_inert_registration() -> void:
 	_expect(G_TargetingServer.acquire_target(l_obstacle) == C_CoreServer.NO_ID, "a default targeting profile carries no targeted groups, so it never finds anything")
 
 
-
 ## Several targeters on one target: dropping one keeps the others, invisibility spares those that see it.
 func _check_targeter_chain() -> void:
 	print("targeter chain")
@@ -320,7 +333,7 @@ func _check_ordered_hits() -> void:
 	_clear_world()
 
 	var l_attacker: int = _spawn(Vector2(1000.0, 2000.0), C_CoreServer.TEAM.ATTACKER, M_ModuleManager.new())
-	var l_near: int = _spawn(Vector2(1100.0, 2000.0), C_CoreServer.TEAM.DEFENDER, M_ModuleManager.new())
+	_spawn(Vector2(1100.0, 2000.0), C_CoreServer.TEAM.DEFENDER, M_ModuleManager.new())
 	var l_middle: int = _spawn(Vector2(1200.0, 2000.0), C_CoreServer.TEAM.DEFENDER, M_ModuleManager.new())
 	var l_far: int = _spawn(Vector2(1300.0, 2000.0), C_CoreServer.TEAM.DEFENDER, M_ModuleManager.new())
 
@@ -341,7 +354,6 @@ func _check_ordered_hits() -> void:
 	l_impacts = G_HitServer.hit_sector(l_attacker, Vector2(1000.0, 2000.0), Vector2.RIGHT, 400.0, PI * 0.5,
 		Vector2(0.0, 64.0), 1, l_far, _hitData, C_HitServer.SECTOR_ORDER.NONE)
 	_expect(l_impacts.size() == 1 and is_equal_approx(l_impacts[0].x, 1300.0 - 24.0), "a preferred target is checked first")
-	_expect(l_near != l_far, "the near target was placed in front of the far one")
 
 
 ## A module manager that fires a hit while taking one leaves the running hit intact.
@@ -370,5 +382,24 @@ func _check_reentrant_hit() -> void:
 	_expect(l_secondModule.hitCount == 1 and l_secondModule.lastHitData == _hitData, "the target after the reflector still gets the original payload")
 	_expect(l_attackerModule.hitCount == 1 and l_attackerModule.lastHitData == l_counterData, "the attacker only takes the counter hit, never its own")
 	_expect(l_allyModule.hitCount == 1 and l_allyModule.lastHitData == l_counterData, "the counter hit lands on both attackers")
+
+
+## A target announced for removal by an earlier target of the same hit is neither hit nor reported.
+func _check_removal_during_dispatch() -> void:
+	print("removal during dispatch")
+	_clear_world()
+
+	var l_exploder: RemovingModuleManager = RemovingModuleManager.new()
+	var l_farModule: M_ModuleManager = M_ModuleManager.new()
+
+	var l_attacker: int = _spawn(Vector2(1000.0, 2000.0), C_CoreServer.TEAM.ATTACKER, M_ModuleManager.new())
+	_spawn(Vector2(1040.0, 2000.0), C_CoreServer.TEAM.DEFENDER, l_exploder)
+	l_exploder.victimId = _spawn(Vector2(1080.0, 2000.0), C_CoreServer.TEAM.DEFENDER, l_farModule)
+
+	var l_impacts: PackedVector3Array = G_HitServer.hit_circle(l_attacker, Vector2(1000.0, 2000.0), 200.0, Vector2(0.0, 64.0),
+		C_HitServer.UNLIMITED_HITS, C_CoreServer.NO_ID, _hitData, true)
+
+	_expect(l_exploder.hitCount == 1 and l_farModule.hitCount == 0, "the target removed mid dispatch is not hit")
+	_expect(l_impacts.size() == 1, "only the impact that really landed is reported")
 
 #endregion

@@ -120,11 +120,11 @@ static var _slotEntityPrev: PackedInt32Array = PackedInt32Array()
 ## Membership slots that may be handed out again.
 static var _freeSlots: PackedInt32Array = PackedInt32Array()
 
-## Membership count per team and chunk, at team * CHUNK_COUNT + chunk.
+## Membership count per team and chunk, at team * CHUNK_COUNT + chunk; equals the entities of the team standing there.
 static var _teamChunkMembershipCount: PackedInt32Array = PackedInt32Array()
 
 ## Membership count per team and column, at team * CHUNK_COLUMNS + column. [br]
-## An entity counts once per chunk it stands in, so a hit reaching only its edge still finds it.
+## Counts memberships, not entities: an entity standing in three chunks of the column counts three times.
 static var _teamColumnMembershipCount: PackedInt32Array = PackedInt32Array()
 
 ## Entity group mask per team and chunk, at team * CHUNK_COUNT + chunk.
@@ -390,8 +390,7 @@ static func _register_chunk_side(p_id: int, p_position: Vector2, p_radius: float
 	_entityPosition[p_id] = p_position
 	_entityRadius[p_id] = p_radius
 
-	var l_extent: Vector2 = Vector2(p_radius, p_radius)
-	_move_to_chunk_area(p_id, _compute_chunk_area(p_position - l_extent, p_position + l_extent))
+	_move_to_chunk_area(p_id, _compute_circle_chunk_area(p_position, p_radius))
 	_update_center_chunk(p_id, p_position)
 
 
@@ -583,6 +582,15 @@ static func _compute_chunk_area(p_minCorner: Vector2, p_maxCorner: Vector2) -> V
 		clampi(floori(p_minCorner.y / CHUNK_SIZE), 0, l_lastRow),
 		clampi(floori(p_maxCorner.x / CHUNK_SIZE), 0, l_lastColumn),
 		clampi(floori(p_maxCorner.y / CHUNK_SIZE), 0, l_lastRow))
+
+
+## Calculates the chunk area the bounding square of a circle covers, clamped to the map. [br]
+## @param p_center Center of the circle [br]
+## @param p_radius Radius of the circle [br]
+## @return The area as (minColumn, minRow, maxColumn, maxRow)
+static func _compute_circle_chunk_area(p_center: Vector2, p_radius: float) -> Vector4i:
+	var l_extent: Vector2 = Vector2(p_radius, p_radius)
+	return _compute_chunk_area(p_center - l_extent, p_center + l_extent)
 
 
 ## Moves an entity onto a new chunk area, touching only the chunks it entered or left. [br]

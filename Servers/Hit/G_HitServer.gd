@@ -110,8 +110,7 @@ func hit_circle(p_emitterId: int, p_origin: Vector2, p_radius: float, p_heightBa
 		if (not l_preferredImpacts.is_empty()):
 			return l_preferredImpacts
 
-	var l_extent: Vector2 = Vector2(p_radius, p_radius)
-	_gather_chunk_candidates(p_emitterId, p_origin - l_extent, p_origin + l_extent, p_heightBand)
+	_gather_chunk_candidates(p_emitterId, _compute_circle_chunk_area(p_origin, p_radius), p_heightBand)
 
 	return _resolve_circle_hit(p_emitterId, p_origin, p_radius, p_heightBand, p_maxHits, p_hitData, p_isOrdered)
 
@@ -147,10 +146,11 @@ func hit_directional_rect(p_emitterId: int, p_origin: Vector2, p_direction: Vect
 	var l_frontCornerA: Vector2 = l_backCornerA + l_forward * p_length
 	var l_frontCornerB: Vector2 = l_backCornerB + l_forward * p_length
 
-	_gather_chunk_candidates(p_emitterId,
+	var l_area: Vector4i = _compute_chunk_area(
 		l_backCornerA.min(l_backCornerB).min(l_frontCornerA).min(l_frontCornerB),
-		l_backCornerA.max(l_backCornerB).max(l_frontCornerA).max(l_frontCornerB),
-		p_heightBand)
+		l_backCornerA.max(l_backCornerB).max(l_frontCornerA).max(l_frontCornerB))
+
+	_gather_chunk_candidates(p_emitterId, l_area, p_heightBand)
 
 	return _resolve_directional_rect_hit(p_emitterId, p_origin, l_forward, p_length, p_width,
 		p_heightBand, p_maxHits, p_hitData, p_order)
@@ -181,8 +181,7 @@ func hit_sector(p_emitterId: int, p_origin: Vector2, p_direction: Vector2, p_rad
 		if (not l_preferredImpacts.is_empty()):
 			return l_preferredImpacts
 
-	var l_extent: Vector2 = Vector2(p_radius, p_radius)
-	_gather_chunk_candidates(p_emitterId, p_origin - l_extent, p_origin + l_extent, p_heightBand)
+	_gather_chunk_candidates(p_emitterId, _compute_circle_chunk_area(p_origin, p_radius), p_heightBand)
 
 	return _resolve_sector_hit(p_emitterId, p_origin, l_forward, p_radius, p_openingAngle,
 		p_heightBand, p_maxHits, p_hitData, p_order)
@@ -327,32 +326,29 @@ func _accept_target(p_id: int, p_sortKey: float, p_impact: Vector3) -> void:
 	_acceptedCount += 1
 
 
-## Collects every entity of another team that a hit inside these bounds could reach. [br]
+## Collects every entity of another team standing in a chunk area that a hit could reach. [br]
 ## Skips columns and chunks without opponents, and stamps every entity so each is collected once. [br]
 ## @param p_emitterId The entity the hit comes from [br]
-## @param p_minCorner Upper left corner of the shape bounds [br]
-## @param p_maxCorner Lower right corner of the shape bounds [br]
+## @param p_area Chunks under the bounds of the hit shape, as (minColumn, minRow, maxColumn, maxRow) [br]
 ## @param p_heightBand Vertical extent of the hit
-func _gather_chunk_candidates(p_emitterId: int, p_minCorner: Vector2, p_maxCorner: Vector2,
-		p_heightBand: Vector2) -> void:
+func _gather_chunk_candidates(p_emitterId: int, p_area: Vector4i, p_heightBand: Vector2) -> void:
 	_candidateCount = 0
 	_visitStamp += 1
 
 	if (_entityVisitStamp.size() < _entityTeam.size()):
 		_entityVisitStamp.resize(_entityTeam.size())
 
-	var l_area: Vector4i = _compute_chunk_area(p_minCorner, p_maxCorner)
 	var l_emitterTeam: int = _entityTeam[p_emitterId]
 	var l_visitStamp: int = _visitStamp
 	var l_chunkFirstSlot: PackedInt32Array = _chunkFirstSlot
 	var l_slotEntity: PackedInt32Array = _slotEntity
 	var l_slotChunkNext: PackedInt32Array = _slotChunkNext
 
-	for l_column: int in range(l_area.x, l_area.z + 1):
+	for l_column: int in range(p_area.x, p_area.z + 1):
 		if (not _column_has_opponent(l_column, l_emitterTeam)):
 			continue
 
-		for l_row: int in range(l_area.y, l_area.w + 1):
+		for l_row: int in range(p_area.y, p_area.w + 1):
 			var l_chunkId: int = l_row * CHUNK_COLUMNS + l_column
 
 			if (not _chunk_has_opponent(l_chunkId, l_emitterTeam)):
@@ -542,7 +538,7 @@ func _get_rect_sort_key(p_order: C_HitServer.RECT_ORDER, p_along: float, p_acros
 
 
 ## Orders the accepted targets, cuts them at the stop groups and the hit limit, and hands them to their module managers. [br]
-## Dispatches from a snapshot and skips targets a module manager announced for removal meanwhile. [br]
+## Dispatches from a snapshot, so a module manager may fire hits meanwhile; targets it removed are skipped. [br]
 ## @param p_emitterId The entity the hit comes from [br]
 ## @param p_maxHits Upper number of hits, or C_HitServer.UNLIMITED_HITS [br]
 ## @param p_hitData Payload handed to every entity that is hit [br]
@@ -558,16 +554,16 @@ func _dispatch_hits(p_emitterId: int, p_maxHits: int, p_hitData: R_HitData,
 	if (l_limit <= 0):
 		return PackedVector3Array()
 
-	var l_impacts: PackedVector3Array = PackedVector3Array()
-	var l_landedIds: PackedInt32Array = PackedInt32Array()
+	var l_chosenImpacts: PackedVector3Array = PackedVector3Array()
+	var l_chosenIds: PackedInt32Array = PackedInt32Array()
 
 	if (not p_isOrdered):
-		l_impacts = _acceptedImpacts.slice(0, l_limit)
-		l_landedIds = _acceptedIds.slice(0, l_limit)
+		l_chosenImpacts = _acceptedImpacts.slice(0, l_limit)
+		l_chosenIds = _acceptedIds.slice(0, l_limit)
 	elif (l_limit == 1):
 		var l_firstIndex: int = _find_lowest_sort_key_index()
-		l_impacts.append(_acceptedImpacts[l_firstIndex])
-		l_landedIds.append(_acceptedIds[l_firstIndex])
+		l_chosenImpacts.append(_acceptedImpacts[l_firstIndex])
+		l_chosenIds.append(_acceptedIds[l_firstIndex])
 	else:
 		_sort_accepted_by_key()
 
@@ -577,22 +573,28 @@ func _dispatch_hits(p_emitterId: int, p_maxHits: int, p_hitData: R_HitData,
 			var l_acceptedIndex: int = _acceptedOrder[l_rank]
 			var l_targetId: int = _acceptedIds[l_acceptedIndex]
 
-			l_impacts.append(_acceptedImpacts[l_acceptedIndex])
-			l_landedIds.append(l_targetId)
+			l_chosenImpacts.append(_acceptedImpacts[l_acceptedIndex])
+			l_chosenIds.append(l_targetId)
 
 			if ((l_stopGroups & _entityHurtGroups[l_targetId]) != 0):
 				break
 
-	for l_targetId: int in l_landedIds:
+	var l_landedImpacts: PackedVector3Array = PackedVector3Array()
+
+	for l_rank: int in l_chosenIds.size():
+		var l_targetId: int = l_chosenIds[l_rank]
+
 		if (_isEntityPendingRemoval[l_targetId] == 1 or _isEntityRemoved[l_targetId] == 1):
 			continue
+
+		l_landedImpacts.append(l_chosenImpacts[l_rank])
 
 		var l_moduleManager: M_ModuleManager = _entityModuleManager[l_targetId]
 
 		if (l_moduleManager != null):
 			l_moduleManager.hit(p_hitData)
 
-	return l_impacts
+	return l_landedImpacts
 
 
 ## Finds the accepted target with the lowest sort key, for ordered hits that land exactly once. [br]

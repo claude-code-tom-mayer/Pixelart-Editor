@@ -216,8 +216,8 @@ func set_priority_targeted_groups(p_id: int, p_priorityTargetedGroups: int) -> v
 	_entityPriorityTargetedGroups[p_id] = p_priorityTargetedGroups
 
 
-## Returns where the entity should move this tick. [br]
-## Fleeing and marching aim at a fixed x of the map, approaching and combat aim at the target itself. [br]
+## Returns where the entity should move this tick: the target, else the own base or the march x. [br]
+## It retreats while fleeing, while an opponent got behind it, or while nothing targetable is left. [br]
 ## @param p_id The entity to move [br]
 ## @return The position the movement should head for
 func get_move_destination(p_id: int) -> Vector2:
