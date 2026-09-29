@@ -133,9 +133,13 @@ func update_state(p_id: int) -> C_TargetingServer.STATE:
 
 
 ## Searches the surroundings of an entity and makes the best scoring candidate its target. [br]
+## A removed entity is ignored with a warning, so it cannot be linked into a targeter chain again. [br]
 ## @param p_id The entity that searches [br]
 ## @return The target it got, or C_CoreServer.NO_ID
 func acquire_target(p_id: int) -> int:
+	if (_reject_removed_id(p_id, "G_TargetingServer.acquire_target")):
+		return NO_ID
+
 	var l_targetId: int = _find_best_target(p_id)
 
 	if (l_targetId != NO_ID):
@@ -198,6 +202,13 @@ func set_combat_range(p_id: int, p_combatRange: float) -> void:
 	_entityCombatRange[p_id] = p_combatRange
 
 
+## Sets the entity groups the entity may go after. [br]
+## @param p_id The entity to change [br]
+## @param p_targetedGroups Bitmask of the targeted entity groups
+func set_targeted_groups(p_id: int, p_targetedGroups: int) -> void:
+	_entityTargetedGroups[p_id] = p_targetedGroups
+
+
 ## Sets the entity groups the entity goes after before it considers the normal ones. [br]
 ## @param p_id The entity to change [br]
 ## @param p_priorityTargetedGroups Bitmask of the preferred entity groups
@@ -219,7 +230,7 @@ func get_move_destination(p_id: int) -> Vector2:
 	var l_team: int = _entityTeam[p_id]
 	var l_ownY: float = _entityPosition[p_id].y
 
-	if (l_isFleeing or _has_opponent_behind(p_id) or not _has_opponent_on_map(p_id)):
+	if (l_isFleeing or _has_opponent_behind(p_id) or not _has_targetable_opponent_on_map(p_id)):
 		return Vector2(TEAM_BASE_X[l_team], l_ownY)
 
 	return Vector2(TEAM_MARCH_X[l_team], l_ownY)
@@ -537,7 +548,7 @@ func _has_opponent_behind(p_id: int) -> bool:
 ## Checks whether anything the entity may go after exists anywhere on the map. [br]
 ## @param p_id The entity that asks [br]
 ## @return true if a search could find something
-func _has_opponent_on_map(p_id: int) -> bool:
+func _has_targetable_opponent_on_map(p_id: int) -> bool:
 	return _map_has_opponent_group(_entityTeam[p_id], _get_searched_groups(p_id))
 
 

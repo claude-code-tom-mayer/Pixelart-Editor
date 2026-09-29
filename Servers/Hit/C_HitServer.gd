@@ -17,14 +17,11 @@ enum DAMAGE_TYPE { NORMAL }
 ## Passed as the hit limit to let a hit connect with every valid target.
 const UNLIMITED_HITS: int = -1
 
-## Upper end of both radius curve axes; radius curves run from 0 to 100 in x and y.
-const CURVE_PERCENT_MAX: float = 100.0
-
 ## Smallest capacity a reused hit buffer grows to, so short hits stop reallocating early.
 const BUFFER_MIN_CAPACITY: int = 16
 
 ## Samples one radius curve is baked into; a hit reads these, never the Curve itself. [br]
-## The last sample sits exactly on CURVE_PERCENT_MAX, so the count is one above the interval count.
+## The last sample sits exactly on the max_domain of the curve, so the count is one above the interval count.
 const CURVE_SAMPLE_COUNT: int = 65
 
 #endregion

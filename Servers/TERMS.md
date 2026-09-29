@@ -23,7 +23,7 @@ The prefix of a shared array names **what it is indexed by**:
 | `_slot…` | membership slot | `_slotChunk[slot]` |
 | `_chunk…` | chunk id | `_chunkFirstSlot[chunk]` |
 | `_teamChunk…` | `team * CHUNK_COUNT + chunk` | `_teamChunkGroups` |
-| `_teamColumn…` | `team * CHUNK_COLUMNS + column` | `_teamColumnEntityCount` |
+| `_teamColumn…` | `team * CHUNK_COLUMNS + column` | `_teamColumnMembershipCount` |
 | `_team…` / `_teamMap…` | team | `_teamMapGroups[team]` |
 | `_curve…` | curve id | `_curveUserCount[curveId]` |
 
@@ -55,7 +55,7 @@ Linked chains always use the same words: `First…` is the head of a chain, `…
 | **Membership** | "Entity X stands in chunk Y". Stored in one **membership slot**. |
 | **Slot** | Always means *membership slot*. Each slot sits in two chains at once: the chain of its chunk and the chain of its entity. |
 | **Center chunk** | The one chunk an entity's position falls into. Every entity sits in exactly one **center chain**, so a chunk walk over centers sees each entity once. |
-| **Entity count** | How many entities of a team stand in a chunk, column or on the whole map. |
+| **Membership count** | How many memberships a team has in a chunk or column. An entity counts once per chunk it stands in, so a column counts a tall entity once per row. The hit server skips chunks and columns where it is 0. |
 | **Group mask** | OR of the entity groups a team has in a chunk, column or on the whole map. Searches use it to skip empty space: map → column → chunk. |
 | **Merge / rebuild** | Adding an entity *merges* its groups into the masks. Removing one *rebuilds* them, which stops early once the old value is reached. |
 | **Column span** | `_teamMinColumn` to `_teamMaxColumn`: the leftmost and rightmost column a team occupies. |
@@ -70,9 +70,9 @@ Linked chains always use the same words: `First…` is the head of a chain, `…
 | **Stop groups** | Hurt groups that end an *ordered* hit at the first target carrying them (e.g. a shield). |
 | **Height band** | Vertical extent `(bottom, top)` above the ground, of an entity or of a hit. Both have to overlap. Ground position is the 2D x/y. |
 | **Sample height** | The height a hit is measured at on a target: the middle of the hit's band, clamped into the target's band. |
-| **Radius curve** | Optional `Curve` giving the radius over the height (0–100 on both axes). |
+| **Radius curve** | Optional `Curve` giving the radius over the height. Its domain spans the height band, its `max_value` is the full radius. |
 | **Curve id** | Index of one stored radius curve. Entities sharing a curve share its id. |
-| **Radius factor** | A baked curve sample divided down to 0–1. Radius at a height = radius × factor. |
+| **Radius factor** | A baked curve sample divided by the curve's `max_value`, clamped to 0–1. Radius at a height = radius × factor. |
 | **Effective radius** | The radius a target offers at the sample height. |
 | **Preferred target** | Checked first when a hit may land exactly once. Only if it misses are the chunks searched. |
 | **Candidate** | An entity near the shape that passed team, removal, group and height checks. |

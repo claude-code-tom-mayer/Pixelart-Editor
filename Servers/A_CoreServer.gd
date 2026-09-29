@@ -30,9 +30,6 @@ static var EMPTY_CHUNK_AREA: Vector4i
 ## Cached C_HitServer.CURVE_SAMPLE_COUNT.
 static var CURVE_SAMPLE_COUNT: int
 
-## Cached C_HitServer.CURVE_PERCENT_MAX.
-static var CURVE_PERCENT_MAX: float
-
 #endregion
 
 #region EXPORTS_AND_VARS
@@ -123,14 +120,12 @@ static var _slotEntityPrev: PackedInt32Array = PackedInt32Array()
 ## Membership slots that may be handed out again.
 static var _freeSlots: PackedInt32Array = PackedInt32Array()
 
-## Entity count per team and chunk, at team * CHUNK_COUNT + chunk.
-static var _teamChunkEntityCount: PackedInt32Array = PackedInt32Array()
+## Membership count per team and chunk, at team * CHUNK_COUNT + chunk.
+static var _teamChunkMembershipCount: PackedInt32Array = PackedInt32Array()
 
-## Entity count per team and column, at team * CHUNK_COLUMNS + column.
-static var _teamColumnEntityCount: PackedInt32Array = PackedInt32Array()
-
-## Entity count per team over the whole map.
-static var _teamMapEntityCount: PackedInt32Array = PackedInt32Array()
+## Membership count per team and column, at team * CHUNK_COLUMNS + column. [br]
+## An entity counts once per chunk it stands in, so a hit reaching only its edge still finds it.
+static var _teamColumnMembershipCount: PackedInt32Array = PackedInt32Array()
 
 ## Entity group mask per team and chunk, at team * CHUNK_COUNT + chunk.
 static var _teamChunkGroups: PackedInt64Array = PackedInt64Array()
@@ -241,13 +236,11 @@ static func _static_init() -> void:
 	CHUNK_SIZE = C_ChunkingServer.CHUNK_SIZE
 	EMPTY_CHUNK_AREA = C_ChunkingServer.EMPTY_CHUNK_AREA
 	CURVE_SAMPLE_COUNT = C_HitServer.CURVE_SAMPLE_COUNT
-	CURVE_PERCENT_MAX = C_HitServer.CURVE_PERCENT_MAX
 
-	_teamChunkEntityCount.resize(TEAM_COUNT * CHUNK_COUNT)
+	_teamChunkMembershipCount.resize(TEAM_COUNT * CHUNK_COUNT)
 	_teamChunkGroups.resize(TEAM_COUNT * CHUNK_COUNT)
-	_teamColumnEntityCount.resize(TEAM_COUNT * CHUNK_COLUMNS)
+	_teamColumnMembershipCount.resize(TEAM_COUNT * CHUNK_COLUMNS)
 	_teamColumnGroups.resize(TEAM_COUNT * CHUNK_COLUMNS)
-	_teamMapEntityCount.resize(TEAM_COUNT)
 	_teamMapGroups.resize(TEAM_COUNT)
 
 	_teamMinColumn.resize(TEAM_COUNT)
@@ -321,6 +314,19 @@ static func release_removed_ids() -> void:
 		_freeIds.append(l_id)
 
 	_removedIds.clear()
+
+
+## Checks whether an entity is removed and warns about it, so a public call can drop out early. [br]
+## Changing a removed entity would link it back into the chunk index or a targeter chain. [br]
+## @param p_id The entity to check [br]
+## @param p_callerName Name of the public function that got the id, for the warning [br]
+## @return true if the entity is removed and must not be changed
+static func _reject_removed_id(p_id: int, p_callerName: String) -> bool:
+	if (_isEntityRemoved[p_id] == 0):
+		return false
+
+	push_warning("%s() got the removed entity %d, ignoring it." % [p_callerName, p_id])
+	return true
 
 
 ## Takes a free entity id, or appends a fresh id to every per entity container. [br]
@@ -523,18 +529,25 @@ static func _acquire_curve_id(p_curve: Curve) -> int:
 	return l_curveId
 
 
-## Samples a curve into the radius factors of its curve id, already divided down to 0 to 1. [br]
+## Samples a curve over its whole domain into the radius factors of its curve id, divided down to 0 to 1. [br]
+## The max_value of the curve is the full radius, so any authored domain and value range works. [br]
 ## @param p_curveId The curve id to fill [br]
 ## @param p_curve The curve to read
 static func _bake_radius_factors(p_curveId: int, p_curve: Curve) -> void:
+	assert(p_curve.max_value > 0.0, "A_CoreServer: a radius curve needs a max_value above 0.")
+
 	p_curve.bake()
 
 	var l_firstFactorIndex: int = p_curveId * CURVE_SAMPLE_COUNT
-	var l_lastSampleIndex: float = CURVE_SAMPLE_COUNT - 1
+	var l_sampleCountBelowLast: float = CURVE_SAMPLE_COUNT - 1
+	var l_minDomain: float = p_curve.min_domain
+	var l_domainLength: float = p_curve.max_domain - l_minDomain
+	var l_maxValue: float = p_curve.max_value
 
 	for l_sampleIndex: int in CURVE_SAMPLE_COUNT:
-		var l_heightPercent: float = l_sampleIndex / l_lastSampleIndex * CURVE_PERCENT_MAX
-		_curveRadiusFactors[l_firstFactorIndex + l_sampleIndex] = p_curve.sample_baked(l_heightPercent) / CURVE_PERCENT_MAX
+		var l_height: float = l_minDomain + l_sampleIndex / l_sampleCountBelowLast * l_domainLength
+		var l_factor: float = clampf(p_curve.sample_baked(l_height) / l_maxValue, 0.0, 1.0)
+		_curveRadiusFactors[l_firstFactorIndex + l_sampleIndex] = l_factor
 
 
 ## Drops the radius curve of an entity, and frees the curve id once nobody uses it. [br]
@@ -698,7 +711,7 @@ static func _add_membership(p_id: int, p_chunkId: int) -> void:
 	var l_team: int = _entityTeam[p_id]
 	var l_groups: int = _entityGroups[p_id]
 
-	_change_entity_counts(p_chunkId, l_team, 1)
+	_change_membership_counts(p_chunkId, l_team, 1)
 
 	if (_merge_groups_into_chunk(p_chunkId, l_team, l_groups)):
 		if (_merge_groups_into_column(p_chunkId % CHUNK_COLUMNS, l_team, l_groups)):
@@ -737,7 +750,7 @@ static func _remove_membership(p_slot: int) -> void:
 	_freeSlots.append(p_slot)
 
 	var l_team: int = _entityTeam[l_id]
-	_change_entity_counts(l_chunkId, l_team, -1)
+	_change_membership_counts(l_chunkId, l_team, -1)
 
 	if (_rebuild_chunk_groups(l_chunkId, l_team)):
 		if (_rebuild_column_groups(l_chunkId % CHUNK_COLUMNS, l_team)):
@@ -764,18 +777,17 @@ static func _acquire_slot() -> int:
 	return _slotEntity.size() - 1
 
 
-## Writes an entity count change through to chunk, column and map, and keeps the column span current. [br]
+## Writes a membership count change through to chunk and column, and keeps the column span current. [br]
 ## @param p_chunkId The chunk an entity entered or left [br]
 ## @param p_team Team whose counts change, a C_CoreServer.TEAM value [br]
 ## @param p_delta 1 when entering, -1 when leaving
-static func _change_entity_counts(p_chunkId: int, p_team: int, p_delta: int) -> void:
+static func _change_membership_counts(p_chunkId: int, p_team: int, p_delta: int) -> void:
 	var l_column: int = p_chunkId % CHUNK_COLUMNS
 	var l_teamColumnIndex: int = p_team * CHUNK_COLUMNS + l_column
-	var l_columnCountBefore: int = _teamColumnEntityCount[l_teamColumnIndex]
+	var l_columnCountBefore: int = _teamColumnMembershipCount[l_teamColumnIndex]
 
-	_teamChunkEntityCount[p_team * CHUNK_COUNT + p_chunkId] += p_delta
-	_teamColumnEntityCount[l_teamColumnIndex] = l_columnCountBefore + p_delta
-	_teamMapEntityCount[p_team] += p_delta
+	_teamChunkMembershipCount[p_team * CHUNK_COUNT + p_chunkId] += p_delta
+	_teamColumnMembershipCount[l_teamColumnIndex] = l_columnCountBefore + p_delta
 
 	if (p_delta > 0 and l_columnCountBefore == 0):
 		_extend_team_column_span(p_team, l_column)
@@ -795,11 +807,11 @@ static func _extend_team_column_span(p_team: int, p_column: int) -> void:
 
 
 ## Narrows the column span of a team after a column lost its last entity. [br]
-## Only scans when that column was an edge of the span itself, so the cost amortises away. [br]
+## Only scans when that column was an edge of the span itself; a span of one column empties the team. [br]
 ## @param p_team The team whose span shrinks [br]
 ## @param p_column The column that ran empty
 static func _shrink_team_column_span(p_team: int, p_column: int) -> void:
-	if (_teamMapEntityCount[p_team] == 0):
+	if (_teamMinColumn[p_team] == _teamMaxColumn[p_team]):
 		_teamMinColumn[p_team] = NO_ID
 		_teamMaxColumn[p_team] = NO_ID
 		return
@@ -809,7 +821,7 @@ static func _shrink_team_column_span(p_team: int, p_column: int) -> void:
 	if (p_column == _teamMinColumn[p_team]):
 		var l_column: int = p_column + 1
 
-		while (_teamColumnEntityCount[l_teamFirstColumnIndex + l_column] == 0):
+		while (_teamColumnMembershipCount[l_teamFirstColumnIndex + l_column] == 0):
 			l_column += 1
 
 		_teamMinColumn[p_team] = l_column
@@ -817,7 +829,7 @@ static func _shrink_team_column_span(p_team: int, p_column: int) -> void:
 	if (p_column == _teamMaxColumn[p_team]):
 		var l_column: int = p_column - 1
 
-		while (_teamColumnEntityCount[l_teamFirstColumnIndex + l_column] == 0):
+		while (_teamColumnMembershipCount[l_teamFirstColumnIndex + l_column] == 0):
 			l_column -= 1
 
 		_teamMaxColumn[p_team] = l_column

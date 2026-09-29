@@ -104,7 +104,7 @@ func set_radius_curve(p_id: int, p_curve: Curve) -> void:
 func hit_circle(p_emitterId: int, p_origin: Vector2, p_radius: float, p_heightBand: Vector2, p_maxHits: int,
 		p_preferredTargetId: int, p_hitData: R_HitData, p_isOrdered: bool) -> PackedVector3Array:
 	if (_gather_preferred_candidate(p_emitterId, p_preferredTargetId, p_maxHits, p_heightBand)):
-		var l_preferredImpacts: PackedVector3Array = _test_circle(p_emitterId, p_origin, p_radius,
+		var l_preferredImpacts: PackedVector3Array = _resolve_circle_hit(p_emitterId, p_origin, p_radius,
 			p_heightBand, p_maxHits, p_hitData, p_isOrdered)
 
 		if (not l_preferredImpacts.is_empty()):
@@ -113,7 +113,7 @@ func hit_circle(p_emitterId: int, p_origin: Vector2, p_radius: float, p_heightBa
 	var l_extent: Vector2 = Vector2(p_radius, p_radius)
 	_gather_chunk_candidates(p_emitterId, p_origin - l_extent, p_origin + l_extent, p_heightBand)
 
-	return _test_circle(p_emitterId, p_origin, p_radius, p_heightBand, p_maxHits, p_hitData, p_isOrdered)
+	return _resolve_circle_hit(p_emitterId, p_origin, p_radius, p_heightBand, p_maxHits, p_hitData, p_isOrdered)
 
 
 ## Hits every reachable target inside a directional rect, optionally ordered from one of its edges. [br]
@@ -135,7 +135,7 @@ func hit_directional_rect(p_emitterId: int, p_origin: Vector2, p_direction: Vect
 	var l_forward: Vector2 = p_direction.normalized()
 
 	if (_gather_preferred_candidate(p_emitterId, p_preferredTargetId, p_maxHits, p_heightBand)):
-		var l_preferredImpacts: PackedVector3Array = _test_directional_rect(p_emitterId, p_origin, l_forward,
+		var l_preferredImpacts: PackedVector3Array = _resolve_directional_rect_hit(p_emitterId, p_origin, l_forward,
 			p_length, p_width, p_heightBand, p_maxHits, p_hitData, p_order)
 
 		if (not l_preferredImpacts.is_empty()):
@@ -152,7 +152,7 @@ func hit_directional_rect(p_emitterId: int, p_origin: Vector2, p_direction: Vect
 		l_backCornerA.max(l_backCornerB).max(l_frontCornerA).max(l_frontCornerB),
 		p_heightBand)
 
-	return _test_directional_rect(p_emitterId, p_origin, l_forward, p_length, p_width,
+	return _resolve_directional_rect_hit(p_emitterId, p_origin, l_forward, p_length, p_width,
 		p_heightBand, p_maxHits, p_hitData, p_order)
 
 
@@ -175,7 +175,7 @@ func hit_sector(p_emitterId: int, p_origin: Vector2, p_direction: Vector2, p_rad
 	var l_forward: Vector2 = p_direction.normalized()
 
 	if (_gather_preferred_candidate(p_emitterId, p_preferredTargetId, p_maxHits, p_heightBand)):
-		var l_preferredImpacts: PackedVector3Array = _test_sector(p_emitterId, p_origin, l_forward,
+		var l_preferredImpacts: PackedVector3Array = _resolve_sector_hit(p_emitterId, p_origin, l_forward,
 			p_radius, p_openingAngle, p_heightBand, p_maxHits, p_hitData, p_order)
 
 		if (not l_preferredImpacts.is_empty()):
@@ -184,7 +184,7 @@ func hit_sector(p_emitterId: int, p_origin: Vector2, p_direction: Vector2, p_rad
 	var l_extent: Vector2 = Vector2(p_radius, p_radius)
 	_gather_chunk_candidates(p_emitterId, p_origin - l_extent, p_origin + l_extent, p_heightBand)
 
-	return _test_sector(p_emitterId, p_origin, l_forward, p_radius, p_openingAngle,
+	return _resolve_sector_hit(p_emitterId, p_origin, l_forward, p_radius, p_openingAngle,
 		p_heightBand, p_maxHits, p_hitData, p_order)
 
 
@@ -197,7 +197,7 @@ func hit_sector(p_emitterId: int, p_origin: Vector2, p_direction: Vector2, p_rad
 ## @param p_hitData Payload handed to every entity that is hit [br]
 ## @param p_isOrdered Whether targets land from the center outwards [br]
 ## @return The impact positions as (x, y, height), in landing order
-func _test_circle(p_emitterId: int, p_origin: Vector2, p_radius: float, p_heightBand: Vector2,
+func _resolve_circle_hit(p_emitterId: int, p_origin: Vector2, p_radius: float, p_heightBand: Vector2,
 		p_maxHits: int, p_hitData: R_HitData, p_isOrdered: bool) -> PackedVector3Array:
 	_acceptedCount = 0
 
@@ -229,7 +229,7 @@ func _test_circle(p_emitterId: int, p_origin: Vector2, p_radius: float, p_height
 ## @param p_hitData Payload handed to every entity that is hit [br]
 ## @param p_order Order the targets land in [br]
 ## @return The impact positions as (x, y, height), in landing order
-func _test_directional_rect(p_emitterId: int, p_origin: Vector2, p_forward: Vector2, p_length: float,
+func _resolve_directional_rect_hit(p_emitterId: int, p_origin: Vector2, p_forward: Vector2, p_length: float,
 		p_width: float, p_heightBand: Vector2, p_maxHits: int, p_hitData: R_HitData,
 		p_order: C_HitServer.RECT_ORDER) -> PackedVector3Array:
 	_acceptedCount = 0
@@ -268,7 +268,7 @@ func _test_directional_rect(p_emitterId: int, p_origin: Vector2, p_forward: Vect
 ## @param p_hitData Payload handed to every entity that is hit [br]
 ## @param p_order Order the targets land in [br]
 ## @return The impact positions as (x, y, height), in landing order
-func _test_sector(p_emitterId: int, p_origin: Vector2, p_forward: Vector2, p_radius: float,
+func _resolve_sector_hit(p_emitterId: int, p_origin: Vector2, p_forward: Vector2, p_radius: float,
 		p_openingAngle: float, p_heightBand: Vector2, p_maxHits: int, p_hitData: R_HitData,
 		p_order: C_HitServer.SECTOR_ORDER) -> PackedVector3Array:
 	_acceptedCount = 0
@@ -378,7 +378,7 @@ func _gather_chunk_candidates(p_emitterId: int, p_minCorner: Vector2, p_maxCorne
 ## @return true if an opponent stands there
 func _column_has_opponent(p_column: int, p_team: int) -> bool:
 	for l_team: int in TEAM_COUNT:
-		if (l_team != p_team and _teamColumnEntityCount[l_team * CHUNK_COLUMNS + p_column] > 0):
+		if (l_team != p_team and _teamColumnMembershipCount[l_team * CHUNK_COLUMNS + p_column] > 0):
 			return true
 
 	return false
@@ -390,7 +390,7 @@ func _column_has_opponent(p_column: int, p_team: int) -> bool:
 ## @return true if an opponent stands there
 func _chunk_has_opponent(p_chunkId: int, p_team: int) -> bool:
 	for l_team: int in TEAM_COUNT:
-		if (l_team != p_team and _teamChunkEntityCount[l_team * CHUNK_COUNT + p_chunkId] > 0):
+		if (l_team != p_team and _teamChunkMembershipCount[l_team * CHUNK_COUNT + p_chunkId] > 0):
 			return true
 
 	return false
@@ -542,7 +542,7 @@ func _get_rect_sort_key(p_order: C_HitServer.RECT_ORDER, p_along: float, p_acros
 
 
 ## Orders the accepted targets, cuts them at the stop groups and the hit limit, and hands them to their module managers. [br]
-## Dispatches from a snapshot, so a module manager may remove entities or fire hits of its own meanwhile. [br]
+## Dispatches from a snapshot and skips targets a module manager announced for removal meanwhile. [br]
 ## @param p_emitterId The entity the hit comes from [br]
 ## @param p_maxHits Upper number of hits, or C_HitServer.UNLIMITED_HITS [br]
 ## @param p_hitData Payload handed to every entity that is hit [br]
@@ -584,6 +584,9 @@ func _dispatch_hits(p_emitterId: int, p_maxHits: int, p_hitData: R_HitData,
 				break
 
 	for l_targetId: int in l_landedIds:
+		if (_isEntityPendingRemoval[l_targetId] == 1 or _isEntityRemoved[l_targetId] == 1):
+			continue
+
 		var l_moduleManager: M_ModuleManager = _entityModuleManager[l_targetId]
 
 		if (l_moduleManager != null):

@@ -508,16 +508,16 @@ emitter._hitEntityStopGroups &amp; target._hitEntityHurtGroups != 0</div>
             <marker id="tick" viewBox="0 0 6 10" refX="3" refY="5" markerWidth="6" markerHeight="10" orient="auto"><path d="M3,0 L3,10" stroke="currentColor" fill="none"/></marker>
           </defs>
         </svg>
-        <figcaption>The curve's x axis is the percent along the y band, its y axis the percent of the radius — both run 0 to 100. The hit's band middle, held inside the target's band, decides which height is sampled.</figcaption>
+        <figcaption>The curve's domain spans the y band from bottom to top, its <code>max_value</code> is the full radius — any authored range works. The hit's band middle, held inside the target's band, decides which height is sampled.</figcaption>
       </figure>
     </div>
 
     <div class="code" style="margin-top:16px;"><span class="c">## One sample per candidate, never a scan for a maximum.</span>
 l_sampleHeight = clamp(middle of the hit band, band.bottom, band.top)
-l_percent      = (l_sampleHeight - band.bottom) / band height * 100
-l_radius       = entity radius * curve.sample_baked(l_percent) / 100</div>
+l_domainX      = min_domain + (l_sampleHeight - band.bottom) / band height * (max_domain - min_domain)
+l_radius       = entity radius * clamp(curve.sample_baked(l_domainX) / max_value, 0, 1)</div>
 
-    <p class="note-inline">The curve must be authored with domain <strong>0 to 100</strong> and value range <strong>0 to 100</strong>. A curve left on Godot's default 0 to 1 domain clamps to its maximum and silently behaves like a cylinder.</p>
+    <p class="note-inline">The curve is read over its own domain and value range, so Godot's default 0 to 1 curve works as well as a 0 to 100 one. Its <code>max_value</code> must be above 0.</p>
   </section>
 
   <section id="shapes">
@@ -777,7 +777,7 @@ radius   = 40 * 71 / 100            = <span class="t">28.4</span></div>
       <details class="var">
         <summary><span class="vn">_curveSamples</span><span class="vt">PackedFloat32Array</span><span class="vh">Every slot baked into 65 samples, one block per slot</span><span class="chev"></span></summary>
         <div class="var-body">
-          <p>Slot <em>s</em> owns indices <code>s × 65 … s × 65 + 64</code>. Sample <em>i</em> holds the curve's value (0 … 100 %) at <code>i / 64 × 100 %</code> of the entity's height: sample 0 at the feet, 16 at a quarter, 32 halfway, 64 at the top. Read once when a slot is taken; a hit reads two floats and interpolates instead of calling into the <code>Curve</code> object.</p>
+          <p>Slot <em>s</em> owns indices <code>s × 65 … s × 65 + 64</code>. Sample <em>i</em> holds the curve's value divided by its <code>max_value</code> (0 … 1) at <code>i / 64</code> of its domain, which spans the entity's height: sample 0 at the feet, 16 at a quarter, 32 halfway, 64 at the top. Read once when a slot is taken; a hit reads two floats and interpolates instead of calling into the <code>Curve</code> object.</p>
         </div>
       </details>
 
@@ -1030,13 +1030,6 @@ p_maxHits != 1                         →  preference ignored, one warning per 
       </details>
 
       <details class="var">
-        <summary><span class="vn">CURVE_PERCENT_MAX</span><span class="vt">const float</span><span class="vh"><code>100</code>: upper end of both curve axes</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Author radius curves with <strong>x from 0 to 100</strong> (percent of the height, feet to head) and <strong>y from 0 to 100</strong> (percent of the radius). A point (70, 100) means "at 70 % of its height, the full radius". A curve left on Godot's default 0 … 1 domain is sampled at 0 … 100, clamps to its last point everywhere, and silently behaves like a cylinder.</p>
-        </div>
-      </details>
-
-      <details class="var">
         <summary><span class="vn">BUFFER_MIN_CAPACITY</span><span class="vt">const int</span><span class="vh"><code>16</code>: first size a per hit buffer grows to</span><span class="chev"></span></summary>
         <div class="var-body"><p>The candidate and hit buffers start empty. The first push grows them to 16, and after that they double when full: 16 → 32 → 64. Without the minimum, the first hits would grow 1 → 2 → 4 → 8 → 16, reallocating four times for nothing.</p></div>
       </details>
@@ -1077,7 +1070,7 @@ p_maxHits != 1                         →  preference ignored, one warning per 
 
       <details class="var">
         <summary><span class="vn">radiusCurve</span><span class="vt">Curve · null</span><span class="vh">A curve slot — the silhouette</span><span class="chev"></span></summary>
-        <div class="var-body"><p>0 … 100 on both axes (see <code>CURVE_PERCENT_MAX</code>). <code>null</code> keeps the radius constant. Share the same resource across the archetype so it costs one slot.</p></div>
+        <div class="var-body"><p>Domain spans the height band, <code>max_value</code> is the full radius; any range works. <code>null</code> keeps the radius constant. Share the same resource across the archetype so it costs one slot.</p></div>
       </details>
     </div>
 
@@ -1104,7 +1097,7 @@ p_maxHits != 1                         →  preference ignored, one warning per 
       <li><strong>Only the other team is ever hit.</strong> There is no friendly fire path and no flag to enable one.</li>
       <li><strong>Announced entities are skipped.</strong> An entity marked by <code>pre_unregister()</code> takes no more hits — that is what the flag is for.</li>
       <li><strong>A preferred target needs a hit limit of exactly 1.</strong> Anything else logs a warning and runs as a normal hit.</li>
-      <li><strong>Radius curves run 0 to 100 on both axes.</strong> A curve on the default domain behaves like no curve at all. Curves are shared by resource identity, so give an archetype one <code>.tres</code>.</li>
+      <li><strong>Radius curves are read over their own domain and value range.</strong> <code>max_value</code> is the full radius and must be above 0. Curves are shared by resource identity, so give an archetype one <code>.tres</code>.</li>
       <li><strong>Always pass a profile.</strong> Without one the entity gets all-zero masks: it can never be hit and its hits connect with nothing.</li>
       <li><strong>Hit, hurt and stop groups are one 64 bit space, separate from the chunking groups.</strong> Define the channel bits once and use them in all three masks; do not reuse the group bits of the chunk masks here.</li>
       <li><strong>Entities call the hit server directly, but register through G_ChunkingServer.</strong> G_HitServer has no id space of its own — ids and the lifecycle that hands them out live on the shared <code>A_CoreServers</code> base every server extends.</li>

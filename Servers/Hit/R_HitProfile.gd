@@ -17,7 +17,8 @@ class_name R_HitProfile
 ## Bitmask of the hurt groups that end an ordered hit of this entity on the target they match.
 @export var stopGroups: int = 0
 
-## Radius over the height, 0 to 100 on both axes; null keeps the radius constant.
+## Radius over the height: the domain spans the height band, max_value is the full radius. [br]
+## Any domain and value range works; null keeps the radius constant.
 @export var radiusCurve: Curve = null
 
 #endregion
