@@ -84,6 +84,8 @@ Baseline casing for **all** variables (member, export, onready, local, parameter
 
 All constants belonging to one system are grouped into a single `C_[SystemName]` class (file name matches exactly, e.g. `C_Inventory.gd`).
 
+A constant that cannot be a `const` expression (e.g. derived from other constants) is a `static var` in its `C_` class, assigned once in `static func _static_init()` and never changed afterwards; it keeps the UPPER_CASE constant name.
+
 ## Caching
 
 Cache constants from `C_` classes and autoload references into member variables on init (`_init()`) to prevent repeated global name lookups.
@@ -91,6 +93,7 @@ Cache constants from `C_` classes and autoload references into member variables 
 - Cached constant: statically typed, keeps the constant's UPPER_CASE name, assigned once in `_init()` and never changed afterwards.
 - Cached autoload reference: untyped (an autoload can't be used as a type, only its value), follows the normal variable rules, named after the autoload without `G_`.
 - Enum constants are not cached.
+- A class whose methods are static caches into `static var`s in `static func _static_init()` instead of `_init()`.
 
 ```gdscript
 ## Cached C_TouchInput.CLICK_DEADZONE.

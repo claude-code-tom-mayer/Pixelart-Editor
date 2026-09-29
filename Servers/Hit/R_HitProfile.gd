@@ -5,8 +5,8 @@ class_name R_HitProfile
 
 #region EXPORTS_AND_VARS
 
-## Vertical extent the entity occupies as (bottom, top).
-@export var yBand: Vector2 = Vector2(0.0, 64.0)
+## Vertical extent the entity occupies above the ground, as (bottom, top).
+@export var heightBand: Vector2 = Vector2(0.0, 64.0)
 
 ## Bitmask of the hit groups the entity can be harmed by.
 @export var hurtGroups: int = 0
@@ -14,7 +14,7 @@ class_name R_HitProfile
 ## Bitmask of the hit groups the hits of the entity carry.
 @export var hitGroups: int = 0
 
-## Bitmask of the hurt groups that end a hit of this entity on the target they match.
+## Bitmask of the hurt groups that end an ordered hit of this entity on the target they match.
 @export var stopGroups: int = 0
 
 ## Radius over the height, 0 to 100 on both axes; null keeps the radius constant.

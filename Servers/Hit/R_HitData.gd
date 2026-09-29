@@ -9,6 +9,6 @@ class_name R_HitData
 @export var damage: float = 0.0
 
 ## Kind of damage, for the receiving side to branch on.
-@export var damageType: int = 0
+@export var damageType: C_HitServer.DAMAGE_TYPE = C_HitServer.DAMAGE_TYPE.NORMAL
 
 #endregion

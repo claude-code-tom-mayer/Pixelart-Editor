@@ -5,26 +5,26 @@ class_name R_TargetingData
 
 #region EXPORTS_AND_VARS
 
-## Bitmask of the groups the entity may go after.
+## Bitmask of the entity groups the entity may go after.
 @export var targetedGroups: int = 0
 
-## How many chunks in each direction a search covers.
-@export var searchChunks: int = 4
+## How many chunk rings around its own center chunk a search covers.
+@export var searchRadiusChunks: int = 4
 
-## A targeter closer than this many chunks makes the entity flee.
-@export var fleeChunks: int = 2
+## A targeter within this many chunk steps makes the entity flee; C_TargetingServer.NEVER_FLEE turns fleeing off.
+@export var fleeRadiusChunks: int = 2
 
 ## Real distance at which the entity switches from approaching to combat. [br]
 ## Measured to the silhouette of the target, so its radius is added on top.
-@export var hitRange: float = 64.0
+@export var combatRange: float = 64.0
 
-## Bitmask of the groups the entity goes after before considering the normal ones.
+## Bitmask of the entity groups the entity goes after before considering the normal ones.
 @export var priorityTargetedGroups: int = 0
 
 ## Hides the entity from searchers that cannot see invisible ones.
 @export var isInvisible: bool = false
 
-## Lets the entity see invisible enemies.
+## Lets the entity see invisible opponents.
 @export var canTargetInvisible: bool = false
 
 ## Marks the entity as a focus target, which scores a bonus for searchers.

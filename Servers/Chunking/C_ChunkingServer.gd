@@ -1,17 +1,14 @@
 extends RefCounted
 class_name C_ChunkingServer
-## Grid, map and team constants of the chunking system. [br]
+## Grid and map constants of the chunk index. [br]
 ## Recalculates the configured chunk counts once so that every chunk is square.
 
 #region ENUMS_AND_CONSTANTS
 
-## Teams an entity can fight for; the values index every per team container.
-enum TEAM { ATTACKER, DEFENDER }
-
 ## World size the chunk grid has to cover, in world units.
 const CONFIGURED_MAP_SIZE: Vector2 = Vector2(4096.0, 4096.0)
 
-## Wanted chunks per row; only kept exactly if it already yields square chunks.
+## Wanted chunk columns; only kept exactly if it already yields square chunks.
 const CONFIGURED_CHUNK_COLUMNS: int = 32
 
 ## Wanted chunk rows; only kept exactly if it already yields square chunks.
@@ -20,23 +17,24 @@ const CONFIGURED_CHUNK_ROWS: int = 32
 ## Tolerance against float error when deriving the chunk counts from the map size.
 const COVERAGE_EPSILON: float = 0.0001
 
+## Chunk area that covers no chunk at all, as (minColumn, minRow, maxColumn, maxRow). [br]
+## Held by every entity that stands nowhere: freshly created and removed ones.
+const EMPTY_CHUNK_AREA: Vector4i = Vector4i(0, 0, -1, -1)
+
 ## Edge length of one chunk; identical on both axes, so chunks are square.
 static var CHUNK_SIZE: float
 
-## Chunks per row after the square chunk recalculation.
-static var MAP_CHUNK_COLUMNS: int
+## Chunk columns after the square chunk recalculation.
+static var CHUNK_COLUMNS: int
 
 ## Chunk rows after the square chunk recalculation.
-static var MAP_CHUNK_ROWS: int
+static var CHUNK_ROWS: int
 
 ## Total number of chunks on the map.
 static var CHUNK_COUNT: int
 
 ## Size the chunk grid really covers; never smaller than CONFIGURED_MAP_SIZE.
 static var MAP_SIZE: Vector2
-
-## Number of teams; size of every per team container.
-static var TEAM_COUNT: int
 
 #endregion
 
@@ -47,12 +45,11 @@ static var TEAM_COUNT: int
 static func _static_init() -> void:
 	var l_columnEdge: float = CONFIGURED_MAP_SIZE.x / float(CONFIGURED_CHUNK_COLUMNS)
 	var l_rowEdge: float = CONFIGURED_MAP_SIZE.y / float(CONFIGURED_CHUNK_ROWS)
-	
+
 	CHUNK_SIZE = (l_columnEdge + l_rowEdge) * 0.5
-	MAP_CHUNK_COLUMNS = maxi(1, ceili(CONFIGURED_MAP_SIZE.x / CHUNK_SIZE - COVERAGE_EPSILON))
-	MAP_CHUNK_ROWS = maxi(1, ceili(CONFIGURED_MAP_SIZE.y / CHUNK_SIZE - COVERAGE_EPSILON))
-	CHUNK_COUNT = MAP_CHUNK_COLUMNS * MAP_CHUNK_ROWS
-	MAP_SIZE = Vector2(MAP_CHUNK_COLUMNS, MAP_CHUNK_ROWS) * CHUNK_SIZE
-	TEAM_COUNT = TEAM.size()
+	CHUNK_COLUMNS = maxi(1, ceili(CONFIGURED_MAP_SIZE.x / CHUNK_SIZE - COVERAGE_EPSILON))
+	CHUNK_ROWS = maxi(1, ceili(CONFIGURED_MAP_SIZE.y / CHUNK_SIZE - COVERAGE_EPSILON))
+	CHUNK_COUNT = CHUNK_COLUMNS * CHUNK_ROWS
+	MAP_SIZE = Vector2(CHUNK_COLUMNS, CHUNK_ROWS) * CHUNK_SIZE
 
 #endregion

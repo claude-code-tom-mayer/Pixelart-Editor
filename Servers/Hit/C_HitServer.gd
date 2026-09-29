@@ -1,20 +1,23 @@
 extends RefCounted
 class_name C_HitServer
 ## Constants and orderings of the hit system. [br]
-## Hit groups are their own bitmask space, unrelated to the chunking groups.
+## Hit, hurt and stop groups share their own bitmask space, unrelated to the entity groups.
 
 #region ENUMS_AND_CONSTANTS
 
-## Edge of a directional rect an ordered hit starts from, in the rect's own frame.
-enum RECT_EDGE { BACK, FRONT, LEFT, RIGHT }
+## Order a directional rect hit applies its targets in, in the rect's own frame.
+enum RECT_ORDER { NONE, FROM_BACK, FROM_FRONT, FROM_LEFT, FROM_RIGHT }
+
+## Order a sector hit applies its targets in, seen from its tip along its direction.
+enum SECTOR_ORDER { NONE, RIGHT_TO_LEFT, LEFT_TO_RIGHT }
+
+## Kind of damage a hit deals, for the receiving side to branch on; extend with the game's types.
+enum DAMAGE_TYPE { NORMAL }
 
 ## Passed as the hit limit to let a hit connect with every valid target.
 const UNLIMITED_HITS: int = -1
 
-## Passed as the preferred target when the hit has no target to check first.
-const NO_PREFERRED_TARGET: int = -1
-
-## Upper end of both curve axes; radius curves run from 0 to 100 in x and y.
+## Upper end of both radius curve axes; radius curves run from 0 to 100 in x and y.
 const CURVE_PERCENT_MAX: float = 100.0
 
 ## Smallest capacity a reused hit buffer grows to, so short hits stop reallocating early.
