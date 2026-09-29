@@ -1,7 +1,7 @@
 extends RefCounted
 class_name C_CoreServer
 ## Constants every server shares: the teams and the one "points nowhere" sentinel. [br]
-## See Servers/TERMS.md for every term the servers use.
+## See docs/TERMS.html for every term the servers use.
 
 #region ENUMS_AND_CONSTANTS
 

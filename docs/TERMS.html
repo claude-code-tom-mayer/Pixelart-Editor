@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server Terms</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Literata:ital,opsz,wght@0,18..36,400;0,18..36,500;0,18..36,600;1,18..36,400&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#EEF0EA;--surface:#FFFFFF;--surface-2:#E3E7DD;--ink:#1B2420;--ink-soft:#56635B;--line:#C6CFC0;
+  --accent:#C15A2B;--accent-soft:#EFD9C9;--accent-2:#2B6E6E;--accent-2-soft:#D3E5E3;
+  --accent-3:#6B5AA6;--accent-3-soft:#E2DDF0;
+  --code-bg:#1B2420;--code-ink:#E7ECDC;--code-soft:#93A392;--code-accent:#EDA274;--code-accent-2:#7FCFC6;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12160F;--surface:#181D16;--surface-2:#20271C;--ink:#E8ECE1;--ink-soft:#A3AFA0;--line:#323C2C;
+    --accent:#E38A56;--accent-soft:#3A2A1D;--accent-2:#63C2B8;--accent-2-soft:#173230;
+    --accent-3:#A897E0;--accent-3-soft:#2A2440;
+    --code-bg:#0B0E08;--code-ink:#DCE6D0;--code-soft:#7C8A78;--code-accent:#F0A878;--code-accent-2:#8AD9CF;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12160F;--surface:#181D16;--surface-2:#20271C;--ink:#E8ECE1;--ink-soft:#A3AFA0;--line:#323C2C;
+  --accent:#E38A56;--accent-soft:#3A2A1D;--accent-2:#63C2B8;--accent-2-soft:#173230;
+  --accent-3:#A897E0;--accent-3-soft:#2A2440;
+  --code-bg:#0B0E08;--code-ink:#DCE6D0;--code-soft:#7C8A78;--code-accent:#F0A878;--code-accent-2:#8AD9CF;
+}
+*{box-sizing:border-box;}
+html{background:var(--bg);}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Literata',Georgia,'Times New Roman',serif;font-size:16px;line-height:1.62;
+  padding-inline:16px;-webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.eyebrow,.nav,.meta dt,.tag,.group-title,figcaption,th,.chip,.lbl,.xall{
+  font-family:'Overpass',system-ui,-apple-system,sans-serif;
+}
+code,.mono,.code,.sig{font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;}
+code{font-size:.88em;overflow-wrap:anywhere;}
+h1,h2,h3{text-wrap:balance;margin:0 0 .4em;}
+h1{font-size:2.1rem;font-weight:800;letter-spacing:-.015em;}
+h2{font-size:1.35rem;font-weight:700;margin-top:0;}
+h3{font-size:1.02rem;font-weight:700;margin-top:1.6em;}
+p{max-width:68ch;margin:0 0 .9em;}
+.prose p:last-child{margin-bottom:0;}
+a{color:var(--accent-2);text-underline-offset:2px;}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.wrap{max-width:940px;margin-inline:auto;padding-block:28px 80px;}
+
+.nav{
+  position:sticky;top:0;z-index:5;display:flex;gap:2px;overflow-x:auto;align-items:center;
+  background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;
+  margin-inline:-16px;padding-inline:16px;
+}
+.nav a{
+  flex:none;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);text-decoration:none;padding:6px 12px;border-radius:99px;border:1px solid transparent;white-space:nowrap;
+}
+.nav a:hover{color:var(--ink);border-color:var(--line);}
+.nav a.active{color:var(--accent);background:var(--accent-soft);border-color:var(--accent-soft);}
+.nav .home{color:var(--accent-2);}
+.xall{
+  flex:none;margin-left:auto;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);background:none;border:1px solid var(--line);border-radius:99px;padding:5px 12px;cursor:pointer;
+}
+.xall:hover{color:var(--ink);}
+.xall:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+.titleblock{margin-top:22px;border:1px solid var(--line);background:var(--surface);border-radius:2px;padding:24px;position:relative;}
+.titleblock::before,.titleblock::after{content:"";position:absolute;width:10px;height:10px;border-color:var(--ink-soft);opacity:.5;}
+.titleblock::before{top:6px;left:6px;border-top:1px solid;border-left:1px solid;}
+.titleblock::after{top:6px;right:6px;border-top:1px solid;border-right:1px solid;}
+.eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);}
+.titleblock h1{margin-top:.3em;}
+.titleblock .sub{color:var(--ink-soft);font-size:1rem;max-width:62ch;}
+.meta{display:flex;flex-wrap:wrap;gap:22px;margin:18px 0 0;padding-top:16px;border-top:1px dashed var(--line);}
+.meta div{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.meta dt{font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;}
+.meta dd{margin:0;font-size:.84rem;font-family:'JetBrains Mono',monospace;overflow-wrap:anywhere;}
+
+section{margin-top:56px;}
+section > .eyebrow{display:block;margin-bottom:6px;}
+.group-title{font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);margin:30px 0 8px;}
+
+.figure-panel{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:18px 18px 12px;overflow-x:auto;margin:16px 0 0;}
+.figure-panel svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+figure{margin:0;}
+figcaption{font-size:.8rem;color:var(--ink-soft);margin-top:10px;text-align:center;line-height:1.5;}
+
+.decisions{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
+.decision{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--accent-2);background:var(--surface);border-radius:2px;}
+.decision.warn{border-left-color:var(--accent);}
+.decision .chip{font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-2);white-space:nowrap;padding-top:3px;}
+.decision.warn .chip{color:var(--accent);}
+.decision p{margin:0;max-width:64ch;font-size:.94rem;}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px;}
+table{border-collapse:collapse;width:100%;font-size:.86rem;}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
+th{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);background:var(--surface-2);font-weight:700;}
+tr:last-child td{border-bottom:none;}
+td code{white-space:nowrap;}
+table.num td{font-variant-numeric:tabular-nums;}
+td .win{color:var(--accent-2);font-weight:700;}
+
+.code{
+  background:var(--code-bg);color:var(--code-ink);border-radius:3px;padding:13px 15px;
+  font-size:.78rem;line-height:1.65;overflow-x:auto;white-space:pre;margin:0;
+}
+.code .c{color:var(--code-soft);}
+.code .k{color:var(--code-accent-2);}
+.code .t{color:var(--code-accent);}
+
+ol.seq{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;}
+ol.seq li{display:grid;grid-template-columns:28px 1fr;gap:14px;padding:12px 0;border-top:1px solid var(--line);}
+ol.seq li:first-child{border-top:none;}
+ol.seq .n{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent-2);}
+ol.seq p{margin:0;font-size:.94rem;}
+ul.rules{margin:14px 0 0;padding-left:1.1em;}
+ul.rules li{margin-bottom:.55em;font-size:.94rem;max-width:68ch;}
+ul.rules li::marker{color:var(--accent);}
+.note-inline{border-left:3px solid var(--line);padding:2px 0 2px 14px;margin-top:16px;color:var(--ink-soft);font-size:.9rem;max-width:72ch;}
+.hint{font-size:.84rem;color:var(--ink-soft);margin:6px 0 10px;}
+
+/* legend chips */
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-family:'Overpass',system-ui,sans-serif;font-size:.74rem;color:var(--ink-soft);margin-top:10px;}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;}
+.legend i.att{background:var(--accent-2);}
+.legend i.def{background:var(--accent);}
+.legend i.hl{background:var(--accent-soft);border:1px solid var(--accent);border-radius:2px;}
+.legend i.hl2{background:var(--accent-2-soft);border:1px solid var(--accent-2);border-radius:2px;}
+
+/* collapsible reference rows */
+.vlist{border:1px solid var(--line);border-radius:3px;background:var(--surface);}
+.vlist + .vlist{margin-top:14px;}
+.vlist-head,details.var>summary{
+  display:grid;grid-template-columns:minmax(0,15.5rem) minmax(0,9.5rem) minmax(0,1fr) 16px;
+  gap:12px;padding:9px 12px;align-items:baseline;
+}
+.vlist-head{
+  font-family:'Overpass',system-ui,sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-soft);background:var(--surface-2);font-weight:700;border-bottom:1px solid var(--line);
+}
+details.var{border-bottom:1px solid var(--line);}
+details.var:last-child{border-bottom:none;}
+details.var>summary{cursor:pointer;list-style:none;font-size:.86rem;}
+details.var>summary::-webkit-details-marker{display:none;}
+details.var>summary:hover{background:var(--surface-2);}
+details.var>summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+details.var[open]>summary{background:var(--surface-2);}
+details.var.box{border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px;}
+details.var.box>summary{grid-template-columns:minmax(0,1fr) 16px;}
+.vn{font-family:'JetBrains Mono',monospace;color:var(--accent-2);overflow-wrap:anywhere;}
+.vt{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);font-size:.78rem;overflow-wrap:anywhere;}
+.vh{min-width:0;}
+.chev{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);text-align:right;}
+.chev::before{content:"+";}
+details[open]>summary .chev::before{content:"\2212";}
+.var-body{padding:14px 16px 18px;border-top:1px dashed var(--line);display:grid;gap:12px;font-size:.92rem;min-width:0;}
+.var-body p{margin:0;max-width:70ch;}
+.var-body ul{margin:0;padding-left:1.1em;max-width:70ch;}
+.var-body li{margin-bottom:.3em;}
+.var-body .code{font-size:.76rem;}
+.lbl{display:block;margin-bottom:2px;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);}
+.facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:3px 14px;font-size:.84rem;margin:0;}
+.facts dt{font-family:'Overpass',system-ui,sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding-top:3px;}
+.facts dd{margin:0;min-width:0;overflow-wrap:anywhere;}
+.var-fig{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:12px;overflow-x:auto;}
+.var-fig svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+.var-fig figcaption{margin-top:6px;}
+.split2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;}
+
+/* drawn arrays */
+.arrs{display:grid;gap:6px;}
+.arr{display:grid;grid-template-columns:minmax(0,12rem) minmax(0,1fr);gap:4px 12px;align-items:end;}
+.arr-name{font-family:'JetBrains Mono',monospace;font-size:.74rem;color:var(--ink-soft);overflow-wrap:anywhere;padding-bottom:6px;}
+.cells{display:flex;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:.78rem;min-width:0;padding-bottom:2px;}
+.cells>span{
+  display:flex;flex-direction:column;align-items:center;min-width:2.6em;padding:2px 6px 4px;
+  border:1px solid var(--line);margin-left:-1px;background:var(--surface);white-space:nowrap;
+}
+.cells>span:first-child{margin-left:0;}
+.cells>span>i{font-style:normal;font-size:.6rem;color:var(--ink-soft);}
+.cells>span.nil{color:var(--ink-soft);}
+.cells>span.nil b{opacity:.55;}
+.cells>span b{font-weight:500;}
+.cells>span.hl{background:var(--accent-soft);color:var(--accent);}
+.cells>span.hl2{background:var(--accent-2-soft);color:var(--accent-2);}
+.cells>span.split{margin-left:10px;}
+
+/* the example world renderer */
+.mini{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:10px 12px;overflow-x:auto;}
+.mini svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+.mini figcaption,.chain figcaption{margin-top:6px;}
+.bits{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:10px 12px;overflow-x:auto;}
+.bits svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+.bits figcaption{margin-top:6px;}
+.chain{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:10px 12px;overflow-x:auto;}
+.chain svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+
+@media (max-width:680px){
+  .vlist-head{display:none;}
+  details.var>summary{grid-template-columns:minmax(0,1fr) 16px;gap:2px 10px;}
+  details.var>summary>.vn,details.var>summary>.vt,details.var>summary>.vh{grid-column:1;}
+  details.var>summary>.chev{grid-column:2;grid-row:1;}
+  .arr{grid-template-columns:minmax(0,1fr);}
+  .arr-name{padding-bottom:0;}
+  .split2{grid-template-columns:minmax(0,1fr);}
+  h1{font-size:1.55rem;}
+  .titleblock{padding:18px;}
+  .meta{gap:14px;}
+  section{margin-top:44px;}
+}
+@media (prefers-reduced-motion: no-preference){ html{scroll-behavior:smooth;} }
+
+/* glossary rows: plain rows, and rows that open onto a drawing */
+.tlist{border:1px solid var(--line);border-radius:3px;background:var(--surface);}
+.tlist-head,.trow,details.term>summary{display:grid;grid-template-columns:minmax(0,12.5rem) minmax(0,1fr) 16px;gap:14px;padding:10px 12px;align-items:baseline;}
+.tlist-head{font-family:'Overpass',system-ui,sans-serif;font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);background:var(--surface-2);font-weight:700;border-bottom:1px solid var(--line);}
+.trow,details.term{border-bottom:1px solid var(--line);font-size:.9rem;}
+.tlist>:last-child{border-bottom:none;}
+.tn{font-family:'Overpass',system-ui,sans-serif;font-weight:700;color:var(--ink);overflow-wrap:anywhere;}
+.tn code{font-weight:500;}
+.tm{min-width:0;}
+.tm .more{font-size:.8rem;color:var(--ink-soft);}
+details.term>summary{cursor:pointer;list-style:none;}
+details.term>summary::-webkit-details-marker{display:none;}
+details.term>summary:hover,details.term[open]>summary{background:var(--surface-2);}
+details.term>summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+details.term .tn::after{content:" ◇";color:var(--accent);font-weight:400;font-size:.8em;}
+details.term .var-body{border-top:1px dashed var(--line);}
+@media (max-width:680px){
+  .tlist-head{display:none;}
+  .trow,details.term>summary{grid-template-columns:minmax(0,1fr) 16px;gap:4px 10px;}
+  .trow>.tn,.trow>.tm,details.term>summary>.tn,details.term>summary>.tm{grid-column:1;}
+  .trow>.chev,details.term>summary>.chev{grid-column:2;grid-row:1;}
+}
+</style>
+</head>
+<body>
+<div class="nav" id="nav">
+  <a href="#architecture">Architecture</a>
+  <a href="#naming">Naming</a>
+  <a href="#entities">Entities</a>
+  <a href="#index">Chunk index</a>
+  <a href="#hit">Hit</a>
+  <a href="#targeting">Targeting</a>
+  <button class="xall" type="button" aria-pressed="false">Expand all</button>
+</div>
+<div class="wrap">
+  <div class="titleblock">
+    <span class="eyebrow">Glossary · Servers</span>
+    <h1>Server Terms</h1>
+    <p class="sub">Every term the servers use, and what it means. Names in code follow these terms exactly. Terms marked ◇ open onto a drawing; all drawings use the <a href="core-servers.html#world">example world</a>.</p>
+    <dl class="meta">
+      <div><dt>Pages</dt><dd><a href="core-servers.html">Core</a> · <a href="chunking-system.html">Chunking</a> · <a href="hit-system.html">Hit</a> · <a href="targeting-system.html">Targeting</a></dd></div>
+      <div><dt>Code</dt><dd>Servers/</dd></div>
+    </dl>
+    <div class="legend"><span><i class="att"></i>attacker (team 0)</span><span><i class="def"></i>defender (team 1)</span></div>
+  </div>
+<section id="architecture"><span class="eyebrow">Architecture</span><h2>How the servers are built</h2><div class="tlist" style="margin-top:14px"><div class="tlist-head"><span>Term</span><span>Meaning</span><span></span></div><details class="term" id="t-server"><summary><span class="tn">Server</span><span class="tm">One of the <code>G_</code> autoloads: <code>G_ChunkingServer</code>, <code>G_HitServer</code>, <code>G_TargetingServer</code>. Each only reads and writes the shared data; no server ever calls another one. <span class="more">→ <a href="core-servers.html#architecture">architecture</a></span></span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 620 150" width="620" role="img" aria-label="Three servers read and write one shared data block and never call each other." style="color:var(--ink)"><defs><marker id="s1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-soft)"/></marker></defs><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><rect x="210" y="10" width="200" height="44" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="310" y="30" text-anchor="middle" font-weight="700" fill="var(--accent)">shared data</text><text x="310" y="46" text-anchor="middle" font-size="9" fill="var(--ink-soft)">static vars of A_CoreServer</text><rect x="20" y="100" width="160" height="36" rx="4" fill="var(--surface)" stroke="var(--accent-2)"/><text x="100" y="122" text-anchor="middle">G_ChunkingServer</text><rect x="230" y="100" width="160" height="36" rx="4" fill="var(--surface)" stroke="var(--accent-2)"/><text x="310" y="122" text-anchor="middle">G_HitServer</text><rect x="440" y="100" width="160" height="36" rx="4" fill="var(--surface)" stroke="var(--accent-2)"/><text x="520" y="122" text-anchor="middle">G_TargetingServer</text><path d="M100,100 L250,56" stroke="var(--ink-soft)" marker-end="url(#s1)"/><path d="M310,100 L310,58" stroke="var(--ink-soft)" marker-end="url(#s1)"/><path d="M520,100 L370,56" stroke="var(--ink-soft)" marker-end="url(#s1)"/><text x="205" y="124" text-anchor="middle" fill="var(--accent)" font-size="14">✕</text><text x="415" y="124" text-anchor="middle" fill="var(--accent)" font-size="14">✕</text></g></svg><figcaption>Arrows: read and write. ✕: servers never call each other.</figcaption></figure></div></details><div class="trow" id="t-core-server"><span class="tn">Core server</span><span class="tm"><code>A_CoreServer</code>, the abstract base every server extends. It owns all shared entity data as <code>static var</code>s, plus the entity lifecycle. It holds no queries. <span class="more">→ <a href="core-servers.html#data">every variable</a></span></span><span></span></div><details class="term" id="t-lifecycle"><summary><span class="tn">Lifecycle</span><span class="tm"><code>A_CoreServer.register()</code>, <code>pre_unregister()</code>, <code>unregister()</code> and <code>release_removed_ids()</code>. Always called on <code>A_CoreServer</code> itself, never through a server. <span class="more">→ <a href="core-servers.html#lifecycle">lifecycle</a></span></span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 640 90" width="640" role="img" aria-label="Timeline: register, pre_unregister, unregister, release_removed_ids; the id is alive, announced, locked, then free." style="color:var(--ink)"><defs><marker id="lc" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-soft)"/></marker></defs><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><line x1="20" y1="40" x2="620" y2="40" stroke="var(--ink-soft)" marker-end="url(#lc)"/><rect x="40" y="30" width="140" height="20" fill="var(--accent-2-soft)"/><rect x="180" y="30" width="140" height="20" fill="var(--accent-soft)" opacity=".6"/><rect x="320" y="30" width="140" height="20" fill="var(--accent-soft)"/><g text-anchor="middle"><text x="40" y="20">register</text><text x="180" y="20">pre_unregister</text><text x="320" y="20">unregister</text><text x="460" y="20">release</text><text x="110" y="68" fill="var(--accent-2)">alive</text><text x="250" y="68" fill="var(--accent)">announced</text><text x="390" y="68" fill="var(--accent)">removed · locked</text><text x="540" y="68" fill="var(--ink-soft)">free for reuse</text></g></g></svg><figcaption>The four calls and the phases of one id.</figcaption></figure></div></details><div class="trow" id="t-module-manager"><span class="tn">Module manager</span><span class="tm"><code>M_ModuleManager</code>: the object that receives every hit landing on its entity, through <code>hit(hitData)</code>. The servers never apply damage themselves.</span><span></span></div><details class="term" id="t-shared-data"><summary><span class="tn">Shared data</span><span class="tm">The <code>static var</code>s on <code>A_CoreServer</code>. All servers see the same arrays, because static data exists once per class, not per instance.</span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 600 120" width="600" role="img" aria-label="Three autoload objects, each pointing at the same single array." style="color:var(--ink)"><defs><marker id="sd" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-soft)"/></marker></defs><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><g text-anchor="middle"><rect x="20" y="14" width="150" height="30" rx="3" fill="var(--surface)" stroke="var(--accent-2)"/><text x="95" y="33">G_ChunkingServer obj</text><rect x="225" y="14" width="150" height="30" rx="3" fill="var(--surface)" stroke="var(--accent-2)"/><text x="300" y="33">G_HitServer obj</text><rect x="430" y="14" width="150" height="30" rx="3" fill="var(--surface)" stroke="var(--accent-2)"/><text x="505" y="33">G_TargetingServer obj</text><rect x="150" y="80" width="300" height="30" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="300" y="99">_entityPosition: one array</text></g><path d="M95,44 L230,78" stroke="var(--ink-soft)" marker-end="url(#sd)"/><path d="M300,44 L300,78" stroke="var(--ink-soft)" marker-end="url(#sd)"/><path d="M505,44 L370,78" stroke="var(--ink-soft)" marker-end="url(#sd)"/></g></svg><figcaption>Three objects, one array: a write through one is seen by the others at once.</figcaption></figure></div></details><div class="trow" id="t-scratch-data"><span class="tn">Scratch data</span><span class="tm">Temporary per-query state (search bests, hit buffers, visit stamps). It lives as instance vars on the one server that uses it, never on <code>A_CoreServer</code>. <span class="more">→ <a href="hit-system.html#scratch">hit</a> · <a href="targeting-system.html#scratch">targeting</a></span></span><span></span></div><details class="term" id="t-codenoidcode"><summary><span class="tn"><code>NO_ID</code></span><span class="tm"><code>-1</code>. Stored wherever an entity id, slot, chunk, target or curve id points nowhere.</span><span class="chev"></span></summary><div class="var-body"><div class="arrs"><div class="arr" data-name="_entityCurveId" data-v="-1 -1 0 -1" data-hl="0 1 3"></div></div><p>In the example world only id 2 has a radius curve; the others point nowhere.</p></div></details><details class="term" id="t-chain"><summary><span class="tn">Chain</span><span class="tm">A linked list stored in flat arrays: a <code>First…</code> array holds the head per owner, <code>…Next</code> / <code>…Prev</code> arrays hold the links, <code>NO_ID</code> ends it. New members are pushed at the head, so a chain reads newest first. Slot, center and targeter chains all work this way.</span><span class="chev"></span></summary><div class="var-body"><figure class="chain" data-label="The targeter chain of id 0: head &lt;code&gt;_entityFirstTargeter[0] = 2&lt;/code&gt;, then &lt;code&gt;Next[2] = 1&lt;/code&gt;, then −1. Teal: the back link &lt;code&gt;Prev[1] = 2&lt;/code&gt;, which lets an entry leave in a fixed number of writes." data-chain='{"boxes": [["id 0", "target", "c"], ["id 1", "→ 0", "a"], ["id 2", "→ 0", "a"], ["id 3", "→ 2"]], "links": [{"seq": [2, 1], "c": "a", "head": "First[0]", "end": true}, {"seq": [1, 2], "c": "b", "side": "bottom", "head": "Prev"}]}'><figcaption>The targeter chain of id 0: head <code>_entityFirstTargeter[0] = 2</code>, then <code>Next[2] = 1</code>, then −1. Teal: the back link <code>Prev[1] = 2</code>, which lets an entry leave in a fixed number of writes.</figcaption></figure><div class="code"><span class="c"># walk any chain</span>
+x = First[owner]
+<span class="k">while</span> x != NO_ID:
+    <span class="c"># use x</span>
+    x = Next[x]</div></div></details><details class="term" id="t-free-list"><summary><span class="tn">Free list</span><span class="tm">A stack of indices that may be handed out again: <code>_freeIds</code>, <code>_freeSlots</code>, <code>_freeCurveIds</code>. Arrays only grow when their free list is empty.</span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 520 70" width="520" role="img" aria-label="A free stack with ids 1 and 3; the next take pops 3 from the end." style="color:var(--ink)"><defs><marker id="fl" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker></defs><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><rect x="20" y="20" width="40" height="28" fill="var(--surface)" stroke="var(--line)"/><text x="40" y="38" text-anchor="middle">1</text><rect x="60" y="20" width="40" height="28" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="80" y="38" text-anchor="middle" fill="var(--accent)" font-weight="700">3</text><path d="M104,34 L190,34" stroke="var(--accent)" marker-end="url(#fl)"/><text x="200" y="30" fill="var(--accent)">next take → 3, then 1</text><text x="200" y="46" fill="var(--ink-soft)">only then append a fresh index</text></g></svg><figcaption>Last in, first out.</figcaption></figure></div></details></div></section><section id="naming"><span class="eyebrow">Naming</span><h2>The prefix names what indexes the array</h2><div class="table-wrap"><table><tr><th>Prefix</th><th>Indexed by</th><th>Example</th></tr><tr><td><code>_entity…</code> / <code>_isEntity…</code></td><td>entity id</td><td><code>_entityPosition[id]</code></td></tr><tr><td><code>_slot…</code></td><td>membership slot</td><td><code>_slotChunk[slot]</code></td></tr><tr><td><code>_chunk…</code></td><td>chunk id</td><td><code>_chunkFirstSlot[chunk]</code></td></tr><tr><td><code>_teamChunk…</code></td><td><code>team * CHUNK_COUNT + chunk</code></td><td><code>_teamChunkGroups</code></td></tr><tr><td><code>_teamColumn…</code></td><td><code>team * CHUNK_COLUMNS + column</code></td><td><code>_teamColumnMembershipCount</code></td></tr><tr><td><code>_team…</code> / <code>_teamMap…</code></td><td>team</td><td><code>_teamMapGroups[team]</code></td></tr><tr><td><code>_curve…</code></td><td>curve id</td><td><code>_curveUserCount[curveId]</code></td></tr></table></div><p class="note-inline">Linked chains always use the same words: <code>First…</code> is the head of a chain, <code>…Next</code> / <code>…Prev</code> are the links.</p><details class="term" id="t-team-blocks" style="border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px"><summary><span class="tn">Team blocks</span><span class="tm"><code>_teamChunk…</code> and <code>_teamColumn…</code> are one flat array, one block per team.</span><span class="chev"></span></summary><div class="var-body"><div class="arrs"><div class="arr" data-name="_teamColumnGroups" data-v="0b01 0 0 0b01 0 0b10 0b11 0" data-idx="A0 A1 A2 A3 D0 D1 D2 D3" data-split="4" data-hl="6"></div></div><div class="code">defender (team 1), column 2:  1 * CHUNK_COLUMNS + 2 = 1 * 4 + 2 = <span class="t">6</span></div><figure class="mini" data-label="The same eight cells drawn per column of the example world." data-world='{"cols": {"2": "a"}, "coltxt": {"0": "A 01", "1": "D 10", "2": "D 11", "3": "A 01"}}'><figcaption>The same eight cells drawn per column of the example world.</figcaption></figure></div></details></section><section id="entities"><span class="eyebrow">Entities</span><h2>What lives on the servers</h2><div class="tlist" style="margin-top:14px"><div class="tlist-head"><span>Term</span><span>Meaning</span><span></span></div><details class="term" id="t-entity"><summary><span class="tn">Entity</span><span class="tm">Anything registered on the servers: units, buildings, obstacles.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="The four entities of the &lt;a href=&quot;core-servers.html#world&quot;&gt;example world&lt;/a&gt;, used by every drawing on these pages." data-world='{"box": [], "arrows": []}'><figcaption>The four entities of the <a href="core-servers.html#world">example world</a>, used by every drawing on these pages.</figcaption></figure></div></details><details class="term" id="t-entity-id"><summary><span class="tn">Entity id</span><span class="tm">The index an entity is stored under in every shared array. Handed out by <code>register()</code>, reused after release.</span><span class="chev"></span></summary><div class="var-body"><div class="arrs"><div class="arr" data-name="_entityTeam" data-v="0 1 1 0"></div></div><div class="arrs"><div class="arr" data-name="_entityPosition" data-v="(64,64) (300,200) (256,128) (420,300)"></div></div><p>Column <em>i</em> of every array is entity <em>i</em>.</p></div></details><div class="trow" id="t-team"><span class="tn">Team</span><span class="tm"><code>C_CoreServer.TEAM</code>. Entities of one team never hit or target each other.</span><span></span></div><div class="trow" id="t-opponent"><span class="tn">Opponent</span><span class="tm">An entity of any other team.</span><span></span></div><details class="term" id="t-entity-groups"><summary><span class="tn">Entity groups</span><span class="tm">Bitmask of what an entity <em>is</em> (e.g. ground unit, building). Targeting searches for these.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Entity groups of the example world: &lt;code&gt;GROUND = 0b01&lt;/code&gt;, &lt;code&gt;AIR = 0b10&lt;/code&gt;." data-world='{"names": {"0": "GROUND", "1": "GROUND", "2": "AIR", "3": "GROUND"}}'><figcaption>Entity groups of the example world: <code>GROUND = 0b01</code>, <code>AIR = 0b10</code>.</figcaption></figure></div></details><details class="term" id="t-radius"><summary><span class="tn">Radius</span><span class="tm">The size of an entity. Decides which chunks it stands in and how big it is to hits.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Id 2 (radius 40) stands in the four chunks its bounding square touches." data-world='{"ents": [2], "box": [2], "hl": {"1": "a", "2": "a", "5": "a", "6": "a"}}'><figcaption>Id 2 (radius 40) stands in the four chunks its bounding square touches.</figcaption></figure></div></details><details class="term" id="t-pending-removal"><summary><span class="tn">Pending removal</span><span class="tm">After <code>pre_unregister()</code>: the entity still acts, but can no longer be targeted or hit.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Id 1 announced: it still stands in chunk 6 and still targets id 0, but id 0 has dropped it." data-world='{"dim": [1], "arrows": [[1, 0, "a"], [2, 0, "a"], [3, 2, "b"]]}'><figcaption>Id 1 announced: it still stands in chunk 6 and still targets id 0, but id 0 has dropped it.</figcaption></figure></div></details><details class="term" id="t-removed"><summary><span class="tn">Removed</span><span class="tm">After <code>unregister()</code>: the entity is gone from the chunk index and every chain, but its id stays locked.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Id 1 removed: no chunk, no chain; id 1 cannot be handed out yet." data-world='{"ents": [0, 2, 3], "arrows": [[2, 0, "a"], [3, 2, "b"]]}'><figcaption>Id 1 removed: no chunk, no chain; id 1 cannot be handed out yet.</figcaption></figure></div></details><div class="trow" id="t-released"><span class="tn">Released</span><span class="tm">After <code>release_removed_ids()</code>: the id is free and the next <code>register()</code> may reuse it.</span><span></span></div><details class="term" id="t-inert"><summary><span class="tn">Inert</span><span class="tm">An entity registered without hit profile and targeting data: no hit or targeted groups, never flees. It still stands on the index and can be targeted.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="An inert GROUND rock: id 0 can target it, but it never searches, never flees and is never hurt." data-world='{"ents": [0, 3], "teams": {"3": 1}, "names": {"3": "rock (inert)"}, "arrows": [[0, 3, "b", "can target it"]]}'><figcaption>An inert GROUND rock: id 0 can target it, but it never searches, never flees and is never hurt.</figcaption></figure></div></details></div></section><section id="index"><span class="eyebrow">Chunk index</span><h2>Where entities stand</h2><div class="tlist" style="margin-top:14px"><div class="tlist-head"><span>Term</span><span>Meaning</span><span></span></div><details class="term" id="t-chunk"><summary><span class="tn">Chunk</span><span class="tm">One square cell of the map grid, <code>CHUNK_SIZE</code> wide. Chunk id = <code>row * CHUNK_COLUMNS + column</code>.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Chunk 6 = row 1 × 4 + column 2. The game uses 32 × 32 chunks of 128 units; the example 4 × 3." data-world='{"ents": [], "txt": {"0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9", "10": "10", "11": "11"}, "hl": {"6": "a"}}'><figcaption>Chunk 6 = row 1 × 4 + column 2. The game uses 32 × 32 chunks of 128 units; the example 4 × 3.</figcaption></figure></div></details><details class="term" id="t-column--row"><summary><span class="tn">Column / row</span><span class="tm">Grid coordinates of a chunk. A column is also the middle aggregation level, because the two bases face each other along x.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Teal: column 2. Purple: row 1. The front line runs along columns." data-world='{"cols": {"2": "b"}, "rows": {"1": "c"}, "ents": [], "vlines": [[0, "attacker base", "b"], [512, "defender base", "a"]]}'><figcaption>Teal: column 2. Purple: row 1. The front line runs along columns.</figcaption></figure></div></details><details class="term" id="t-chunk-area"><summary><span class="tn">Chunk area</span><span class="tm">A rectangle of chunks as <code>Vector4i(minColumn, minRow, maxColumn, maxRow)</code>. An entity stands in every chunk of the area its bounding square covers.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="The area of id 2." data-world='{"ents": [2], "box": [2], "hl": {"1": "a", "2": "a", "5": "a", "6": "a"}, "below": "id 2: area (1, 0, 2, 1) = columns 1…2, rows 0…1"}'><figcaption>The area of id 2.</figcaption></figure></div></details><details class="term" id="t-bounding-square"><summary><span class="tn">Bounding square</span><span class="tm"><code>position ± radius</code>: the axis aligned square around a circle. Entities, circle hits and sector hits turn it into their chunk area (<code>_compute_circle_chunk_area()</code>).</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="A circle of radius 100 at (180, 250): square (80, 150) … (280, 350) → six chunks." data-world='{"ents": [], "circ": [[180, 250, 100, "c"]], "hl": {"4": "c", "5": "c", "6": "c", "8": "c", "9": "c", "10": "c"}, "pts": [[80, 150, "(80, 150)", "c"], [280, 350, "(280, 350)", "c"]]}'><figcaption>A circle of radius 100 at (180, 250): square (80, 150) … (280, 350) → six chunks.</figcaption></figure></div></details><details class="term" id="t-empty-chunk-area"><summary><span class="tn">Empty chunk area</span><span class="tm"><code>EMPTY_CHUNK_AREA = (0, 0, -1, -1)</code>: covers no chunk. Held by fresh and removed entities.</span><span class="chev"></span></summary><div class="var-body"><div class="code">range(0, -1 + 1)   <span class="c"># empty: a loop over the area runs zero times</span></div></div></details><div class="trow" id="t-membership"><span class="tn">Membership</span><span class="tm">"Entity X stands in chunk Y". Stored in one <strong>membership slot</strong>.</span><span></span></div><details class="term" id="t-slot"><summary><span class="tn">Slot</span><span class="tm">Always means <em>membership slot</em>. Each slot sits in two chains at once: the <strong>slot chain</strong> of its chunk (who stands here?) and the slot chain of its entity (where does it stand?). <span class="more">→ <a href="core-servers.html#g-index">slot variables</a></span></span><span class="chev"></span></summary><div class="var-body"><figure class="chain" data-label="Orange: the chain of chunk 6. Teal: the chain of entity 2. Purple slot 5 sits in both." data-chain='{"boxes": [["slot 0", "id 0 · ch 0"], ["slot 1", "id 1 · ch 6", "a"], ["slot 2", "id 2 · ch 1", "b"], ["slot 3", "id 2 · ch 2", "b"], ["slot 4", "id 2 · ch 5", "b"], ["slot 5", "id 2 · ch 6", "c"], ["slot 6", "id 3 · ch 11"]], "links": [{"seq": [5, 1], "c": "a", "head": "chunk 6", "end": true}, {"seq": [5, 4, 3, 2], "c": "b", "side": "bottom", "head": "entity 2", "end": true}]}'><figcaption>Orange: the chain of chunk 6. Teal: the chain of entity 2. Purple slot 5 sits in both.</figcaption></figure></div></details><details class="term" id="t-center-chunk"><summary><span class="tn">Center chunk</span><span class="tm">The one chunk an entity's position falls into. Every entity sits in exactly one <strong>center chain</strong>, so a chunk walk over centers sees each entity once.</span><span class="chev"></span></summary><div class="var-body"><div class="split2"><figure class="mini" data-label="Slots of id 2: four chunks." data-world='{"ents": [2], "box": [2], "hl": {"1": "a", "2": "a", "5": "a", "6": "a"}}'><figcaption>Slots of id 2: four chunks.</figcaption></figure><figure class="mini" data-label="Center of id 2: chunk 6 only." data-world='{"ents": [2], "hl": {"6": "b"}, "txt": {"6": "center"}}'><figcaption>Center of id 2: chunk 6 only.</figcaption></figure></div></div></details><details class="term" id="t-membership-count"><summary><span class="tn">Membership count</span><span class="tm">How many memberships a team has in a chunk or column. An entity counts once per chunk it stands in, so a column counts a tall entity once per row. The hit server skips chunks and columns where it is 0.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="In the chunks: per chunk counts. Below: per column. Defender column 2 counts 3: id 1 once, id 2 twice." data-world='{"txt": {"0": "A 1", "1": "D 1", "2": "D 1", "5": "D 1", "6": "D 2", "11": "A 1"}, "coltxt": {"0": "A1", "1": "D2", "2": "D3", "3": "A1"}, "ids": false}'><figcaption>In the chunks: per chunk counts. Below: per column. Defender column 2 counts 3: id 1 once, id 2 twice.</figcaption></figure></div></details><details class="term" id="t-group-mask"><summary><span class="tn">Group mask</span><span class="tm">OR of the entity groups a team has in a chunk, column or on the whole map. Searches use it to skip empty space: map → column → chunk.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Chunk masks inside, column masks below, map masks on the right." data-world='{"txt": {"0": "A 01", "1": "D 10", "2": "D 10", "5": "D 10", "6": "D 11", "11": "A 01"}, "coltxt": {"0": "A 01", "1": "D 10", "2": "D 11", "3": "A 01"}, "right": 110, "side": [["map:", "n"], ["A 0b01", "b"], ["D 0b11", "a"]], "ids": false}'><figcaption>Chunk masks inside, column masks below, map masks on the right.</figcaption></figure></div></details><details class="term" id="t-merge--rebuild"><summary><span class="tn">Merge / rebuild</span><span class="tm">Adding an entity <em>merges</em> its groups into the masks. Removing one <em>rebuilds</em> them, which stops early once the old value is reached. <span class="more">→ <a href="chunking-system.html#cascade">cascade</a></span></span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 620 110" width="620" role="img" aria-label="Removing id 2 from chunk 1: the chunk mask drops to 0, the column mask stays 10 thanks to chunk 5, the rebuild stops and the map is not touched." style="color:var(--ink)"><defs><marker id="mr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-soft)"/></marker></defs><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><rect x="10" y="20" width="160" height="46" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="90" y="38" text-anchor="middle">chunk 1 (D)</text><text x="90" y="56" text-anchor="middle" fill="var(--accent)">10 → 0 changed</text><path d="M170,43 L208,43" stroke="var(--ink-soft)" marker-end="url(#mr)"/><rect x="210" y="20" width="180" height="46" rx="3" fill="var(--surface)" stroke="var(--accent-2)"/><text x="300" y="38" text-anchor="middle">column 1: 0 | 10 = 10</text><text x="300" y="56" text-anchor="middle" fill="var(--accent-2)">= old 10 → stop</text><rect x="430" y="20" width="170" height="46" rx="3" fill="var(--surface)" stroke="var(--line)" opacity=".5"/><text x="515" y="48" text-anchor="middle" fill="var(--ink-soft)">map: not touched</text><text x="10" y="96" fill="var(--ink-soft)">a merge is |= and goes up only while a level changes; a rebuild re-ORs the level below</text></g></svg><figcaption>A rebuild that stops at the column.</figcaption></figure></div></details><details class="term" id="t-column-span"><summary><span class="tn">Column span</span><span class="tm"><code>_teamMinColumn</code> to <code>_teamMaxColumn</code>: the leftmost and rightmost column a team occupies.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Attackers span columns 0 … 3, defenders 1 … 2." data-world='{"cols": {"0": "b", "3": "b", "1": "a", "2": "a"}, "coltxt": {"0": "A min", "1": "D min", "2": "D max", "3": "A max"}}'><figcaption>Attackers span columns 0 … 3, defenders 1 … 2.</figcaption></figure></div></details></div></section><section id="hit"><span class="eyebrow">Hit system</span><h2>Words of a hit</h2><div class="tlist" style="margin-top:14px"><div class="tlist-head"><span>Term</span><span>Meaning</span><span></span></div><details class="term" id="t-hit"><summary><span class="tn">Hit</span><span class="tm">One area attack: circle, directional rect or sector (cake slice). <span class="more">→ <a href="hit-system.html#shapes">shapes</a></span></span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 620 130" width="620" role="img" aria-label="The three hit shapes: circle around an origin, rect starting at its back edge, sector opening from its tip." style="color:var(--ink)"><defs><marker id="hs" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent-3)"/></marker></defs><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><circle cx="90" cy="65" r="50" fill="var(--accent-3-soft)" stroke="var(--accent-3)" stroke-dasharray="4 3"/><circle cx="90" cy="65" r="3" fill="var(--accent-3)"/><text x="90" y="126" text-anchor="middle">circle</text><rect x="230" y="40" width="150" height="50" fill="var(--accent-3-soft)" stroke="var(--accent-3)" stroke-dasharray="4 3"/><circle cx="230" cy="65" r="3" fill="var(--accent-3)"/><path d="M230,65 L270,65" stroke="var(--accent-3)" marker-end="url(#hs)"/><text x="305" y="126" text-anchor="middle">directional rect</text><path d="M450,65 L590,15 A150,150 0 0 1 590,115 Z" fill="var(--accent-3-soft)" stroke="var(--accent-3)" stroke-dasharray="4 3"/><circle cx="450" cy="65" r="3" fill="var(--accent-3)"/><text x="530" y="126" text-anchor="middle">sector</text></g></svg><figcaption>Origins drawn as dots: center, back edge center, tip.</figcaption></figure></div></details><div class="trow" id="t-emitter"><span class="tn">Emitter</span><span class="tm">The entity a hit comes from.</span><span></span></div><details class="term" id="t-hit-groups--hurt-groups"><summary><span class="tn">Hit groups / hurt groups</span><span class="tm">A hit connects only if the emitter's <em>hit groups</em> overlap the target's <em>hurt groups</em>. Separate bit space from the entity groups.</span><span class="chev"></span></summary><div class="var-body"><figure class="bits" data-label="Id 0&#x27;s MELEE shares no bit with id 2&#x27;s hurt groups: no connection. Id 3&#x27;s RANGED does: it connects." data-bits='{"cols": ["MELEE", "RANGED", "SHIELD"], "rows": [["id 0 hit", "100", "b"], ["id 3 hit", "010", "b"], ["id 2 hurt", "010", "a"]]}'><figcaption>Id 0's MELEE shares no bit with id 2's hurt groups: no connection. Id 3's RANGED does: it connects.</figcaption></figure></div></details><details class="term" id="t-stop-groups"><summary><span class="tn">Stop groups</span><span class="tm">Hurt groups that end an <em>ordered</em> hit at the first target carrying them (e.g. a shield).</span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 520 80" width="520" role="img" aria-label="An arrow passes target A, lands on the shield carrier and stops; target B behind is never reached." style="color:var(--ink)"><defs><marker id="st" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent-2)"/></marker></defs><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><circle cx="30" cy="36" r="14" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/><path d="M46,36 L300,36" stroke="var(--accent-2)" stroke-width="1.5" marker-end="url(#st)"/><circle cx="140" cy="36" r="14" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="140" y="40" text-anchor="middle">A</text><text x="140" y="70" text-anchor="middle">1st · hit</text><circle cx="240" cy="36" r="14" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/><text x="240" y="40" text-anchor="middle">S</text><text x="240" y="70" text-anchor="middle" fill="var(--accent)">2nd · hit, stop</text><line x1="304" y1="22" x2="304" y2="50" stroke="var(--accent)" stroke-width="2"/><circle cx="400" cy="36" r="14" fill="none" stroke="var(--ink-soft)" stroke-dasharray="3 2"/><text x="400" y="40" text-anchor="middle" fill="var(--ink-soft)">B</text><text x="400" y="70" text-anchor="middle" fill="var(--ink-soft)">never reached</text></g></svg><figcaption>The stopping target is hit itself; everything after it is not.</figcaption></figure></div></details><details class="term" id="t-height-band"><summary><span class="tn">Height band</span><span class="tm">Vertical extent <code>(bottom, top)</code> above the ground, of an entity or of a hit. Both have to overlap. Ground position is the 2D x/y.</span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 560 150" width="560" role="img" aria-label="Side view: a hit band from 0 to 64 overlaps ground units but not a flyer from 96 to 160." style="color:var(--ink)"><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><line x1="40" y1="130" x2="540" y2="130" stroke="var(--ink-soft)"/><text x="34" y="133" text-anchor="end" fill="var(--ink-soft)">0</text><text x="34" y="97" text-anchor="end" fill="var(--ink-soft)">64</text><text x="34" y="79" text-anchor="end" fill="var(--ink-soft)">96</text><text x="34" y="43" text-anchor="end" fill="var(--ink-soft)">160</text><rect x="40" y="94" width="500" height="36" fill="var(--accent-3-soft)" opacity=".7"/><text x="536" y="108" text-anchor="end" fill="var(--accent-3)">hit band (0, 64)</text><rect x="90" y="94" width="30" height="36" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/><rect x="200" y="94" width="30" height="36" fill="var(--accent-soft)" stroke="var(--accent)"/><rect x="300" y="40" width="50" height="36" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="356" y="62" fill="var(--accent)">(96, 160): no overlap</text></g></svg><figcaption>Ground units overlap the hit band; the flyer does not.</figcaption></figure></div></details><details class="term" id="t-sample-height"><summary><span class="tn">Sample height</span><span class="tm">The height a hit is measured at on a target: the middle of the hit's band, clamped into the target's band.</span><span class="chev"></span></summary><div class="var-body"><div class="code">hit band (0, 192): middle 96
+target (0, 64)   → clamp(96,  0,  64) = <span class="t">64</span>
+target (96, 160) → clamp(96, 96, 160) = <span class="t">96</span></div></div></details><details class="term" id="t-radius-curve"><summary><span class="tn">Radius curve</span><span class="tm">Optional <code>Curve</code> giving the radius over the height. Its domain spans the height band, its <code>max_value</code> is the full radius.</span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 460 160" width="460" role="img" aria-label="A silhouette that is thin at the bottom of its band and full radius at the top; the curve domain is laid over the band." style="color:var(--ink)"><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><line x1="60" y1="140" x2="60" y2="20" stroke="var(--ink-soft)"/><text x="54" y="143" text-anchor="end" fill="var(--ink-soft)">96</text><text x="54" y="31" text-anchor="end" fill="var(--ink-soft)">160</text><path d="M200,140 L220,140 L250,28 L170,28 Z" fill="var(--accent-soft)" stroke="var(--accent)"/><line x1="210" y1="20" x2="210" y2="150" stroke="var(--ink-soft)" stroke-dasharray="2 2"/><text x="258" y="32" fill="var(--accent)">max_domain → factor 1.0 · r 40</text><text x="228" y="144" fill="var(--accent)">min_domain → 0.25 · r 10</text></g></svg><figcaption>The wraith of the example: its "tail" curve maps the curve domain onto its band 96 … 160.</figcaption></figure></div></details><details class="term" id="t-curve-id"><summary><span class="tn">Curve id</span><span class="tm">Index of one stored radius curve. Entities sharing a curve share its id.</span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 460 80" width="460" role="img" aria-label="Two wraiths share one Curve resource and so one curve id." style="color:var(--ink)"><defs><marker id="ci" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-soft)"/></marker></defs><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><text x="20" y="26" fill="var(--accent)">wraith id 2</text><text x="20" y="62" fill="var(--accent)">wraith id 4</text><path d="M110,22 L180,38" stroke="var(--ink-soft)" marker-end="url(#ci)"/><path d="M110,58 L180,46" stroke="var(--ink-soft)" marker-end="url(#ci)"/><rect x="184" y="26" width="120" height="30" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="244" y="45" text-anchor="middle">curve id 0</text><text x="316" y="45" fill="var(--ink-soft)">user count 2</text></g></svg><figcaption>Curves cost per archetype, not per entity.</figcaption></figure></div></details><details class="term" id="t-radius-factor"><summary><span class="tn">Radius factor</span><span class="tm">A baked curve sample divided by the curve's <code>max_value</code>, clamped to 0–1. Radius at a height = radius × factor.</span><span class="chev"></span></summary><div class="var-body"><div class="arrs"><div class="arr" data-name="_curveRadiusFactors (curve 0)" data-v="0.250 0.262 · 0.625 · 0.988 1.000" data-idx="0 1 · 32 · 63 64" data-hl="3"></div></div><p>65 samples per curve; a hit interpolates between two neighbours.</p></div></details><details class="term" id="t-effective-radius"><summary><span class="tn">Effective radius</span><span class="tm">The radius a target offers at the sample height.</span><span class="chev"></span></summary><div class="var-body"><div class="code">id 2 (radius 40), sample height 144 in band 96 … 160
+position in band = 0.75 → factor 0.8125 → effective radius = 40 × 0.8125 = <span class="t">32.5</span></div></div></details><details class="term" id="t-preferred-target"><summary><span class="tn">Preferred target</span><span class="tm">Checked first when a hit may land exactly once. Only if it misses are the chunks searched.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Archer id 3 aims at id 2: it is tested directly; the chunk index is not touched unless it misses." data-world='{"arrows": [[3, 2, "b", "tested first"]], "dim": [0, 1]}'><figcaption>Archer id 3 aims at id 2: it is tested directly; the chunk index is not touched unless it misses.</figcaption></figure></div></details><details class="term" id="t-gather"><summary><span class="tn">Gather</span><span class="tm">Collecting the candidates of a hit from the slot chains of the chunks under its bounds, skipping columns and chunks without opponents. <span class="more">→ <a href="hit-system.html#gather">gather</a></span></span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Orange chunks are walked; purple ones count no opponent and are skipped." data-world='{"circ": [[280, 170, 90, "c"]], "hl": {"1": "a", "5": "a", "2": "a", "6": "a", "9": "c", "10": "c"}, "txt": {"9": "skip", "10": "skip"}, "ids": false}'><figcaption>Orange chunks are walked; purple ones count no opponent and are skipped.</figcaption></figure></div></details><details class="term" id="t-candidate"><summary><span class="tn">Candidate · accepted · chosen · landed</span><span class="tm">The four stages a target passes. <strong>Candidate</strong>: near the shape, passed team, removal, group and height checks. <strong>Accepted</strong>: its silhouette reaches into the shape. <strong>Chosen</strong>: made it past the order, the hit limit and the stop groups. <strong>Landed</strong>: was not announced or removed by the time its turn came; only landed hits reach a module manager and are returned as impacts.</span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 640 120" width="640" role="img" aria-label="A funnel of four stages with counts from the rain of arrows example: 2 candidates, 2 accepted, 1 chosen, 1 landed." style="color:var(--ink)"><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><g text-anchor="middle"><rect x="10" y="20" width="140" height="60" rx="4" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/><text x="80" y="44" font-weight="700">candidate</text><text x="80" y="64">ids 2, 1</text><rect x="170" y="25" width="140" height="50" rx="4" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/><text x="240" y="46" font-weight="700">accepted</text><text x="240" y="64">ids 2, 1</text><rect x="330" y="30" width="140" height="40" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="400" y="48" font-weight="700">chosen</text><text x="400" y="63">id 1 (shield)</text><rect x="490" y="34" width="140" height="32" rx="4" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="560" y="54" font-weight="700">landed: id 1</text><text x="160" y="105" fill="var(--ink-soft)">shape test</text><text x="320" y="105" fill="var(--ink-soft)">order · limit · stop</text><text x="480" y="105" fill="var(--ink-soft)">not removed meanwhile</text></g></g></svg><figcaption>The <a href="hit-system.html#example">rain of arrows</a>: id 1's shield stops the ordered hit before id 2.</figcaption></figure></div></details><div class="trow" id="t-sort-key"><span class="tn">Sort key</span><span class="tm">Per accepted target. Lower lands first in an ordered hit.</span><span></span></div><details class="term" id="t-ordered-hit"><summary><span class="tn">Ordered hit</span><span class="tm">A hit whose targets land in shape order (<code>RECT_ORDER</code>, <code>SECTOR_ORDER</code>, or center-outwards for circles). Only ordered hits apply stop groups. <span class="more">→ <a href="hit-system.html#shapes">all orders</a></span></span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 360 200" width="360" role="img" aria-label="A circle hit with numbered targets landing from the center outwards." style="color:var(--ink)"><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><circle cx="160" cy="100" r="90" fill="var(--accent-3-soft)" stroke="var(--accent-3)" stroke-dasharray="4 3"/><circle cx="160" cy="100" r="3" fill="var(--accent-3)"/><circle cx="190" cy="130" r="14" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="190" y="134" text-anchor="middle">1</text><circle cx="95" cy="50" r="14" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="95" y="54" text-anchor="middle">2</text><circle cx="255" cy="30" r="14" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="255" y="34" text-anchor="middle">3</text></g></svg><figcaption>Center outwards: sort key = squared distance.</figcaption></figure></div></details><div class="trow" id="t-dispatch"><span class="tn">Dispatch</span><span class="tm">Handing the landed hits to the targets' <strong>module managers</strong>. Happens from a snapshot, so a module manager may fire hits or remove entities meanwhile. <span class="more">→ <a href="hit-system.html#dispatch">dispatch</a></span></span><span></span></div><details class="term" id="t-impact"><summary><span class="tn">Impact</span><span class="tm">Where a hit lands on a target's silhouette, as <code>(x, y, height)</code>.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Each cross sits on the target&#x27;s edge, facing the hit origin." data-world='{"circ": [[280, 170, 90, "c"]], "ents": [1, 2], "pts": [[261, 136.7, "", "a"], [288.9, 183.4, "", "a"], [280, 170, "origin", "c"]]}'><figcaption>Each cross sits on the target's edge, facing the hit origin.</figcaption></figure></div></details><details class="term" id="t-visit-stamp"><summary><span class="tn">Visit stamp</span><span class="tm">Per-gather counter that makes "already collected?" one integer compare.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Gather number 7: id 2 is met in four chunks but its stamp already says 7 after the first." data-world='{"circ": [[280, 170, 90, "c"]], "hl": {"1": "a", "2": "a", "5": "a", "6": "a"}, "names": {"0": "3", "1": "7", "2": "7 (met 4×)", "3": "5"}}'><figcaption>Gather number 7: id 2 is met in four chunks but its stamp already says 7 after the first.</figcaption></figure></div></details></div></section><section id="targeting"><span class="eyebrow">Targeting system</span><h2>Words of a search</h2><div class="tlist" style="margin-top:14px"><div class="tlist-head"><span>Term</span><span>Meaning</span><span></span></div><details class="term" id="t-state"><summary><span class="tn">State</span><span class="tm"><code>C_TargetingServer.STATE</code>: <code>SEARCH</code>, <code>APPROACH</code>, <code>COMBAT</code> or <code>FLEE</code>.</span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 470 150" width="470" role="img" aria-label="State machine: SEARCH to APPROACH on acquire, APPROACH and COMBAT by range, FLEE when threatened, back to SEARCH when the target is lost." style="color:var(--ink)"><defs><marker id="sm" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-soft)"/></marker></defs><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><rect x="10" y="50" width="90" height="34" rx="17" fill="var(--surface)" stroke="var(--ink-soft)"/><text x="55" y="71" text-anchor="middle" font-weight="700">SEARCH</text><rect x="180" y="50" width="100" height="34" rx="17" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/><text x="230" y="71" text-anchor="middle" font-weight="700">APPROACH</text><rect x="360" y="50" width="90" height="34" rx="17" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="405" y="71" text-anchor="middle" font-weight="700">COMBAT</text><rect x="180" y="110" width="100" height="34" rx="17" fill="var(--accent-3-soft)" stroke="var(--accent-3)"/><text x="230" y="131" text-anchor="middle" font-weight="700">FLEE</text><path d="M100,60 L178,60" stroke="var(--ink-soft)" marker-end="url(#sm)"/><text x="139" y="54" text-anchor="middle" font-size="8.5">acquire</text><path d="M280,60 L358,60" stroke="var(--ink-soft)" marker-end="url(#sm)"/><text x="319" y="54" text-anchor="middle" font-size="8.5">in range</text><path d="M358,76 L282,76" stroke="var(--ink-soft)" marker-end="url(#sm)"/><text x="319" y="90" text-anchor="middle" font-size="8.5">out of range</text><path d="M180,74 C150,30 120,20 60,48" stroke="var(--ink-soft)" fill="none" marker-end="url(#sm)"/><text x="130" y="22" text-anchor="middle" font-size="8.5">target lost</text><path d="M230,86 L230,108" stroke="var(--accent-3)" marker-end="url(#sm)"/><text x="236" y="102" font-size="8.5" fill="var(--accent-3)">threatened</text><path d="M180,127 C100,127 60,110 55,86" stroke="var(--ink-soft)" fill="none" marker-end="url(#sm)"/><text x="70" y="124" font-size="8.5">safe again</text></g></svg><figcaption>Decided each tick by <code>update_state()</code>.</figcaption></figure></div></details><details class="term" id="t-target"><summary><span class="tn">Target</span><span class="tm">The entity an entity currently goes after, or <code>NO_ID</code>.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Each arrow is one target." data-world='{"arrows": [[0, 1, "b"], [1, 0, "a"], [2, 0, "a"], [3, 2, "b"]]}'><figcaption>Each arrow is one target.</figcaption></figure></div></details><details class="term" id="t-targeter"><summary><span class="tn">Targeter</span><span class="tm">An entity that targets a given entity. All targeters of one target form its <strong>targeter chain</strong>. The <strong>targeter count</strong> is the crowding count.</span><span class="chev"></span></summary><div class="var-body"><figure class="chain" data-label="Id 0 is targeted by id 2 and id 1: its targeter count is 2." data-chain='{"boxes": [["id 0", "2 targeters", "c"], ["id 1", "→ 0", "a"], ["id 2", "→ 0", "a"], ["id 3", "→ 2"]], "links": [{"seq": [2, 1], "c": "a", "head": "targeters of 0", "end": true}]}'><figcaption>Id 0 is targeted by id 2 and id 1: its targeter count is 2.</figcaption></figure></div></details><div class="trow" id="t-searcher"><span class="tn">Searcher</span><span class="tm">The entity running a search.</span><span></span></div><details class="term" id="t-ring"><summary><span class="tn">Ring</span><span class="tm">All chunks at exactly one chunk step count around the searcher's center chunk: ring 0 is that chunk, ring <em>r</em> holds up to 8<em>r</em> chunks. Searches scan ring by ring.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Rings 0 (solid), 1 and 2 (dashed) around chunk 5, cut off at the map edge." data-world='{"ring": [5, 2], "hl": {"5": "c"}, "ents": [], "txt": {"5": "ring 0"}}'><figcaption>Rings 0 (solid), 1 and 2 (dashed) around chunk 5, cut off at the map edge.</figcaption></figure></div></details><details class="term" id="t-targeted-groups"><summary><span class="tn">Targeted groups</span><span class="tm">Entity groups an entity may go after. <strong>Priority targeted groups</strong> are preferred over normal ones: a <strong>priority candidate</strong> beats every <strong>normal candidate</strong>, whatever the scores.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Archer id 3 picks id 2 (priority, 7.55) over id 1 (normal, 12.05)." data-world='{"arrows": [[3, 2, "b", "priority AIR"], [3, 1, "n"]], "names": {"2": "id 2 · 7.55", "1": "id 1 · 12.05"}, "dim": [0], "right": 40}'><figcaption>Archer id 3 picks id 2 (priority, 7.55) over id 1 (normal, 12.05).</figcaption></figure></div></details><div class="trow" id="t-search-radius-chunks"><span class="tn">Search radius (chunks)</span><span class="tm">How many chunk <strong>rings</strong> around the searcher's center chunk a search covers. Ring 0 is the center chunk itself.</span><span></span></div><details class="term" id="t-chunk-distance"><summary><span class="tn">Chunk distance</span><span class="tm">Steps between two center chunks; a diagonal step costs <code>DIAGONAL_CHUNK_COST</code>.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Chunk 0 to chunk 6: one diagonal (1.45) + one straight step (1) = 2.45." data-world='{"hl": {"0": "b", "5": "c", "6": "a"}, "arrows": [[0, 1, "c"]], "ents": [0, 1], "txt": {"5": "diag", "6": "straight"}}'><figcaption>Chunk 0 to chunk 6: one diagonal (1.45) + one straight step (1) = 2.45.</figcaption></figure></div></details><div class="trow" id="t-flee-radius-chunks"><span class="tn">Flee radius (chunks)</span><span class="tm">A targeter within this chunk distance makes the entity flee. <code>NEVER_FLEE</code> turns fleeing off.</span><span></span></div><details class="term" id="t-combat-range"><summary><span class="tn">Combat range</span><span class="tm">Real distance to the target's silhouette at which approaching turns into combat.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Dashed: id 1&#x27;s reach, combat range 64 + id 0&#x27;s radius 20. Id 0 is outside: &lt;code&gt;APPROACH&lt;/code&gt;." data-world='{"circ": [[300, 200, 84, "a"]], "arrows": [[1, 0, "a", "272 > 84"]], "ents": [0, 1]}'><figcaption>Dashed: id 1's reach, combat range 64 + id 0's radius 20. Id 0 is outside: <code>APPROACH</code>.</figcaption></figure></div></details><div class="trow" id="t-base-x--march-x"><span class="tn">Base x / march x</span><span class="tm">The x a team retreats to / marches towards when it has no target.</span><span></span></div><details class="term" id="t-forward-sign"><summary><span class="tn">Forward sign</span><span class="tm"><code>+1</code> or <code>-1</code>: the direction a team marches along x. Decides what counts as <strong>behind</strong>: a column on the other side of the entity's own column, against the marching direction.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Defenders march left (−1), so for id 1 in column 2 the attacker in column 3 is behind." data-world='{"ents": [1, 3], "cols": {"3": "c"}, "coltxt": {"3": "behind id 1"}, "pts": [[170, 230, "← forward (−1)", "a"]]}'><figcaption>Defenders march left (−1), so for id 1 in column 2 the attacker in column 3 is behind.</figcaption></figure></div></details><details class="term" id="t-threatened"><summary><span class="tn">Threatened</span><span class="tm">A targeter's center chunk is within the entity's flee radius. Makes an entity away from its base flee.</span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="If id 3 targeted id 1 from 1.45 chunks, inside id 1&#x27;s flee radius 2, id 1 would flee." data-world='{"arrows": [[3, 1, "b", "1.45 ≤ 2"]], "ents": [1, 3], "hl": {"6": "a"}, "ring": [6, 1]}'><figcaption>If id 3 targeted id 1 from 1.45 chunks, inside id 1's flee radius 2, id 1 would flee.</figcaption></figure></div></details><details class="term" id="t-retreat--march"><summary><span class="tn">Retreat / march</span><span class="tm">Without a target an entity either retreats to its base x (while fleeing, while an opponent got behind it, or while nothing targetable is left) or marches towards the march x. <span class="more">→ <a href="targeting-system.html#move">move destination</a></span></span><span class="chev"></span></summary><div class="var-body"><figure class="mini" data-label="Without targets both head right: id 1 retreats because id 3 got behind it, id 0 marches on the defender base." data-world='{"ents": [0, 1, 3], "cols": {"3": "b"}, "vlines": [[512, "defender base / attacker march x", "a"]], "pts": [[512, 200, "id 1 retreats", "a"], [512, 64, "id 0 marches", "b"]], "right": 80}'><figcaption>Without targets both head right: id 1 retreats because id 3 got behind it, id 0 marches on the defender base.</figcaption></figure></div></details><div class="trow" id="t-focus"><span class="tn">Focus</span><span class="tm">A focus target scores a bonus for searchers, unless the searcher is <strong>ignoring focus</strong>.</span><span></span></div><details class="term" id="t-invisible"><summary><span class="tn">Invisible</span><span class="tm">Hidden from searchers that cannot target invisible entities. Turning invisible drops those targeters.</span><span class="chev"></span></summary><div class="var-body"><figure class="bits" data-label="Id 2 is invisible: id 0 can never find it, id 3 can." data-bits='{"cw": 110, "cols": ["IS_INVISIBLE", "CAN_TARGET_INV"], "rows": [["id 2", "10", "a"], ["id 0", "00", "b"], ["id 3", "01", "b"]]}'><figcaption>Id 2 is invisible: id 0 can never find it, id 3 can.</figcaption></figure></div></details><details class="term" id="t-score"><summary><span class="tn">Score</span><span class="tm">Closeness + focus + behind + mutual − crowding, weighted by the <code>WEIGHT_</code> constants.</span><span class="chev"></span></summary><div class="var-body"><figure class="var-fig"><svg viewBox="0 0 560 110" width="560" role="img" aria-label="Score of id 1 for searcher id 3 as stacked parts: closeness 4.55, focus 6, behind 3, minus crowding 1.5, total 12.05." style="color:var(--ink)"><g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor"><rect x="20" y="30" width="91" height="30" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/><text x="65" y="50" text-anchor="middle">4.55</text><rect x="111" y="30" width="120" height="30" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="171" y="50" text-anchor="middle">focus 6</text><rect x="231" y="30" width="60" height="30" fill="var(--accent-3-soft)" stroke="var(--accent-3)"/><text x="261" y="50" text-anchor="middle">behind 3</text><rect x="261" y="64" width="30" height="16" fill="none" stroke="var(--ink-soft)" stroke-dasharray="3 2"/><text x="276" y="96" text-anchor="middle" fill="var(--ink-soft)">−1.5</text><text x="20" y="20" fill="var(--ink-soft)">closeness</text><text x="300" y="50" font-weight="700">= 12.05</text><text x="20" y="96" fill="var(--ink-soft)">1 unit = 20 px · mutual 4 would add another block</text></g></svg><figcaption>Id 1 scored by searcher id 3 in the <a href="targeting-system.html#score">worked example</a>.</figcaption></figure></div></details><details class="term" id="t-settled"><summary><span class="tn">Settled</span><span class="tm">A search stops early once no further ring could beat the best score found.</span><span class="chev"></span></summary><div class="var-body"><div class="table-wrap" style="margin-top:0"><table class="num"><tr><th>Ring</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th></tr><tr><td>Reachable bound (radius 10, bonus 13)</td><td>22</td><td>21</td><td>20</td><td>19</td><td><span class="win">18</span></td></tr><tr><td>Best found: 18</td><td>scan</td><td>scan</td><td>scan</td><td>scan</td><td><span class="win">stop</span></td></tr></table></div></div></details><div class="trow" id="t-move-destination"><span class="tn">Move destination</span><span class="tm">Where an entity should head this tick: the target, its base, or the march x.</span><span></span></div></div></section>
+</div>
+
+<script>
+(function(){
+  // ---- Drawn arrays: every .arr[data-v] becomes a row of indexed cells.
+  //   data-v     values, space separated ("-1" and "·" render faded)
+  //   data-hl    indices highlighted in the orange accent, data-hl2 in the teal one
+  //   data-idx   labels instead of 0, 1, 2 ...
+  //   data-split index before which a gap is drawn (team blocks)
+  Array.prototype.forEach.call(document.querySelectorAll('.arr[data-v]'), function(el){
+    var vals = el.getAttribute('data-v').trim().split(/\s+/);
+    var hl = (el.getAttribute('data-hl') || '').split(/\s+/);
+    var hl2 = (el.getAttribute('data-hl2') || '').split(/\s+/);
+    var idx = el.getAttribute('data-idx');
+    var labels = idx ? idx.trim().split(/\s+/) : null;
+    var splits = (el.getAttribute('data-split') || '').split(/\s+/);
+    var name = document.createElement('span');
+    name.className = 'arr-name';
+    name.textContent = el.getAttribute('data-name') || '';
+    var row = document.createElement('div');
+    row.className = 'cells';
+    vals.forEach(function(v, i){
+      var c = document.createElement('span');
+      var k = String(i);
+      if(v === '-1' || v === '·') c.classList.add('nil');
+      if(hl.indexOf(k) >= 0) c.classList.add('hl');
+      if(hl2.indexOf(k) >= 0) c.classList.add('hl2');
+      if(splits.indexOf(k) >= 0) c.classList.add('split');
+      var n = document.createElement('i');
+      n.textContent = labels ? labels[i] : k;
+      var b = document.createElement('b');
+      b.textContent = v.replace(/_/g, ' ');
+      c.appendChild(n); c.appendChild(b);
+      row.appendChild(c);
+    });
+    el.appendChild(name); el.appendChild(row);
+  });
+
+  // ---- The example world: 4 x 3 chunks of 128 units, four entities.
+  // Every figure.mini[data-world] is drawn from a small JSON spec (see the keys below).
+  var NS = 'http://www.w3.org/2000/svg';
+  var CHUNK = 128, COLS = 4, ROWS = 3, S = 56, OX = 40, OY = 26;
+  var K = S / CHUNK;
+  var WORLD = {
+    0: {team: 0, x: 64,  y: 64,  r: 20},
+    1: {team: 1, x: 300, y: 200, r: 20},
+    2: {team: 1, x: 256, y: 128, r: 40},
+    3: {team: 0, x: 420, y: 300, r: 20}
+  };
+  var TEAM_COLOR = ['var(--accent-2)', 'var(--accent)'];
+  var FILL = {a: 'var(--accent-soft)', b: 'var(--accent-2-soft)', c: 'var(--accent-3-soft)'};
+  var STROKE = {a: 'var(--accent)', b: 'var(--accent-2)', c: 'var(--accent-3)', n: 'var(--ink-soft)'};
+  var uid = 0;
+
+  function node(tag, attrs, parent, text){
+    var n = document.createElementNS(NS, tag);
+    for(var k in attrs){ n.setAttribute(k, attrs[k]); }
+    if(text !== undefined) n.textContent = text;
+    if(parent) parent.appendChild(n);
+    return n;
+  }
+  function px(x){ return OX + x * K; }
+  function py(y){ return OY + y * K; }
+  function chunkXY(c){ return {x: OX + (c % COLS) * S, y: OY + Math.floor(c / COLS) * S}; }
+
+  Array.prototype.forEach.call(document.querySelectorAll('figure.mini[data-world]'), function(fig){
+    var o = JSON.parse(fig.getAttribute('data-world'));
+    var id = 'w' + (uid++);
+    var extraH = (o.below ? 22 : 0) + (o.vlines ? 12 : 0) + (o.coltxt ? 4 : 0);
+    var W = OX + COLS * S + 20 + (o.right || 0), H = OY + ROWS * S + 18 + extraH;
+    var svg = node('svg', {viewBox: '0 0 ' + W + ' ' + H, width: Math.round(W * (o.scale || 1.35)), role: 'img', 'aria-label': fig.getAttribute('data-label') || 'Example world drawing'});
+    svg.style.color = 'var(--ink)';
+    var defs = node('defs', {}, svg);
+    ['a', 'b', 'c', 'n'].forEach(function(k){
+      var m = node('marker', {id: id + k, viewBox: '0 0 8 8', refX: 7, refY: 4, markerWidth: 6, markerHeight: 6, orient: 'auto'}, defs);
+      node('path', {d: 'M0,0 L8,4 L0,8 Z', fill: STROKE[k]}, m);
+    });
+    var g = node('g', {'font-family': 'JetBrains Mono, monospace', 'font-size': 9}, svg);
+
+    // column / row bands
+    for(var col in (o.cols || {})){
+      node('rect', {x: OX + col * S, y: OY, width: S, height: ROWS * S, fill: FILL[o.cols[col]]}, g);
+    }
+    for(var row in (o.rows || {})){
+      node('rect', {x: OX, y: OY + row * S, width: COLS * S, height: S, fill: FILL[o.rows[row]]}, g);
+    }
+    // highlighted chunks
+    for(var c in (o.hl || {})){
+      var p = chunkXY(+c);
+      node('rect', {x: p.x, y: p.y, width: S, height: S, fill: FILL[o.hl[c]], stroke: STROKE[o.hl[c]], 'stroke-width': 1.2}, g);
+    }
+    // grid
+    var grid = node('g', {fill: 'none', stroke: 'currentColor', 'stroke-opacity': .35}, g);
+    node('rect', {x: OX, y: OY, width: COLS * S, height: ROWS * S}, grid);
+    for(var i = 1; i < COLS; i++) node('line', {x1: OX + i * S, y1: OY, x2: OX + i * S, y2: OY + ROWS * S}, grid);
+    for(var j = 1; j < ROWS; j++) node('line', {x1: OX, y1: OY + j * S, x2: OX + COLS * S, y2: OY + j * S}, grid);
+    // labels
+    var lab = node('g', {fill: 'var(--ink-soft)', 'font-size': 8.5}, g);
+    for(i = 0; i < COLS; i++) node('text', {x: OX + i * S + S / 2, y: OY - 8, 'text-anchor': 'middle'}, lab, 'col ' + i);
+    for(j = 0; j < ROWS; j++) node('text', {x: OX - 6, y: OY + j * S + S / 2 + 3, 'text-anchor': 'end'}, lab, 'row ' + j);
+    if(o.nums !== false){
+      for(c = 0; c < COLS * ROWS; c++){
+        p = chunkXY(c);
+        node('text', {x: p.x + 3, y: p.y + 10, 'fill-opacity': .8}, lab, String(c));
+      }
+    }
+    // rings around a chunk: [chunk, maxRing]
+    if(o.ring){
+      var clip = node('clipPath', {id: id + 'clip'}, defs);
+      node('rect', {x: OX, y: OY, width: COLS * S, height: ROWS * S}, clip);
+      var rg = node('g', {'clip-path': 'url(#' + id + 'clip)'}, g);
+      var rc = chunkXY(o.ring[0]);
+      for(var r = o.ring[1]; r >= 0; r--){
+        node('rect', {x: rc.x - r * S + 2, y: rc.y - r * S + 2, width: (2 * r + 1) * S - 4, height: (2 * r + 1) * S - 4,
+          fill: 'none', stroke: STROKE.c, 'stroke-dasharray': r ? '4 3' : '', 'stroke-width': 1.5}, rg);
+      }
+    }
+    // chunk texts
+    for(c in (o.txt || {})){
+      p = chunkXY(+c);
+      node('text', {x: p.x + S / 2, y: p.y + S - 7, 'text-anchor': 'middle', 'font-size': 9.5, 'font-weight': 700, fill: 'var(--ink)'}, g, o.txt[c]);
+    }
+    // vertical lines at a world x: [x, label, colour]
+    (o.vlines || []).forEach(function(v){
+      node('line', {x1: px(v[0]), y1: OY - 2, x2: px(v[0]), y2: OY + ROWS * S + 2, stroke: STROKE[v[2] || 'n'], 'stroke-width': 2, 'stroke-dasharray': '5 3'}, g);
+      var right = v[0] > CHUNK * COLS / 2;
+      node('text', {x: px(v[0]) + (right ? -4 : 4), y: OY + ROWS * S + (right ? 13 : 24), 'text-anchor': right ? 'end' : 'start', fill: STROKE[v[2] || 'n']}, g, v[1]);
+    });
+    // free circles (hit shapes and the like): [x, y, r, colour]
+    (o.circ || []).forEach(function(v){
+      node('circle', {cx: px(v[0]), cy: py(v[1]), r: v[2] * K, fill: FILL[v[3]], 'fill-opacity': .6, stroke: STROKE[v[3]], 'stroke-dasharray': '4 3'}, g);
+    });
+    // entities
+    var ents = o.ents || [0, 1, 2, 3];
+    var pos = {};
+    ents.forEach(function(e){
+      var d = WORLD[e];
+      var team = (o.teams || {})[e];
+      d = {team: team === undefined ? d.team : team, x: d.x, y: d.y, r: d.r};
+      var m = (o.move || {})[e];
+      var x = m ? m[0] : d.x, y = m ? m[1] : d.y, rad = m && m[2] !== undefined ? m[2] : d.r;
+      if(m){
+        node('circle', {cx: px(d.x), cy: py(d.y), r: d.r * K, fill: 'none', stroke: TEAM_COLOR[d.team], 'stroke-dasharray': '2 2', 'stroke-opacity': .7}, g);
+      }
+      pos[e] = {x: px(x), y: py(y), r: rad * K};
+      var dim = (o.dim || []).indexOf(e) >= 0;
+      var eg = node('g', {opacity: dim ? .3 : 1}, g);
+      if((o.box || []).indexOf(e) >= 0){
+        node('rect', {x: px(x - rad), y: py(y - rad), width: 2 * rad * K, height: 2 * rad * K, fill: 'none', stroke: TEAM_COLOR[d.team], 'stroke-dasharray': '3 2'}, eg);
+      }
+      node('circle', {cx: px(x), cy: py(y), r: rad * K, fill: TEAM_COLOR[d.team], 'fill-opacity': .2, stroke: TEAM_COLOR[d.team], 'stroke-width': 1.3}, eg);
+      node('circle', {cx: px(x), cy: py(y), r: 2.2, fill: TEAM_COLOR[d.team]}, eg);
+      if(o.ids !== false){
+        var lx = px(x) + rad * K + 2, anchor = 'start';
+        if(e === 2){ lx = px(x) - rad * K - 2; anchor = 'end'; }
+        node('text', {x: lx, y: py(y) - rad * K * .55, 'text-anchor': anchor, fill: TEAM_COLOR[d.team], 'font-weight': 700, 'font-size': 9.5}, eg, (o.names || {})[e] || ('id ' + e));
+      }
+    });
+    // arrows between entities: [from, to, colour, label]
+    (o.arrows || []).forEach(function(a){
+      var f = pos[a[0]], t = pos[a[1]];
+      if(!f || !t) return;
+      var dx = t.x - f.x, dy = t.y - f.y, len = Math.sqrt(dx * dx + dy * dy) || 1;
+      var sx = f.x + dx / len * (f.r + 2), sy = f.y + dy / len * (f.r + 2);
+      var ex = t.x - dx / len * (t.r + 3), ey = t.y - dy / len * (t.r + 3);
+      var mx = (sx + ex) / 2 - dy / len * 10, my = (sy + ey) / 2 + dx / len * 10;
+      node('path', {d: 'M' + sx + ',' + sy + ' Q' + mx + ',' + my + ' ' + ex + ',' + ey, fill: 'none', stroke: STROKE[a[2] || 'n'], 'stroke-width': 1.4, 'marker-end': 'url(#' + id + (a[2] || 'n') + ')'}, g);
+      if(a[3]) node('text', {x: mx, y: my - 3, 'text-anchor': 'middle', fill: STROKE[a[2] || 'n'], 'font-size': 8.5}, g, a[3]);
+    });
+    // world points: [x, y, label, colour]
+    (o.pts || []).forEach(function(v){
+      var cx = px(v[0]), cy = py(v[1]);
+      node('path', {d: 'M' + (cx - 4) + ',' + (cy - 4) + ' L' + (cx + 4) + ',' + (cy + 4) + ' M' + (cx + 4) + ',' + (cy - 4) + ' L' + (cx - 4) + ',' + (cy + 4), stroke: STROKE[v[3] || 'n'], 'stroke-width': 1.6}, g);
+      if(v[2]) node('text', {x: cx + 6, y: cy - 5, fill: STROKE[v[3] || 'n']}, g, v[2]);
+    });
+    // side notes to the right of the grid: [[text, colour], ...]
+    (o.side || []).forEach(function(v, k){
+      node('text', {x: OX + COLS * S + 12, y: OY + 10 + k * 14, fill: STROKE[v[1]] || 'var(--ink)', 'font-size': 9}, g, v[0]);
+    });
+    // text under each column: {column: text}
+    for(var ct in (o.coltxt || {})){
+      node('text', {x: OX + ct * S + S / 2, y: OY + ROWS * S + 13, 'text-anchor': 'middle', fill: 'var(--ink)', 'font-weight': 700}, g, o.coltxt[ct]);
+    }
+    if(o.below) node('text', {x: OX, y: H - 6, fill: 'var(--ink-soft)', 'font-size': 9}, g, o.below);
+    fig.insertBefore(svg, fig.firstChild);
+  });
+
+  // ---- Chains: a row of boxes with links drawn as arcs above or below them.
+  // figure.chain[data-chain] JSON:
+  //   boxes  [[title, subtitle, colour?], ...]   colour: a / b / c / n (faded)
+  //   links  [{seq: [box indices in chain order], c: colour, side: "top" | "bottom", head: label, end: true}]
+  Array.prototype.forEach.call(document.querySelectorAll('figure.chain[data-chain]'), function(fig){
+    var o = JSON.parse(fig.getAttribute('data-chain'));
+    var id = 'c' + (uid++);
+    var BW = o.bw || 76, BH = 38, GAP = 14, X0 = 16, Y0 = 58;
+    var n = o.boxes.length;
+    var hasBottom = (o.links || []).some(function(l){ return l.side === 'bottom'; }) || (o.notes || []).length;
+    var W = X0 * 2 + n * BW + (n - 1) * GAP + 40, H = Y0 + BH + (hasBottom ? 58 : 14);
+    var svg = node('svg', {viewBox: '0 0 ' + W + ' ' + H, width: Math.round(W * (o.scale || 1.2)), role: 'img', 'aria-label': fig.getAttribute('data-label') || 'Chain drawing'});
+    svg.style.color = 'var(--ink)';
+    var defs = node('defs', {}, svg);
+    ['a', 'b', 'c', 'n'].forEach(function(k){
+      var m = node('marker', {id: id + k, viewBox: '0 0 8 8', refX: 7, refY: 4, markerWidth: 6, markerHeight: 6, orient: 'auto'}, defs);
+      node('path', {d: 'M0,0 L8,4 L0,8 Z', fill: STROKE[k]}, m);
+    });
+    var g = node('g', {'font-family': 'JetBrains Mono, monospace', 'font-size': 9.5}, svg);
+    function bx(i){ return X0 + i * (BW + GAP); }
+    o.boxes.forEach(function(b, i){
+      var col = b[2];
+      var faded = col === 'n';
+      node('rect', {x: bx(i), y: Y0, width: BW, height: BH, rx: 3, fill: col && !faded ? FILL[col] : 'var(--surface)', stroke: col && !faded ? STROKE[col] : 'var(--line)', 'stroke-width': col && !faded ? 1.4 : 1, opacity: faded ? .45 : 1}, g);
+      node('text', {x: bx(i) + BW / 2, y: Y0 + 16, 'text-anchor': 'middle', 'font-weight': 700, fill: faded ? 'var(--ink-soft)' : 'var(--ink)'}, g, b[0]);
+      if(b[1]) node('text', {x: bx(i) + BW / 2, y: Y0 + 30, 'text-anchor': 'middle', fill: 'var(--ink-soft)', 'font-size': 8.5}, g, b[1]);
+    });
+    (o.links || []).forEach(function(l, li){
+      var c = l.c || 'n', top = l.side !== 'bottom';
+      var edge = top ? Y0 : Y0 + BH, dir = top ? -1 : 1;
+      var off = (li % 2 ? 10 : -10) + BW / 2;
+      var attrs = {fill: 'none', stroke: STROKE[c], 'stroke-width': 1.4, 'marker-end': 'url(#' + id + c + ')'};
+      if(l.head !== undefined){
+        var hx = bx(l.seq[0]) + off;
+        var hy = top ? 12 : H - 6;
+        node('text', {x: hx, y: hy, 'text-anchor': 'middle', fill: STROKE[c], 'font-weight': 700}, g, l.head);
+        node('path', Object.assign({d: 'M' + hx + ',' + (hy + (top ? 4 : -12)) + ' L' + hx + ',' + (edge + dir * 3)}, attrs), g);
+      }
+      for(var k = 0; k + 1 < l.seq.length; k++){
+        var x1 = bx(l.seq[k]) + off + (top ? -6 : 6), x2 = bx(l.seq[k + 1]) + off + (top ? 6 : -6);
+        var h = 16 + Math.min(26, Math.abs(l.seq[k + 1] - l.seq[k]) * 5);
+        node('path', Object.assign({d: 'M' + x1 + ',' + edge + ' C' + x1 + ',' + (edge + dir * h) + ' ' + x2 + ',' + (edge + dir * h) + ' ' + x2 + ',' + (edge + dir * 3)}, attrs), g);
+      }
+      if(l.end){
+        var last = l.seq[l.seq.length - 1];
+        var ex = bx(last) + off + (top ? -6 : 6);
+        node('path', {d: 'M' + ex + ',' + edge + ' L' + ex + ',' + (edge + dir * 12), stroke: STROKE[c], 'stroke-width': 1.4, 'stroke-dasharray': '2 2'}, g);
+        node('text', {x: ex + (top ? -3 : 3), y: edge + dir * 12 + (top ? 0 : 8), 'text-anchor': top ? 'end' : 'start', fill: STROKE[c], 'font-weight': 700}, g, '−1');
+      }
+    });
+    (o.notes || []).forEach(function(t, k){
+      node('text', {x: X0, y: H - 6 - (o.notes.length - 1 - k) * 12, fill: 'var(--ink-soft)', 'font-size': 9}, g, t);
+    });
+    fig.insertBefore(svg, fig.firstChild);
+  });
+
+  // ---- Bit tables: one row per entity, one column per named bit.
+  // figure.bits[data-bits] JSON: {cols: [names], rows: [[label, "0101", colour?], ...]}  bits in column order.
+  Array.prototype.forEach.call(document.querySelectorAll('figure.bits[data-bits]'), function(fig){
+    var o = JSON.parse(fig.getAttribute('data-bits'));
+    var CW = o.cw || 74, RH = 22, LX = 110, TY = 30;
+    var W = LX + o.cols.length * CW + 10, H = TY + o.rows.length * RH + 8;
+    var svg = node('svg', {viewBox: '0 0 ' + W + ' ' + H, width: Math.round(W * 1.15), role: 'img', 'aria-label': fig.getAttribute('data-label') || 'Bit table'});
+    svg.style.color = 'var(--ink)';
+    var g = node('g', {'font-family': 'JetBrains Mono, monospace', 'font-size': 9.5}, svg);
+    o.cols.forEach(function(c, i){
+      node('text', {x: LX + i * CW + CW / 2, y: TY - 10, 'text-anchor': 'middle', fill: 'var(--ink-soft)', 'font-size': 8.5}, g, c);
+    });
+    o.rows.forEach(function(r, j){
+      var y = TY + j * RH;
+      var col = r[2] || 'n';
+      node('text', {x: LX - 10, y: y + 15, 'text-anchor': 'end', fill: col === 'n' ? 'var(--ink)' : STROKE[col], 'font-weight': 700}, g, r[0]);
+      r[1].split('').forEach(function(b, i){
+        var on = b === '1';
+        node('rect', {x: LX + i * CW + 4, y: y + 3, width: CW - 8, height: RH - 6, rx: 2,
+          fill: on ? (col === 'n' ? 'var(--accent-2-soft)' : FILL[col]) : 'none', stroke: on ? (col === 'n' ? STROKE.b : STROKE[col]) : 'var(--line)'}, g);
+        node('text', {x: LX + i * CW + CW / 2, y: y + 15, 'text-anchor': 'middle', fill: on ? 'var(--ink)' : 'var(--ink-soft)'}, g, b);
+      });
+    });
+    fig.insertBefore(svg, fig.firstChild);
+  });
+
+  // ---- Expand / collapse every reference row at once.
+  var btn = document.querySelector('.xall');
+  if(btn){
+    btn.addEventListener('click', function(){
+      var open = btn.getAttribute('aria-pressed') !== 'true';
+      Array.prototype.forEach.call(document.querySelectorAll('details.var, details.term'), function(d){ d.open = open; });
+      btn.setAttribute('aria-pressed', open ? 'true' : 'false');
+      btn.textContent = open ? 'Collapse all' : 'Expand all';
+    });
+  }
+
+  // ---- A link to a reference row opens it.
+  function openTarget(){
+    if(!location.hash) return;
+    var t = document.getElementById(location.hash.slice(1));
+    if(t && t.tagName === 'DETAILS'){ t.open = true; }
+  }
+  window.addEventListener('hashchange', openTarget);
+  openTarget();
+
+  // ---- Highlight the section in view.
+  var links = Array.prototype.slice.call(document.querySelectorAll('.nav a[href^="#"]'));
+  if(!('IntersectionObserver' in window)) return;
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        var hash = '#' + e.target.id;
+        links.forEach(function(a){ a.classList.toggle('active', a.getAttribute('href') === hash); });
+      }
+    });
+  }, {rootMargin: '-35% 0px -60% 0px'});
+  links.forEach(function(a){ var s = document.querySelector(a.getAttribute('href')); if(s) obs.observe(s); });
+})();
+</script>
+</body>
+</html>
