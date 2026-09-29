@@ -1,171 +1,108 @@
-<title>Entity Targeting System</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Targeting System</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Literata:ital,opsz,wght@0,18..36,400;0,18..36,500;0,18..36,600;1,18..36,400&family=JetBrains+Mono:wght@400;500;700&display=swap">
 <style>
 :root{
-  --bg:#EEF0EA;
-  --surface:#FFFFFF;
-  --surface-2:#E3E7DD;
-  --ink:#1B2420;
-  --ink-soft:#56635B;
-  --line:#C6CFC0;
-  --accent:#C15A2B;
-  --accent-soft:#EFD9C9;
-  --accent-2:#2B6E6E;
-  --accent-2-soft:#D3E5E3;
-  --code-bg:#1B2420;
-  --code-ink:#E7ECDC;
-  --code-soft:#93A392;
-  --code-accent:#EDA274;
-  --code-accent-2:#7FCFC6;
+  --bg:#EEF0EA;--surface:#FFFFFF;--surface-2:#E3E7DD;--ink:#1B2420;--ink-soft:#56635B;--line:#C6CFC0;
+  --accent:#C15A2B;--accent-soft:#EFD9C9;--accent-2:#2B6E6E;--accent-2-soft:#D3E5E3;
+  --accent-3:#6B5AA6;--accent-3-soft:#E2DDF0;
+  --code-bg:#1B2420;--code-ink:#E7ECDC;--code-soft:#93A392;--code-accent:#EDA274;--code-accent-2:#7FCFC6;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#12160F;
-    --surface:#181D16;
-    --surface-2:#20271C;
-    --ink:#E8ECE1;
-    --ink-soft:#A3AFA0;
-    --line:#323C2C;
-    --accent:#E38A56;
-    --accent-soft:#3A2A1D;
-    --accent-2:#63C2B8;
-    --accent-2-soft:#173230;
-    --code-bg:#0B0E08;
-    --code-ink:#DCE6D0;
-    --code-soft:#7C8A78;
-    --code-accent:#F0A878;
-    --code-accent-2:#8AD9CF;
+    --bg:#12160F;--surface:#181D16;--surface-2:#20271C;--ink:#E8ECE1;--ink-soft:#A3AFA0;--line:#323C2C;
+    --accent:#E38A56;--accent-soft:#3A2A1D;--accent-2:#63C2B8;--accent-2-soft:#173230;
+    --accent-3:#A897E0;--accent-3-soft:#2A2440;
+    --code-bg:#0B0E08;--code-ink:#DCE6D0;--code-soft:#7C8A78;--code-accent:#F0A878;--code-accent-2:#8AD9CF;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#12160F;
-  --surface:#181D16;
-  --surface-2:#20271C;
-  --ink:#E8ECE1;
-  --ink-soft:#A3AFA0;
-  --line:#323C2C;
-  --accent:#E38A56;
-  --accent-soft:#3A2A1D;
-  --accent-2:#63C2B8;
-  --accent-2-soft:#173230;
-  --code-bg:#0B0E08;
-  --code-ink:#DCE6D0;
-  --code-soft:#7C8A78;
-  --code-accent:#F0A878;
-  --code-accent-2:#8AD9CF;
+  --bg:#12160F;--surface:#181D16;--surface-2:#20271C;--ink:#E8ECE1;--ink-soft:#A3AFA0;--line:#323C2C;
+  --accent:#E38A56;--accent-soft:#3A2A1D;--accent-2:#63C2B8;--accent-2-soft:#173230;
+  --accent-3:#A897E0;--accent-3-soft:#2A2440;
+  --code-bg:#0B0E08;--code-ink:#DCE6D0;--code-soft:#7C8A78;--code-accent:#F0A878;--code-accent-2:#8AD9CF;
 }
-
 *{box-sizing:border-box;}
+html{background:var(--bg);}
 body{
-  background:var(--bg);
-  color:var(--ink);
-  font-family:'Literata',Georgia,'Times New Roman',serif;
-  font-size:16px;
-  line-height:1.62;
-  padding-inline:20px;
-  -webkit-font-smoothing:antialiased;
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Literata',Georgia,'Times New Roman',serif;font-size:16px;line-height:1.62;
+  padding-inline:16px;-webkit-font-smoothing:antialiased;
 }
-h1,h2,h3,h4,.eyebrow,.nav,.meta dt,.tag,.group-title,figcaption,th,.chip,.strip-label{
+h1,h2,h3,h4,.eyebrow,.nav,.meta dt,.tag,.group-title,figcaption,th,.chip,.lbl,.xall{
   font-family:'Overpass',system-ui,-apple-system,sans-serif;
 }
-code,.mono,.code,table.vars td:nth-child(1),table.vars td:nth-child(2),.sig{
-  font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;
-}
+code,.mono,.code,.sig{font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;}
+code{font-size:.88em;overflow-wrap:anywhere;}
 h1,h2,h3{text-wrap:balance;margin:0 0 .4em;}
 h1{font-size:2.1rem;font-weight:800;letter-spacing:-.015em;}
 h2{font-size:1.35rem;font-weight:700;margin-top:0;}
-h3{font-size:1rem;font-weight:700;}
-p{max-width:66ch;margin:0 0 .9em;}
+h3{font-size:1.02rem;font-weight:700;margin-top:1.6em;}
+p{max-width:68ch;margin:0 0 .9em;}
 .prose p:last-child{margin-bottom:0;}
 a{color:var(--accent-2);text-underline-offset:2px;}
-a:focus-visible,.nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-
-.wrap{max-width:920px;margin-inline:auto;padding-block:28px 80px;}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.wrap{max-width:940px;margin-inline:auto;padding-block:28px 80px;}
 
 .nav{
-  position:sticky;top:0;z-index:5;
-  display:flex;gap:2px;overflow-x:auto;
-  background:var(--bg);
-  border-bottom:1px solid var(--line);
-  padding-block:10px;
-  margin-inline:calc(-1 * max(20px, (100vw - 920px)/2));
-  padding-inline:max(20px, (100vw - 920px)/2);
+  position:sticky;top:0;z-index:5;display:flex;gap:2px;overflow-x:auto;align-items:center;
+  background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;
+  margin-inline:-16px;padding-inline:16px;
 }
 .nav a{
   flex:none;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink-soft);text-decoration:none;
-  padding:6px 12px;border-radius:99px;border:1px solid transparent;white-space:nowrap;
+  color:var(--ink-soft);text-decoration:none;padding:6px 12px;border-radius:99px;border:1px solid transparent;white-space:nowrap;
 }
 .nav a:hover{color:var(--ink);border-color:var(--line);}
 .nav a.active{color:var(--accent);background:var(--accent-soft);border-color:var(--accent-soft);}
+.nav .home{color:var(--accent-2);}
+.xall{
+  flex:none;margin-left:auto;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);background:none;border:1px solid var(--line);border-radius:99px;padding:5px 12px;cursor:pointer;
+}
+.xall:hover{color:var(--ink);}
+.xall:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 
-.titleblock{
-  margin-top:22px;border:1px solid var(--line);background:var(--surface);
-  border-radius:2px;padding:24px;position:relative;
-}
-.titleblock::before,.titleblock::after{
-  content:"";position:absolute;width:10px;height:10px;border-color:var(--ink-soft);opacity:.5;
-}
+.titleblock{margin-top:22px;border:1px solid var(--line);background:var(--surface);border-radius:2px;padding:24px;position:relative;}
+.titleblock::before,.titleblock::after{content:"";position:absolute;width:10px;height:10px;border-color:var(--ink-soft);opacity:.5;}
 .titleblock::before{top:6px;left:6px;border-top:1px solid;border-left:1px solid;}
 .titleblock::after{top:6px;right:6px;border-top:1px solid;border-right:1px solid;}
 .eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);}
 .titleblock h1{margin-top:.3em;}
-.titleblock .sub{color:var(--ink-soft);font-size:1rem;max-width:58ch;}
-.meta{display:flex;flex-wrap:wrap;gap:22px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--line);}
-.meta div{display:flex;flex-direction:column;gap:2px;}
+.titleblock .sub{color:var(--ink-soft);font-size:1rem;max-width:62ch;}
+.meta{display:flex;flex-wrap:wrap;gap:22px;margin:18px 0 0;padding-top:16px;border-top:1px dashed var(--line);}
+.meta div{display:flex;flex-direction:column;gap:2px;min-width:0;}
 .meta dt{font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;}
-.meta dd{margin:0;font-size:.84rem;font-family:'JetBrains Mono',monospace;}
+.meta dd{margin:0;font-size:.84rem;font-family:'JetBrains Mono',monospace;overflow-wrap:anywhere;}
 
 section{margin-top:56px;}
 section > .eyebrow{display:block;margin-bottom:6px;}
-.group-title{
-  font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--ink-soft);margin:30px 0 8px;
-}
+.group-title{font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);margin:30px 0 8px;}
 
-.figure-panel{
-  background:var(--surface);border:1px solid var(--line);border-radius:3px;
-  padding:18px 18px 12px;overflow-x:auto;margin-top:16px;
-}
+.figure-panel{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:18px 18px 12px;overflow-x:auto;margin:16px 0 0;}
 .figure-panel svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
-figcaption{font-size:.8rem;color:var(--ink-soft);margin-top:10px;text-align:center;}
+figure{margin:0;}
+figcaption{font-size:.8rem;color:var(--ink-soft);margin-top:10px;text-align:center;line-height:1.5;}
 
 .decisions{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
-.decision{
-  display:grid;grid-template-columns:auto 1fr;gap:14px;
-  padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--accent-2);
-  background:var(--surface);border-radius:2px;
-}
+.decision{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--accent-2);background:var(--surface);border-radius:2px;}
 .decision.warn{border-left-color:var(--accent);}
-.decision .chip{
-  font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--accent-2);white-space:nowrap;padding-top:3px;
-}
+.decision .chip{font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-2);white-space:nowrap;padding-top:3px;}
 .decision.warn .chip{color:var(--accent);}
-.decision p{margin:0;max-width:62ch;font-size:.94rem;}
-.decision strong{color:var(--ink);}
+.decision p{margin:0;max-width:64ch;font-size:.94rem;}
 
-.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--surface);}
-table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:560px;}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px;}
+table{border-collapse:collapse;width:100%;font-size:.86rem;}
 th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
 th{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);background:var(--surface-2);font-weight:700;}
 tr:last-child td{border-bottom:none;}
-table.vars td:nth-child(1){color:var(--accent-2);white-space:nowrap;}
-table.vars td:nth-child(2){color:var(--ink-soft);white-space:nowrap;}
+td code{white-space:nowrap;}
 table.num td{font-variant-numeric:tabular-nums;}
-table.num td:nth-child(n+2){font-family:'JetBrains Mono',monospace;white-space:nowrap;}
 td .win{color:var(--accent-2);font-weight:700;}
-
-.fn{border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px;overflow:hidden;}
-.fn-head{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
-.fn-name{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.9rem;}
-.tag{font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:99px;}
-.tag.pub{background:var(--accent-2-soft);color:var(--accent-2);}
-.tag.cost{background:var(--surface-2);color:var(--ink-soft);}
-.fn-body{padding:14px 16px 16px;display:grid;gap:12px;}
-.fn-note{margin:0;font-size:.9rem;color:var(--ink-soft);max-width:68ch;}
-.fn-note strong{color:var(--ink);font-weight:600;}
-.fn-note + .fn-note{margin-top:-4px;}
 
 .code{
   background:var(--code-bg);color:var(--code-ink);border-radius:3px;padding:13px 15px;
@@ -174,13 +111,6 @@ td .win{color:var(--accent-2);font-weight:700;}
 .code .c{color:var(--code-soft);}
 .code .k{color:var(--code-accent-2);}
 .code .t{color:var(--code-accent);}
-.code .s{color:#B6C98F;}
-
-.strip{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-top:14px;font-size:.74rem;}
-.strip div{padding:10px 12px;flex:1;text-align:center;font-family:'JetBrains Mono',monospace;}
-.strip .t0{background:var(--accent-2-soft);color:var(--accent-2);border-right:1px solid var(--line);}
-.strip .t1{background:var(--accent-soft);color:var(--accent);}
-.strip-label{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;display:block;opacity:.8;font-weight:700;}
 
 ol.seq{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;}
 ol.seq li{display:grid;grid-template-columns:28px 1fr;gap:14px;padding:12px 0;border-top:1px solid var(--line);}
@@ -188,17 +118,25 @@ ol.seq li:first-child{border-top:none;}
 ol.seq .n{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent-2);}
 ol.seq p{margin:0;font-size:.94rem;}
 ul.rules{margin:14px 0 0;padding-left:1.1em;}
-ul.rules li{margin-bottom:.55em;font-size:.94rem;max-width:66ch;}
+ul.rules li{margin-bottom:.55em;font-size:.94rem;max-width:68ch;}
 ul.rules li::marker{color:var(--accent);}
+.note-inline{border-left:3px solid var(--line);padding:2px 0 2px 14px;margin-top:16px;color:var(--ink-soft);font-size:.9rem;max-width:72ch;}
+.hint{font-size:.84rem;color:var(--ink-soft);margin:6px 0 10px;}
 
-.note-inline{
-  border-left:3px solid var(--line);padding:2px 0 2px 14px;margin-top:16px;
-  color:var(--ink-soft);font-size:.9rem;
-}
-/* ---- Collapsible variable reference ---- */
+/* legend chips */
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-family:'Overpass',system-ui,sans-serif;font-size:.74rem;color:var(--ink-soft);margin-top:10px;}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;}
+.legend i.att{background:var(--accent-2);}
+.legend i.def{background:var(--accent);}
+.legend i.hl{background:var(--accent-soft);border:1px solid var(--accent);border-radius:2px;}
+.legend i.hl2{background:var(--accent-2-soft);border:1px solid var(--accent-2);border-radius:2px;}
+
+/* collapsible reference rows */
 .vlist{border:1px solid var(--line);border-radius:3px;background:var(--surface);}
+.vlist + .vlist{margin-top:14px;}
 .vlist-head,details.var>summary{
-  display:grid;grid-template-columns:minmax(0,15rem) minmax(0,9.5rem) minmax(0,1fr) 16px;
+  display:grid;grid-template-columns:minmax(0,15.5rem) minmax(0,9.5rem) minmax(0,1fr) 16px;
   gap:12px;padding:9px 12px;align-items:baseline;
 }
 .vlist-head{
@@ -212,30 +150,35 @@ details.var>summary::-webkit-details-marker{display:none;}
 details.var>summary:hover{background:var(--surface-2);}
 details.var>summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
 details.var[open]>summary{background:var(--surface-2);}
+details.var.box{border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px;}
+details.var.box>summary{grid-template-columns:minmax(0,1fr) 16px;}
 .vn{font-family:'JetBrains Mono',monospace;color:var(--accent-2);overflow-wrap:anywhere;}
-.vt{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);font-size:.8rem;overflow-wrap:anywhere;}
+.vt{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);font-size:.78rem;overflow-wrap:anywhere;}
+.vh{min-width:0;}
 .chev{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);text-align:right;}
 .chev::before{content:"+";}
 details[open]>summary .chev::before{content:"\2212";}
 .var-body{padding:14px 16px 18px;border-top:1px dashed var(--line);display:grid;gap:12px;font-size:.92rem;min-width:0;}
-.var-body p{margin:0;max-width:68ch;}
-.var-body ul{margin:0;padding-left:1.1em;max-width:68ch;}
+.var-body p{margin:0;max-width:70ch;}
+.var-body ul{margin:0;padding-left:1.1em;max-width:70ch;}
 .var-body li{margin-bottom:.3em;}
 .var-body .code{font-size:.76rem;}
-.lbl{
-  display:block;margin-bottom:2px;font-family:'Overpass',system-ui,sans-serif;font-size:.62rem;font-weight:700;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--accent);
-}
+.lbl{display:block;margin-bottom:2px;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);}
+.facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:3px 14px;font-size:.84rem;margin:0;}
+.facts dt{font-family:'Overpass',system-ui,sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding-top:3px;}
+.facts dd{margin:0;min-width:0;overflow-wrap:anywhere;}
 .var-fig{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:12px;overflow-x:auto;}
 .var-fig svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
 .var-fig figcaption{margin-top:6px;}
+.split2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;}
 
-/* A drawn array: one cell per index, index on top. Filled in by the script at the end. */
-.arr{display:grid;grid-template-columns:minmax(0,11rem) minmax(0,1fr);gap:4px 12px;align-items:end;}
+/* drawn arrays */
+.arrs{display:grid;gap:6px;}
+.arr{display:grid;grid-template-columns:minmax(0,12rem) minmax(0,1fr);gap:4px 12px;align-items:end;}
 .arr-name{font-family:'JetBrains Mono',monospace;font-size:.74rem;color:var(--ink-soft);overflow-wrap:anywhere;padding-bottom:6px;}
 .cells{display:flex;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:.78rem;min-width:0;padding-bottom:2px;}
 .cells>span{
-  flex:none;display:flex;flex-direction:column;align-items:center;min-width:2.5em;padding:2px 6px 4px;
+  display:flex;flex-direction:column;align-items:center;min-width:2.6em;padding:2px 6px 4px;
   border:1px solid var(--line);margin-left:-1px;background:var(--surface);white-space:nowrap;
 }
 .cells>span:first-child{margin-left:0;}
@@ -246,614 +189,462 @@ details[open]>summary .chev::before{content:"\2212";}
 .cells>span.hl{background:var(--accent-soft);color:var(--accent);}
 .cells>span.hl2{background:var(--accent-2-soft);color:var(--accent-2);}
 .cells>span.split{margin-left:10px;}
-.arrs{display:grid;gap:6px;}
 
-.xall{
-  flex:none;margin-left:auto;font:inherit;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink-soft);background:none;border:1px solid var(--line);border-radius:99px;padding:5px 12px;cursor:pointer;
-}
-.xall:hover{color:var(--ink);}
-.xall:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-.hint{font-size:.8rem;color:var(--ink-soft);margin:6px 0 0;}
-@media (max-width:640px){
+/* the example world renderer */
+.mini{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:10px 12px;overflow-x:auto;}
+.mini svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+.mini figcaption,.chain figcaption{margin-top:6px;}
+.bits{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:10px 12px;overflow-x:auto;}
+.bits svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+.bits figcaption{margin-top:6px;}
+.chain{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:10px 12px;overflow-x:auto;}
+.chain svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+
+@media (max-width:680px){
   .vlist-head{display:none;}
   details.var>summary{grid-template-columns:minmax(0,1fr) 16px;gap:2px 10px;}
   details.var>summary>.vn,details.var>summary>.vt,details.var>summary>.vh{grid-column:1;}
   details.var>summary>.chev{grid-column:2;grid-row:1;}
   .arr{grid-template-columns:minmax(0,1fr);}
   .arr-name{padding-bottom:0;}
-}
-@media (max-width:640px){
+  .split2{grid-template-columns:minmax(0,1fr);}
   h1{font-size:1.55rem;}
   .titleblock{padding:18px;}
   .meta{gap:14px;}
   section{margin-top:44px;}
 }
-@media (prefers-reduced-motion: no-preference){
-  html{scroll-behavior:smooth;}
-}
+@media (prefers-reduced-motion: no-preference){ html{scroll-behavior:smooth;} }
 </style>
-
+</head>
+<body>
 <div class="nav" id="nav">
-  <a href="#overview">Overview</a>
+  <a href="#idea">Idea</a>
   <a href="#states">States</a>
-  <a href="#chunks">Chunk ranges</a>
   <a href="#search">Search</a>
-  <a href="#score">Scoring</a>
-  <a href="#graph">Target graph</a>
-  <a href="#data">Data</a>
+  <a href="#score">Score</a>
+  <a href="#settle">Early stop</a>
+  <a href="#flee">Flee</a>
+  <a href="#move">Move</a>
+  <a href="#chains">Chains</a>
+  <a href="#scratch">Scratch data</a>
   <a href="#api">API</a>
   <a href="#constants">Constants</a>
   <a href="#rules">Rules</a>
-  <button class="xall" type="button" aria-pressed="false">Expand details</button>
+  <button class="xall" type="button" aria-pressed="false">Expand all</button>
 </div>
 
 <div class="wrap">
 
   <div class="titleblock">
-    <span class="eyebrow">Implementation reference · Godot 4 / GDScript</span>
-    <h1>Entity Targeting System</h1>
-    <p class="sub">Every entity holds one target and knows where to walk. Targets are lost by event, never re-checked by polling.</p>
-    <div class="meta">
-      <div><dt>Classes</dt><dd><a href="core-servers.html">A_CoreServers</a> · G_TargetingServer · C_TargetingServer · R_TargetingData</dd></div>
-      <div><dt>Reads</dt><dd><a href="chunking-system.html">the shared chunk index</a></dd></div>
-      <div><dt>States</dt><dd>SEARCH · APPROACH · COMBAT · FLEE</dd></div>
-      <div><dt>Link cost</dt><dd>O(1) both ways</dd></div>
-      <div><dt>State</dt><dd>tested end to end in Godot 4.7</dd></div>
-    </div>
+    <span class="eyebrow">Implementation reference · Godot 4.7 / GDScript</span>
+    <h1>Targeting System</h1>
+    <p class="sub">Picks a target per entity, keeps it until something takes it away, and says where the entity should move. Searches walk the chunk grid ring by ring, count distance in chunks, and score candidates with a handful of integer tests.</p>
+    <dl class="meta">
+      <div><dt>Classes</dt><dd>G_TargetingServer · C_TargetingServer · R_TargetingData</dd></div>
+      <div><dt>Shared data on</dt><dd><a href="core-servers.html#g-targeting">A_CoreServer</a></dd></div>
+      <div><dt>Per tick</dt><dd>update_state() · get_move_destination()</dd></div>
+      <div><dt>Other pages</dt><dd><a href="core-servers.html">Core</a> · <a href="chunking-system.html">Chunking</a> · <a href="hit-system.html">Hit</a></dd></div>
+    </dl>
   </div>
 
-  <section id="overview">
-    <span class="eyebrow">Overview</span>
-    <h2>Targets are lost, not polled</h2>
+  <section id="idea">
+    <span class="eyebrow">Idea</span>
+    <h2>A target is lost, never re-checked</h2>
     <div class="prose">
-      <p>The expensive part of targeting is deciding <em>when</em> to search. This server never re-validates a target per tick. A target is dropped by exactly three events: it gets announced for removal, it turns invisible to someone who cannot see invisibles, or somebody calls <code>drop_targeters()</code> on it. Everything else — running out of range, running across the map — keeps the target.</p>
-      <p>That makes a targeting entity cost a handful of comparisons per tick, and it makes searching rare enough that the search itself can be generous: the whole chunk square around the entity, scanned once.</p>
-      <p>The server produces exactly one thing for the outside world: <code>get_target_position()</code>, the point movement should head for. It never moves anything itself.</p>
+      <p>Once <code>acquire_target()</code> picked a target, nothing ever asks "is it still the best one?". The target stays until one of a few events takes it away, and each event knows exactly whom to tell, through the <em>targeter chain</em> (everyone targeting an entity, stored on the target). That makes the per tick work tiny: <code>update_state()</code> only compares a distance and walks the entity's own targeters.</p>
+    </div>
+    <div class="figure-panel">
+      <figure>
+        <svg viewBox="0 0 860 210" width="860" role="img" aria-label="Five events that end a target: the target is announced with pre_unregister, the target is removed, the target turns invisible and the targeter cannot see invisible entities, the targeter starts fleeing, the targeter itself is removed. All of them lead to _clear_target and the SEARCH state." style="color:var(--ink)">
+          <defs><marker id="ev" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-soft)"/></marker></defs>
+          <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
+            <g>
+              <rect x="10" y="10" width="250" height="30" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="20" y="30">target: pre_unregister()</text>
+              <rect x="10" y="48" width="250" height="30" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="20" y="68">target: unregister()</text>
+              <rect x="10" y="86" width="250" height="30" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="20" y="106">target: set_is_invisible(true) ¹</text>
+              <rect x="10" y="124" width="250" height="30" rx="3" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/><text x="20" y="144">targeter: update_state() → FLEE</text>
+              <rect x="10" y="162" width="250" height="30" rx="3" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/><text x="20" y="182">targeter: unregister()</text>
+            </g>
+            <path d="M262,25 L420,90" stroke="var(--ink-soft)" marker-end="url(#ev)"/>
+            <path d="M262,63 L420,96" stroke="var(--ink-soft)" marker-end="url(#ev)"/>
+            <path d="M262,101 L420,102" stroke="var(--ink-soft)" marker-end="url(#ev)"/>
+            <path d="M262,139 L420,108" stroke="var(--ink-soft)" marker-end="url(#ev)"/>
+            <path d="M262,177 L420,114" stroke="var(--ink-soft)" marker-end="url(#ev)"/>
+            <text x="300" y="40" fill="var(--ink-soft)" font-size="9">_release_targeters()</text>
+            <text x="300" y="186" fill="var(--ink-soft)" font-size="9">_clear_target() itself</text>
+            <rect x="424" y="78" width="180" height="48" rx="4" fill="var(--surface)" stroke="var(--ink-soft)"/>
+            <text x="514" y="98" text-anchor="middle" font-weight="700">_clear_target(t)</text>
+            <text x="514" y="114" text-anchor="middle" fill="var(--ink-soft)" font-size="9">unlink, count − 1</text>
+            <path d="M604,102 L660,102" stroke="var(--ink-soft)" marker-end="url(#ev)"/>
+            <rect x="664" y="84" width="120" height="36" rx="18" fill="var(--surface)" stroke="var(--ink-soft)"/><text x="724" y="106" text-anchor="middle" font-weight="700">SEARCH</text>
+            <text x="424" y="160" fill="var(--ink-soft)" font-size="9">¹ targeters with CAN_TARGET_INVISIBLE keep it</text>
+          </g>
+        </svg>
+        <figcaption>Orange events happen to the target and walk its targeter chain; teal events happen to the targeter itself. Every path ends in <code>_clear_target()</code>, which puts the targeter back to <code>SEARCH</code>. The entity then calls <code>acquire_target()</code> when it wants a new one.</figcaption>
+      </figure>
     </div>
   </section>
 
   <section id="states">
-    <span class="eyebrow">Behaviour</span>
-    <h2>Four states, and why marching is not one</h2>
-
-    <div class="figure-panel">
-      <figure style="margin:0;">
-        <svg viewBox="0 0 780 300" role="img" aria-label="A threatened entity flees to its own base; otherwise an entity without a target searches while walking forward, an entity with a distant target approaches it, and an entity with a target in range fights." style="color:var(--ink)">
-          <g font-family="JetBrains Mono, monospace" font-size="11" fill="currentColor">
-            <rect x="20" y="120" width="150" height="58" rx="3" fill="none" stroke="var(--accent-2)"/>
-            <text x="95" y="145" text-anchor="middle" font-weight="700" fill="var(--accent-2)">SEARCH</text>
-            <text x="95" y="164" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">walks forward meanwhile</text>
-
-            <rect x="240" y="120" width="150" height="58" rx="3" fill="none" stroke="currentColor"/>
-            <text x="315" y="145" text-anchor="middle" font-weight="700">APPROACH</text>
-            <text x="315" y="164" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">target, out of range</text>
-
-            <rect x="460" y="120" width="150" height="58" rx="3" fill="none" stroke="currentColor"/>
-            <text x="535" y="145" text-anchor="middle" font-weight="700">COMBAT</text>
-            <text x="535" y="164" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">target inside hit range</text>
-
-            <rect x="240" y="20" width="370" height="52" rx="3" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
-            <text x="425" y="42" text-anchor="middle" font-weight="700" fill="var(--accent)">FLEE</text>
-            <text x="425" y="60" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">drops its target, runs for its own base x</text>
-
-            <line x1="170" y1="149" x2="236" y2="149" stroke="currentColor" marker-end="url(#a1)"/>
-            <text x="203" y="141" text-anchor="middle" font-size="9" fill="var(--ink-soft)">found</text>
-            <line x1="390" y1="142" x2="456" y2="142" stroke="currentColor" marker-end="url(#a1)"/>
-            <text x="423" y="134" text-anchor="middle" font-size="9" fill="var(--ink-soft)">in range</text>
-            <path d="M456,163 L390,163" fill="none" stroke="currentColor" marker-end="url(#a1)"/>
-            <text x="423" y="180" text-anchor="middle" font-size="9" fill="var(--ink-soft)">out of range</text>
-
-            <path d="M315,120 L315,76" fill="none" stroke="var(--accent)" marker-end="url(#a2)" marker-start="url(#a2)"/>
-            <path d="M535,120 L535,76" fill="none" stroke="var(--accent)" marker-end="url(#a2)" marker-start="url(#a2)"/>
-            <path d="M240,46 L95,46 L95,116" fill="none" stroke="var(--accent)" marker-end="url(#a2)"/>
-            <text x="150" y="38" font-size="9" fill="var(--accent)">reached base, or threat gone</text>
-            <text x="330" y="100" font-size="9" fill="var(--accent)">a targeter within fleeChunks</text>
-
-            <text x="95" y="212" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">enemy ahead → march forward</text>
-            <text x="95" y="228" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">enemy behind → fall back</text>
-            <text x="95" y="244" text-anchor="middle" font-size="9.5" fill="var(--ink-soft)">none on the map → go home</text>
-            <line x1="95" y1="178" x2="95" y2="196" stroke="currentColor" stroke-opacity=".4"/>
-          </g>
-          <defs>
-            <marker id="a1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="currentColor"/></marker>
-            <marker id="a2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker>
-          </defs>
-        </svg>
-        <figcaption><code>FLEE</code> outranks everything. Otherwise the state follows straight from "do I have a target" and "is it in range".</figcaption>
-      </figure>
-    </div>
-
-    <div class="decisions">
-      <div class="decision warn">
-        <span class="chip">Dropped</span>
-        <p><strong>There is no MARCH state.</strong> A marching state ranked above searching would let an entity walk clean through an enemy line without ever looking up. Marching is what <code>SEARCH</code> <em>returns</em>, so an entity keeps scanning every tick while it advances and picks up a target the moment one comes into range.</p>
+    <span class="eyebrow">update_state()</span>
+    <h2>Four states, decided in one cheap call</h2>
+    <div class="split2">
+      <div class="prose">
+        <p><code>update_state(id)</code> runs every tick and never searches:</p>
+        <ol class="seq">
+          <li><span class="n">1</span><p>If the entity is <strong>away from its base</strong> (more than <code>BASE_REACHED_EPSILON</code> along x) <strong>and threatened</strong> (a targeter within its flee radius): drop the target, state <code>FLEE</code>.</p></li>
+          <li><span class="n">2</span><p>Else no target: <code>SEARCH</code>.</p></li>
+          <li><span class="n">3</span><p>Else target within <code>combatRange + target radius</code>: <code>COMBAT</code>.</p></li>
+          <li><span class="n">4</span><p>Else <code>APPROACH</code>.</p></li>
+        </ol>
+        <p>Marching is not a state: an entity in <code>SEARCH</code> without anything to find simply moves where <a href="#move"><code>get_move_destination()</code></a> sends it.</p>
       </div>
-      <div class="decision">
-        <span class="chip">Flee</span>
-        <p><strong>A fleeing entity drops its own target and runs.</strong> It keeps fleeing while a targeter is inside its flee distance and it has not reached its own base x. Reaching the base ends the flight even if the threat is still chasing, so nothing runs forever.</p>
-      </div>
-      <div class="decision">
-        <span class="chip">Behind</span>
-        <p><strong>Before advancing, an entity checks the columns behind it.</strong> <code>has_opponent_before/after_column()</code> reads the outermost occupied column of the opposing team — itself kept current from raw <em>counts</em>, which include invisible entities — so something that sneaked past is noticed even by an entity that cannot see it, and the entity falls back instead of marching on.</p>
-      </div>
+      <figure class="mini" data-label="States in the example world: ids 0, 1 and 2 approach, id 3 is in combat with id 2 whose silhouette lies within its 256 range." data-world='{"circ":[[420,300,296,"b"]],"arrows":[[0,1,"b","APPROACH"],[1,0,"a"],[2,0,"a"],[3,2,"b","COMBAT"]],"below":"dashed: id 3 reach = 256 + id 2 radius 40"}'><figcaption>In the <a href="core-servers.html#world">example world</a> only id 3 is in <code>COMBAT</code>: 237.7 ≤ 256 + 40. The others approach.</figcaption></figure>
     </div>
-  </section>
-
-  <section id="chunks">
-    <span class="eyebrow">Simplification</span>
-    <h2>Ranges are chunk counts, not metres</h2>
-    <div class="prose">
-      <p>Search and flee distances are counted in <strong>chunks</strong>, not world units. A search covers the square of chunks around the entity instead of a circle, and a diagonal step costs <code>DIAGONAL_CHUNK_COST</code> rather than a square root. Nothing in the search or the scoring touches real geometry.</p>
-      <p>"The entity's own chunk" is not the coverage rectangle the index maintains for hits — it is a separate <strong>center chunk</strong>, the single chunk the entity's position falls into (<code>_chunkEntityCenterColumn/_chunkEntityCenterRow</code>). The index keeps it current on every <code>set_position()</code> call, through its own drop-out check, so reading it here is a plain array lookup.</p>
-      <p>Only one distance stays real: the <strong>hit range</strong> that separates <code>APPROACH</code> from <code>COMBAT</code>. Quantising that one to chunks would let a unit open fire from anywhere in a neighbouring chunk, which reads as sloppy in play. It is stored as a plain distance — the target's radius is added on top fresh at check time, since it differs per opponent — and only that sum is squared, so the test itself is one addition, one multiply and one compare.</p>
-    </div>
-
-    <div class="vlist" style="margin-top:16px;">
-      <div class="vlist-head"><span>Distance</span><span>Unit · default</span><span>Used for</span><span></span></div>
-
-      <details class="var">
-        <summary><span class="vn">searchChunks</span><span class="vt">chunks · 4</span><span class="vh">How far the scan square reaches in each direction</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Stored per entity as <code>_targetingEntitySearchChunks</code>. With 2, the search covers the 5 × 5 chunks around the searcher's center chunk (ring 0, 1 and 2), clamped to the map. With the default 4 it is 9 × 9 = 81 chunks, 1152 × 1152 world units on the default grid.</p>
-          <figure class="var-fig" style="margin:0;">
-            <svg viewBox="0 0 600 330" role="img" aria-label="A 5 by 5 chunk square around the searcher S. Each cell shows its chunk distance: 1 for straight neighbours, 1.45 for diagonal ones, 2, 2.45 and 2.9 in the outer ring. Cells at distance 2 or less are marked as inside a flee distance of 2." style="color:var(--ink)">
-              <g font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" fill="currentColor">
-                <rect x="96" y="86" width="168" height="168" fill="var(--accent-2)" fill-opacity=".08"/>
-                <rect x="152" y="142" width="56" height="56" fill="var(--accent-2)" fill-opacity=".2"/>
-                <g fill="none" stroke="currentColor" stroke-opacity=".4">
-                  <rect x="40" y="30" width="280" height="280"/>
-                  <line x1="96" y1="30" x2="96" y2="310"/><line x1="152" y1="30" x2="152" y2="310"/><line x1="208" y1="30" x2="208" y2="310"/><line x1="264" y1="30" x2="264" y2="310"/>
-                  <line x1="40" y1="86" x2="320" y2="86"/><line x1="40" y1="142" x2="320" y2="142"/><line x1="40" y1="198" x2="320" y2="198"/><line x1="40" y1="254" x2="320" y2="254"/>
-                </g>
-                <g fill="var(--ink-soft)">
-                  <text x="68" y="62">2.9</text><text x="124" y="62">2.45</text><text x="292" y="62">2.9</text><text x="236" y="62">2.45</text>
-                  <text x="68" y="118">2.45</text><text x="292" y="118">2.45</text>
-                  <text x="68" y="230">2.45</text><text x="292" y="230">2.45</text>
-                  <text x="68" y="286">2.9</text><text x="124" y="286">2.45</text><text x="236" y="286">2.45</text><text x="292" y="286">2.9</text>
-                </g>
-                <g fill="var(--accent)" font-weight="700">
-                  <text x="180" y="62">2</text><text x="68" y="174">2</text><text x="292" y="174">2</text><text x="180" y="286">2</text>
-                  <text x="124" y="118">1.45</text><text x="180" y="118">1</text><text x="236" y="118">1.45</text>
-                  <text x="124" y="174">1</text><text x="236" y="174">1</text>
-                  <text x="124" y="230">1.45</text><text x="180" y="230">1</text><text x="236" y="230">1.45</text>
-                </g>
-                <text x="180" y="174" fill="var(--accent-2)" font-weight="700">S</text>
-                <g text-anchor="start" font-size="10.5">
-                  <text x="346" y="60" fill="var(--ink-soft)">ring 2 · outer border</text>
-                  <text x="346" y="80" fill="var(--ink-soft)">ring 1 · tinted</text>
-                  <text x="346" y="100" fill="var(--ink-soft)">ring 0 · S's own chunk</text>
-                  <text x="346" y="140" fill="var(--accent)">bold orange: distance ≤ 2</text>
-                  <text x="346" y="156" fill="var(--accent)">→ inside fleeChunks = 2</text>
-                  <text x="346" y="196" fill="currentColor">distance = straight steps</text>
-                  <text x="346" y="212" fill="currentColor">  + diagonal steps × 1.45</text>
-                  <text x="346" y="240" fill="var(--ink-soft)">(2, 1) away: 1 diagonal</text>
-                  <text x="346" y="256" fill="var(--ink-soft)">  + 1 straight = 2.45</text>
-                </g>
-              </g>
-            </svg>
-            <figcaption>searchChunks = 2: the rings the search walks. Every number is the chunk distance from S's center chunk, as scoring and the flee check measure it.</figcaption>
-          </figure>
-          <p>Rings are scanned from the inside out, so the search can stop early once no outer ring can win (see <a href="#score">Scoring</a>). A candidate is found by its <em>center</em> chunk: a big enemy whose body reaches into the square but whose center is outside it is not found.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">fleeChunks</span><span class="vt">chunks · 2</span><span class="vh">How close a targeter has to be to start a flight</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Stored as <code>_targetingEntityFleeChunks</code>. Every tick, <code>update_entity()</code> measures the chunk distance to each entity that targets this one; if any is <code>≤ fleeChunks</code>, it drops its own target and flees. In the drawing above, a targeter standing on any bold orange cell triggers it.</p>
-          <ul>
-            <li><code>0</code> — flees only from a targeter in its own center chunk.</li>
-            <li><code>−1</code> — never flees (no distance is below 0).</li>
-            <li>The default <strong>2</strong> means every entity flees once targeted from nearby. Set −1 in the <code>R_TargetingData</code> of units that should stand and fight.</li>
-          </ul>
-          <p>Flight ends once the entity is within <code>BASE_REACHED_EPSILON</code> (32 units) of its own base x.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">hitRange</span><span class="vt">world units · 64</span><span class="vh">The real distance at which combat begins</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Stored as <code>_targetingEntityHitRange</code>. Measured to the target's <em>edge</em>, so the target's radius is added at check time:</p>
-          <div class="code">hitRange 64, target radius 20  →  reach = 84,  reach² = 7056
-distance 80:  80² = 6400 ≤ 7056  →  <span class="t">COMBAT</span>
-distance 90:  90² = 8100 &gt; 7056  →  APPROACH</div>
-          <p>A spearman might use 40, an archer 400. Whether the attack then really lands is the hit server's decision — this only switches the state.</p>
-        </div>
-      </details>
-    </div>
-
-    <p class="note-inline">The entity's own chunk is its center chunk, kept current by the index on every move — no cost added to the movement path, which is the hottest code in the whole system.</p>
   </section>
 
   <section id="search">
-    <span class="eyebrow">Search</span>
-    <h2>One walk, two winners, each entity seen once</h2>
+    <span class="eyebrow">acquire_target()</span>
+    <h2>One ring walk, two winners, each entity seen once</h2>
     <div class="prose">
-      <p>An entity can name <strong>priority groups</strong> it would rather go after. Conceptually that is two searches: one for the preferred groups, then one for the normal ones. In practice it is a single walk with two best-trackers — every candidate is scored once and lands in whichever pool it belongs to. If the priority pool has anything in it at the end, it wins. Same result, half the work.</p>
+      <p><code>acquire_target(id)</code> ignores a removed id with a warning, then calls <code>_find_best_target()</code> and, if it found one, <code>_assign_target()</code>. The search:</p>
     </div>
-
     <ol class="seq">
-      <li><span class="n">1</span><p><strong>Map check.</strong> If no opposing team holds any of the searched groups anywhere, the search returns immediately — one bitwise <code>AND</code> per team, before a single chunk is touched.</p></li>
-      <li><span class="n">2</span><p><strong>Chunk square, ring by ring.</strong> The entity's own center chunk, grown by <code>searchChunks</code> in each direction and clamped to the map, scanned ring by ring from distance 0 outwards.</p></li>
-      <li><span class="n">3</span><p><strong>Skip empty columns and chunks.</strong> <code>column_has_opponent_group()</code> and <code>chunk_has_opponent_group()</code> reject a whole column or chunk on a mask lookup, before any candidate inside it is read.</p></li>
-      <li><span class="n">4</span><p><strong>Walk the center chain, filter, then score.</strong> A chunk's candidates are its <em>center</em> members only — <code>_centerHead/_centerNext</code> — so an entity spanning several chunks is offered exactly once, never rescored, never guarded against. Team, removal flags, group mask and invisibility are checked first; only survivors get weighed.</p></li>
-      <li><span class="n">5</span><p><strong>Best priority, else best normal.</strong> Kept across rings; the lower id wins a tied score, so the result cannot depend on chunk iteration order.</p></li>
-      <li><span class="n">6</span><p><strong>Stop once no further ring can win.</strong> A chunk at ring <em>r</em> is at least <em>r</em> steps away, so its best possible closeness score is fixed. Once that upper bound — closeness plus every bonus a candidate could still add — cannot beat what the search already holds, the remaining rings are skipped.</p></li>
+      <li><span class="n">1</span><p><strong>Map filter.</strong> Searched groups = targeted | priority. If no other team's <code>_teamMapGroups</code> shares a bit with them, return <code>NO_ID</code> without touching a chunk.</p></li>
+      <li><span class="n">2</span><p><strong>Rings.</strong> For ring 0 (the searcher's center chunk), 1, 2 … up to the search radius: stop if the search is <a href="#settle">settled</a>, else scan the ring.</p></li>
+      <li><span class="n">3</span><p><strong>Column filter.</strong> A ring is walked column by column; a column whose opponent column mask has no searched group is skipped with all its chunks. The ring's two outer columns contribute every row of the ring, inner columns only its top and bottom row.</p></li>
+      <li><span class="n">4</span><p><strong>Chunk filter, then centers.</strong> A chunk whose opponent chunk mask has no searched group is skipped; otherwise its <em>center chain</em> is walked, so every entity is met exactly once.</p></li>
+      <li><span class="n">5</span><p><strong>Candidate check.</strong> Other team; not announced or removed; has a searched group; visible, or the searcher can see invisible.</p></li>
+      <li><span class="n">6</span><p><strong>Two winners.</strong> A candidate with a priority group competes for <code>_bestPriorityId</code>, any other for <code>_bestNormalId</code>. Higher score wins; a tie goes to the lower id, so the result never depends on storage order. At the end any priority winner beats the normal one.</p></li>
     </ol>
+    <div class="figure-panel">
+      <figure>
+        <svg viewBox="0 0 860 330" width="860" role="img" aria-label="A 9 by 7 section of a larger grid. Rings 0 to 3 around the searcher are outlined. Ring 2 is walked column by column: its two outer columns contribute every row, inner columns only the top and bottom chunk. One column is skipped whole because its column mask has no searched group." style="color:var(--ink)">
+          <g font-family="JetBrains Mono, monospace" font-size="9.5" fill="currentColor">
+            <g transform="translate(40,20)">
+              <!-- grid 9x7 of 36px -->
+              <g stroke="currentColor" stroke-opacity=".25" fill="none">
+                <rect x="0" y="0" width="324" height="252"/>
+                <line x1="36" y1="0" x2="36" y2="252"/><line x1="72" y1="0" x2="72" y2="252"/><line x1="108" y1="0" x2="108" y2="252"/><line x1="144" y1="0" x2="144" y2="252"/><line x1="180" y1="0" x2="180" y2="252"/><line x1="216" y1="0" x2="216" y2="252"/><line x1="252" y1="0" x2="252" y2="252"/><line x1="288" y1="0" x2="288" y2="252"/>
+                <line x1="0" y1="36" x2="324" y2="36"/><line x1="0" y1="72" x2="324" y2="72"/><line x1="0" y1="108" x2="324" y2="108"/><line x1="0" y1="144" x2="324" y2="144"/><line x1="0" y1="180" x2="324" y2="180"/><line x1="0" y1="216" x2="324" y2="216"/>
+              </g>
+              <!-- ring 2 chunks: center at col 4,row 3 → ring2 cols 2..6 rows 1..5 -->
+              <g fill="var(--accent-soft)" stroke="var(--accent)">
+                <rect x="72" y="36" width="36" height="180"/>
+                <rect x="216" y="36" width="36" height="180"/>
+                <rect x="108" y="36" width="36" height="36"/><rect x="108" y="180" width="36" height="36"/>
+                <rect x="180" y="36" width="36" height="36"/><rect x="180" y="180" width="36" height="36"/>
+              </g>
+              <rect x="144" y="0" width="36" height="252" fill="var(--accent-3-soft)" opacity=".8"/>
+              <text x="162" y="268" text-anchor="middle" fill="var(--accent-3)">skipped: mask 0</text>
+              <rect x="144" y="108" width="36" height="36" fill="var(--accent-2)" opacity=".85"/>
+              <text x="162" y="130" text-anchor="middle" fill="var(--surface)" font-weight="700">0</text>
+              <g fill="none" stroke="var(--accent-2)" stroke-width="1.5">
+                <rect x="110" y="74" width="104" height="104" stroke-dasharray="4 3"/>
+                <rect x="74" y="38" width="176" height="176" stroke="var(--accent)"/>
+                <rect x="38" y="2" width="248" height="248" stroke-dasharray="2 3"/>
+              </g>
+              <text x="100" y="92" text-anchor="end" fill="var(--accent-2)">1</text>
+              <text x="64" y="56" text-anchor="end" fill="var(--accent)" font-weight="700">2</text>
+              <text x="30" y="20" text-anchor="end" fill="var(--accent-2)">3</text>
+            </g>
+            <g transform="translate(420,30)">
+              <text x="0" y="0" font-family="Overpass,sans-serif" font-weight="700" font-size="12">Scanning ring 2</text>
+              <text x="0" y="26">left column   → all 5 rows</text>
+              <text x="0" y="44">inner columns → top + bottom row</text>
+              <text x="0" y="62">right column  → all 5 rows</text>
+              <text x="0" y="80" fill="var(--accent-3)">a column without a searched group:</text>
+              <text x="0" y="96" fill="var(--accent-3)">skipped in one test, whole ring height</text>
+              <text x="0" y="128">per chunk:  chunk mask test,</text>
+              <text x="0" y="144">            then walk its center chain</text>
+              <text x="0" y="176">ring r holds 8r chunks (fewer at the map edge)</text>
+              <text x="0" y="192">every chunk of ring r is ≥ r steps away</text>
+              <text x="0" y="224" fill="var(--ink-soft)">rows and columns outside the map are clamped</text>
+              <text x="0" y="240" fill="var(--ink-soft)">away; a ring can be partly off the map</text>
+            </g>
+          </g>
+        </svg>
+        <figcaption>A section of the real 32 × 32 grid around a searcher (dark chunk, ring 0). Ring 2 has 16 chunks: 14 orange ones are opened, the 2 in the purple column are skipped with that column in one test.</figcaption>
+      </figure>
+    </div>
   </section>
 
   <section id="score">
-    <span class="eyebrow">Scoring</span>
+    <span class="eyebrow">_score_candidate()</span>
     <h2>Five terms, no geometry</h2>
-    <div class="prose">
-      <p>Every term is a comparison, a bit test or an array size. The weights live in <code>C_TargetingServer</code> and are meant to be tuned there.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Term</th><th>Value</th><th>Weight (C_TargetingServer)</th><th>Reason</th></tr>
+        <tr><td><strong>Closeness</strong></td><td><code>searchRadius − chunkDistance</code></td><td><code>WEIGHT_CLOSENESS</code> = 1.0</td><td>nearer is better; at the search edge it is 0, beyond it negative</td></tr>
+        <tr><td><strong>Focus</strong></td><td>+1 if the candidate has <code>FLAG_HAS_FOCUS</code> and the searcher is not ignoring focus</td><td><code>WEIGHT_FOCUS</code> = 6.0</td><td>gather on marked targets (banners, bosses)</td></tr>
+        <tr><td><strong>Behind</strong></td><td>+1 if the candidate's center column lies behind the searcher's, against its marching direction</td><td><code>WEIGHT_BEHIND</code> = 3.0</td><td>deal with opponents that slipped past first</td></tr>
+        <tr><td><strong>Mutual</strong></td><td>+1 if the candidate already targets the searcher</td><td><code>WEIGHT_MUTUAL</code> = 4.0</td><td>answer whoever attacks you</td></tr>
+        <tr><td><strong>Crowding</strong></td><td>− the candidate's targeter count</td><td><code>WEIGHT_CROWDING</code> = 1.5</td><td>spread out instead of all on one</td></tr>
+      </table>
     </div>
-
-    <details class="var" style="margin-top:16px;border:1px solid var(--line);border-radius:3px;background:var(--surface);">
-      <summary style="grid-template-columns:minmax(0,1fr) 16px;"><span class="vh"><strong>Worked example: three candidates, one winner</strong> <span style="color:var(--ink-soft)">— and when the search may stop early</span></span><span class="chev"></span></summary>
-      <div class="var-body">
-        <p>An attacker (marches towards larger x) stands in column 5, row 5 with <code>searchChunks = 4</code>. It does not ignore focus. Three defenders are in range:</p>
-        <div class="table-wrap">
-          <table class="num">
-            <tr><th>Candidate</th><th>Closeness</th><th>Focus</th><th>Behind</th><th>Mutual</th><th>Crowding</th><th>Score</th></tr>
-            <tr><td>A at (7, 6)</td><td>4 − 2.45 = 1.55</td><td>—</td><td>—</td><td>—</td><td>2 × −1.5</td><td>−1.45</td></tr>
-            <tr><td>B at (4, 5)</td><td>4 − 1 = 3</td><td>—</td><td>+3</td><td>+4</td><td>—</td><td><span class="win">10</span></td></tr>
-            <tr><td>C at (8, 5)</td><td>4 − 3 = 1</td><td>+6</td><td>—</td><td>—</td><td>1 × −1.5</td><td>5.5</td></tr>
-          </table>
-        </div>
-        <p>B is one column behind (<code>(4 − 5) × +1 &lt; 0</code>) and already attacks the searcher — two strong reasons to turn around. C is a focus target but already has one pursuer. A is far and crowded.</p>
-        <p><strong>Early stop.</strong> Before scanning ring <em>r</em>, the best score anything out there could still reach is <code>(searchChunks − r) × WEIGHT_CLOSENESS + every bonus</code>, crowding left out because it only subtracts. Here every bonus is <code>3 + 4 + 6 = 13</code>, so before ring 2 the bound is <code>2 + 13 = 15</code>. B's 10 cannot rule that out, so the search runs to the end. A candidate scoring 17 in ring 0 (closeness 4 + all three bonuses) would beat the ring 1 bound of 16 and end the search right there. With these weights, the early stop mostly fires when a strong candidate is very close.</p>
+    <h3>Worked example: archer id 3 searches</h3>
+    <div class="prose"><p>Id 3 (column 3, row 2, forward +1, search radius 6, targets GROUND | AIR, priority AIR, can see invisible) searches in the example world before it has a target. The map filter passes (defenders hold 0b11). Ring 0 is chunk 11: the defender column 3 mask is 0, skipped. Ring 1 opens column 2 and walks chunk 6's center chain: id 2, then id 1. Nothing else in rings 2 to 6 has a defender center.</p></div>
+    <div class="table-wrap">
+      <table class="num">
+        <tr><th>Candidate</th><th>Chunk distance</th><th>Closeness</th><th>Focus</th><th>Behind</th><th>Mutual</th><th>Crowding</th><th>Score</th><th>Category</th></tr>
+        <tr><td>id 2 (AIR, invisible)</td><td>(2,1)→(3,2): 1.45</td><td>6 − 1.45 = 4.55</td><td>—</td><td>+3</td><td>—</td><td>0</td><td><strong>7.55</strong></td><td><span class="win">priority</span></td></tr>
+        <tr><td>id 1 (GROUND, focus)</td><td>1.45</td><td>4.55</td><td>+6</td><td>+3</td><td>—</td><td>−1.5 (id 0)</td><td><strong>12.05</strong></td><td>normal</td></tr>
+      </table>
+    </div>
+    <p class="note-inline">Id 1 scores higher, but id 2 is a priority candidate, so <code>acquire_target(3)</code> returns <strong>id 2</strong>. Both are "behind" because for an entity marching right a smaller column is behind: <code>(2 − 3) * +1 &lt; 0</code>.</p>
+    <figure class="mini" style="margin-top:12px" data-label="Id 3's search: ring 0 is chunk 11, ring 1 reaches chunk 6 with ids 2 and 1; id 2 wins as a priority candidate." data-world='{"ring":[11,1],"hl":{"6":"a"},"arrows":[[3,2,"b"],[3,1,"n"]],"names":{"2":"id 2 · 7.55 priority","1":"id 1 · 12.05"},"dim":[0],"right":40}'><figcaption>Rings 0 and 1 around chunk 11. Chunk 6 holds both candidates' centers.</figcaption></figure>
+    <h3>Chunk distance</h3>
+    <div class="split2">
+      <div class="prose">
+        <p>Distance between center chunks, not positions: <code>diagonal = min(|Δcolumn|, |Δrow|)</code>, <code>straight = max(…) − diagonal</code>, <code>distance = straight + diagonal * DIAGONAL_CHUNK_COST</code> (1.45, close to √2 without a square root). It is used for the closeness score and for the flee radius.</p>
       </div>
-    </details>
-
-    <div class="vlist" style="margin-top:10px;">
-      <div class="vlist-head"><span>Weight</span><span>Value</span><span>Applies when</span><span></span></div>
-
-      <details class="var">
-        <summary><span class="vn">WEIGHT_CLOSENESS</span><span class="vt">1.0 per chunk</span><span class="vh">Per chunk nearer than the edge of the search square</span><span class="chev"></span></summary>
-        <div class="var-body"><p><code>(searchChunks − chunk distance) × 1.0</code>. With reach 4: 4 in the searcher's own chunk, 3 next door, 1.1 two diagonals away (4 − 2.9), 0 four chunks straight out, and even negative in the far corners (4 − 4 × 1.45 = −1.8). It is the only term that depends on distance, and it is what makes the other terms "tie breakers with weight".</p></div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">WEIGHT_FOCUS</span><span class="vt">+6.0</span><span class="vh">The candidate carries focus and the searcher does not ignore it</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Worth six chunks of closeness: a focus target six chunks further away ties with a plain one right next door. Candidate flag <code>FLAG_HAS_FOCUS</code> set and searcher flag <code>FLAG_IGNORES_FOCUS</code> clear.</p></div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">WEIGHT_BEHIND</span><span class="vt">+3.0</span><span class="vh">The candidate sits behind the searcher's march direction</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Decided by columns only: <code>(candidate column − searcher column) × TEAM_FORWARD_SIGN &lt; 0</code>. For an attacker (sign +1) that is any column left of its own; for a defender (sign −1), any column right of it. The same column is not "behind".</p></div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">WEIGHT_CROWDING</span><span class="vt">−1.5 each</span><span class="vh">Subtracted once per entity already targeting the candidate</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Read as <code>_targetersOf[candidate].size()</code>. Spreads attackers out: a target already chased by four loses 6 points, as much as a focus bonus. Because it depends on who searched earlier, the result depends on search order (see note below).</p></div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">WEIGHT_MUTUAL</span><span class="vt">+4.0</span><span class="vh">The candidate already targets the searcher</span><span class="chev"></span></summary>
-        <div class="var-body"><p><code>_targetingEntityTarget[candidate] == searcher</code>. "Fight whoever is fighting you" — keeps duels stable instead of two units chasing third parties past each other.</p></div>
-      </details>
+      <figure class="mini" data-label="From chunk 0 to chunk 6: one straight and one diagonal step, 2.45." data-world='{"hl":{"0":"b","5":"c","6":"a"},"arrows":[[0,1,"c"]],"ents":[0,1],"txt":{"5":"diag","6":"straight"}}'><figcaption>Id 0 (0, 0) to id 1 (2, 1): Δ = (2, 1) → 1 diagonal + 1 straight = 2.45.</figcaption></figure>
     </div>
-
-    <p class="note-inline">The crowding term makes the outcome depend on the order entities search in — the first to pick gets the uncrowded target. That is fine for singleplayer; it would need pinning down for replays or lockstep.</p>
   </section>
 
-  <section id="graph">
-    <span class="eyebrow">Data</span>
+  <section id="settle">
+    <span class="eyebrow">_is_search_settled()</span>
+    <h2>Stop as soon as no further ring can win</h2>
+    <div class="prose">
+      <p>Every chunk of ring <em>r</em> is at least <em>r</em> steps away, so no candidate there can have closeness above <code>(radius − r) * WEIGHT_CLOSENESS</code>. Add the largest bonus any candidate could get (<code>BEHIND + MUTUAL</code>, plus <code>FOCUS</code> unless the searcher ignores focus; crowding only subtracts) and you have the best score still reachable. Before scanning ring <em>r</em>:</p>
+    </div>
+    <ul class="rules">
+      <li>a priority winner exists → stop if its score ≥ the reachable bound;</li>
+      <li>no priority winner, but the map holds priority groups → never stop early: a priority candidate beats any score;</li>
+      <li>otherwise → stop if the normal winner's score ≥ the bound.</li>
+    </ul>
+    <div class="table-wrap">
+      <table class="num">
+        <tr><th>Ring about to scan</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th></tr>
+        <tr><td>Bound, radius 10, max bonus 13</td><td>22</td><td>21</td><td>20</td><td>19</td><td><span class="win">18</span></td><td>17</td><td>16</td></tr>
+        <tr><td>Winner found in ring 1, score 18</td><td>scan</td><td>scan</td><td>scan</td><td>scan</td><td><span class="win">stop</span></td><td>—</td><td>—</td></tr>
+      </table>
+    </div>
+    <p class="note-inline">A candidate one ring away with focus and behind scores <code>(10 − 1) + 6 + 3 = 18</code>. From ring 5 on, nothing can beat it, so rings 5 … 10 are never scanned. In id 3's example the priority winner (7.55) stays below every bound (13 at ring 6), so that search runs to the end; in the 4 × 3 example world that end is reached quickly because most rings lie off the map.</p>
+  </section>
+
+  <section id="flee">
+    <span class="eyebrow">_is_threatened() · _is_away_from_base()</span>
+    <h2>Fleeing: a targeter too close, far from home</h2>
+    <div class="prose">
+      <p>An entity is <strong>threatened</strong> when any entity in its targeter chain has a center chunk within its flee radius (chunk distance ≤ <code>fleeRadiusChunks</code>); <code>NEVER_FLEE</code> skips the walk. It only flees while <strong>away from its base</strong>: more than <code>BASE_REACHED_EPSILON</code> (32 units) from its team's base x. Fleeing drops its own target at once; the entity then heads for its base.</p>
+    </div>
+    <div class="split2" style="margin-top:12px">
+      <figure class="mini" data-label="Id 0 targets id 1 from 2.45 chunks: outside id 1's flee radius 2, no flight." data-world='{"arrows":[[0,1,"b","2.45 > 2"]],"ents":[0,1],"hl":{"6":"a"},"ring":[6,1]}'><figcaption>Now: id 0 targets id 1 from 2.45 chunks, outside id 1's flee radius (2). Id 1 holds.</figcaption></figure>
+      <figure class="mini" data-label="If id 3 targeted id 1 from 1.45 chunks, id 1 would flee towards the defender base at x 512." data-world='{"arrows":[[3,1,"b","1.45 ≤ 2"]],"ents":[1,3],"hl":{"6":"a"},"vlines":[[512,"defender base","a"]],"pts":[[512,200,"flees here","a"]]}'><figcaption>If id 3 targeted id 1 instead (1.45 ≤ 2), id 1 is 212 units from its base, so it would <code>FLEE</code> to (512, 200).</figcaption></figure>
+    </div>
+  </section>
+
+  <section id="move">
+    <span class="eyebrow">get_move_destination()</span>
+    <h2>Where to go this tick</h2>
+    <div class="figure-panel">
+      <figure>
+        <svg viewBox="0 0 860 200" width="860" role="img" aria-label="Decision: has a target and not fleeing → target position. Otherwise fleeing, or an opponent got behind, or nothing targetable on the map → own base x at own y. Otherwise → march x at own y." style="color:var(--ink)">
+          <defs><marker id="mv" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-soft)"/></marker></defs>
+          <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
+            <rect x="10" y="20" width="220" height="44" rx="4" fill="var(--surface)" stroke="var(--ink-soft)"/><text x="120" y="40" text-anchor="middle">target and not FLEE?</text><text x="120" y="56" text-anchor="middle" font-size="9" fill="var(--ink-soft)">_entityTarget, state</text>
+            <path d="M230,42 L300,42" stroke="var(--ink-soft)" marker-end="url(#mv)"/><text x="265" y="36" text-anchor="middle" font-size="9">yes</text>
+            <rect x="304" y="24" width="200" height="36" rx="18" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="404" y="46" text-anchor="middle" font-weight="700">target's position</text>
+            <path d="M120,64 L120,100" stroke="var(--ink-soft)" marker-end="url(#mv)"/><text x="126" y="86" font-size="9">no</text>
+            <rect x="10" y="104" width="300" height="58" rx="4" fill="var(--surface)" stroke="var(--ink-soft)"/>
+            <text x="160" y="122" text-anchor="middle">FLEE, or opponent behind (column span),</text><text x="160" y="138" text-anchor="middle">or nothing targetable on the map?</text>
+            <text x="160" y="154" text-anchor="middle" font-size="9" fill="var(--ink-soft)">_has_opponent_behind · _has_targetable_opponent_on_map</text>
+            <path d="M310,120 L380,120" stroke="var(--ink-soft)" marker-end="url(#mv)"/><text x="345" y="114" text-anchor="middle" font-size="9">yes</text>
+            <rect x="384" y="102" width="220" height="36" rx="18" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/><text x="494" y="124" text-anchor="middle" font-weight="700">(TEAM_BASE_X, own y)</text>
+            <path d="M160,162 L160,182 L380,182" stroke="var(--ink-soft)" fill="none" marker-end="url(#mv)"/><text x="270" y="176" text-anchor="middle" font-size="9">no</text>
+            <rect x="384" y="164" width="220" height="36" rx="18" fill="var(--surface)" stroke="var(--ink-soft)"/><text x="494" y="186" text-anchor="middle" font-weight="700">(TEAM_MARCH_X, own y)</text>
+            <text x="630" y="124" font-size="9" fill="var(--ink-soft)">retreat: fall back to defend</text>
+            <text x="630" y="186" font-size="9" fill="var(--ink-soft)">march on the opposing base</text>
+          </g>
+        </svg>
+        <figcaption>Without a target, the y stays where it is; only x is steered. "Behind" counts every opponent, even invisible ones and ones the entity cannot target.</figcaption>
+      </figure>
+    </div>
+    <div class="table-wrap">
+      <table class="num">
+        <tr><th>Entity</th><th>Situation</th><th>Destination</th></tr>
+        <tr><td>id 0</td><td>targets id 1</td><td>(300, 200)</td></tr>
+        <tr><td>id 3</td><td>targets id 2</td><td>(256, 128)</td></tr>
+        <tr><td>id 1, if it had no target</td><td>marches left; attacker max column 3 &gt; its column 2 → opponent behind</td><td>(512, 200): back to base</td></tr>
+        <tr><td>id 0, if it had no target</td><td>marches right; defender min column 1 is not &lt; 0; defenders hold GROUND</td><td>(512, 64): march</td></tr>
+      </table>
+    </div>
+    <figure class="mini" style="margin-top:12px" data-label="Id 1 without a target retreats right to its base because attacker id 3 stands behind it; id 0 without a target marches right." data-world='{"ents":[0,1,3],"cols":{"3":"b"},"vlines":[[512,"defender base / attacker march x","a"]],"pts":[[512,200,"id 1 → base","a"],[512,64,"id 0 → march","b"]],"right":80}'><figcaption>Both would head right, for opposite reasons: id 1 falls back because id 3 got behind it (teal column), id 0 marches on the defender base.</figcaption></figure>
+  </section>
+
+  <section id="chains">
+    <span class="eyebrow">_assign_target() · _clear_target() · _release_targeters()</span>
     <h2>The link that goes both ways</h2>
     <div class="prose">
-      <p>Three things need to know who targets whom: the crowding term, the flee check, and releasing a dying entity's pursuers. All three are cheap because the link is stored from both ends.</p>
+      <p><code>_entityTarget</code> points from the targeter to its target. The targeter chain points back: <code>_entityFirstTargeter[target]</code> is the head, <code>_entityTargeterNext/Prev</code> are stored in the targeters' own cells (each entity has at most one target, so it sits in at most one chain). <code>_assign_target()</code> first clears the old target, then pushes the targeter at the head and raises the count.</p>
     </div>
-
-    <div class="vlist" style="margin-top:16px;">
-      <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
-
-      <details class="var">
-        <summary><span class="vn">_targetingEntityTarget</span><span class="vt">PackedInt32Array</span><span class="vh">Who this entity targets, or <code>NO_ID</code></span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>The forward link. Three attackers 4, 9 and 12 all target defender 20:</p>
-          <figure class="var-fig" style="margin:0;">
-            <svg viewBox="0 0 560 170" role="img" aria-label="Entities 4, 9 and 12 each point to entity 20 through their target. Entity 20 keeps the list 4, 9, 12 of its targeters, and each targeter remembers its position in that list: 0, 1 and 2." style="color:var(--ink)">
-              <g font-family="JetBrains Mono, monospace" font-size="10.5" fill="currentColor">
-                <g fill="none" stroke="var(--accent-2)">
-                  <rect x="20" y="20" width="110" height="34" rx="3"/><rect x="20" y="68" width="110" height="34" rx="3"/><rect x="20" y="116" width="110" height="34" rx="3"/>
-                </g>
-                <text x="30" y="41">id 4</text><text x="30" y="89">id 9</text><text x="30" y="137">id 12</text>
-                <g font-size="9" fill="var(--ink-soft)"><text x="80" y="41">index 0</text><text x="80" y="89">index 1</text><text x="80" y="137">index 2</text></g>
-                <rect x="300" y="60" width="110" height="50" rx="3" fill="none" stroke="var(--accent)"/>
-                <text x="355" y="90" text-anchor="middle">id 20</text>
-                <g stroke="currentColor" fill="none">
-                  <path d="M130,37 L296,74" marker-end="url(#ta)"/><path d="M130,85 L296,85" marker-end="url(#ta)"/><path d="M130,133 L296,96" marker-end="url(#ta)"/>
-                </g>
-                <text x="210" y="16" text-anchor="middle" font-size="9" fill="var(--ink-soft)">_targetingEntityTarget = 20</text>
-                <text x="430" y="72" fill="var(--accent)">_targetersOf[20]</text>
-                <g fill="none" stroke="var(--accent)"><rect x="430" y="80" width="36" height="24"/><rect x="466" y="80" width="36" height="24"/><rect x="502" y="80" width="36" height="24"/></g>
-                <g text-anchor="middle"><text x="448" y="96">4</text><text x="484" y="96">9</text><text x="520" y="96">12</text></g>
-                <g text-anchor="middle" font-size="8.5" fill="var(--ink-soft)"><text x="448" y="118">0</text><text x="484" y="118">1</text><text x="520" y="118">2</text></g>
-              </g>
-              <defs><marker id="ta" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="currentColor"/></marker></defs>
-            </svg>
-            <figcaption>Forward: each targeter stores its target. Backward: the target stores its targeters, and each targeter knows its own index in that list.</figcaption>
-          </figure>
-          <p>Changes only through <code>search_target()</code> (assign) and the three drop events. <code>get_target()</code> reads it.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_targetersOf</span><span class="vt">Array[PackedInt32Array]</span><span class="vh">Everyone targeting this entity — its size is the crowding count</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_targetersOf[20]" data-v="4 9 12"></div></div>
-          <p>The backward link. Used by the crowding term (its size), the flee check (walk it, measure each), and every drop event (walk it, drop each). Unordered: dropping reorders it.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_targetingEntityTargeterIndex</span><span class="vt">PackedInt32Array</span><span class="vh">Own slot inside the target's list — what makes unlinking O(1)</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Without it, id 4 dropping its target would have to search 20's list. With it, the drop is a <strong>swap-and-pop</strong>: move the last entry into the hole, shrink by one, fix the moved entry's index.</p>
-          <div class="arrs">
-            <div class="arr" data-name="before: _targetersOf[20]" data-v="4 9 12" data-hl="0"></div>
-            <div class="arr" data-name="after 4 drops" data-v="12 9" data-hl="0"></div>
-          </div>
-          <div class="code">slot = _targetingEntityTargeterIndex[4]      <span class="c"># 0</span>
-list[0] = list[last]                <span class="c"># 12 moves into the hole</span>
-list.resize(last)                   <span class="c"># [12, 9]</span>
-_targetingEntityTargeterIndex[12] = 0        <span class="c"># 12 learns its new slot</span>
-_targetingEntityTarget[4] = NO_ID;  _targetingEntityState[4] = SEARCH</div>
-        </div>
-      </details>
-    </div>
-
-    <p class="note-inline">Unlinking swaps the last targeter into the freed slot and repairs its index — a swap-and-pop on a packed array, unlike the doubly linked chunk lists. The size of <code>_targetersOf[id]</code> <em>is</em> the crowding count, so there is no counter that can drift out of step.</p>
+    <figure class="chain" style="margin-top:12px" data-label="Targeter chain of id 0: id 2 then id 1. Id 3 targets id 2, forming a chain of one." data-chain='{"boxes":[["id 0","2 targeters","c"],["id 1","→ 0","a"],["id 2","→ 0 · 1 targ.","a"],["id 3","→ 2","b"]],"links":[{"seq":[2,1],"c":"a","head":"first targeter of 0","end":true},{"seq":[3],"c":"b","side":"bottom","head":"first targeter of 2","end":true}]}'><figcaption>Orange: the chain of id 0 (id 2 → id 1). Teal: the chain of id 2 (id 3 alone).</figcaption></figure>
+    <h3>Invisibility releases only those who cannot see</h3>
+    <div class="code">G_TargetingServer.set_is_invisible(2, true)   <span class="c"># id 2 is invisible from registration; calling it again shows the rule</span>
+<span class="c"># _release_targeters(2, FLAG_CAN_TARGET_INVISIBLE): walk the chain of id 2 → id 3</span>
+<span class="c"># id 3 has CAN_TARGET_INVISIBLE → keeps its target. Every other targeter would drop it.</span>
+G_TargetingServer.set_is_invisible(1, true)
+<span class="c"># chain of id 1 → id 0 (flags 0) → _clear_target(0): id 0 back to SEARCH, and a new search cannot find id 1</span></div>
   </section>
 
-  <section id="data">
-    <span class="eyebrow">Data</span>
-    <h2>What the targeting server stores</h2>
-    <div class="prose">
-      <p>Per entity packed arrays indexed by id, most filled once from <code>R_TargetingData</code> at registration. Positions, teams, groups and center chunks are chunking's own fields, never copied — just read straight off, unqualified. The <code>_search*</code> members hold the one search that is running.</p>
-      <p class="note-inline">All three servers' per-entity data — chunking's, hit's and targeting's alike — is declared once as shared <code>static var</code>s on the abstract base class <code>A_CoreServers</code>, which <code>G_TargetingServer</code> (like <code>G_ChunkingServer</code> and <code>G_HitServer</code>) <code>extends</code>. That is why targeting can read <code>_chunkEntityPosition</code>, <code>_chunkEntityTeam</code> and the center-chunk fields directly, with no <code>G_ChunkingServer.</code> qualifier — they are inherited fields, not another autoload's — and why <code>drop_targeters()</code> lives on <code>A_CoreServers</code> too: its own <code>pre_unregister()</code> and <code>unregister()</code> call it directly, alongside the shared <code>register()</code> and <code>release_removed_ids()</code>.</p>
-    </div>
-    <p class="hint">Every row opens for a worked example.</p>
-
-    <p class="group-title">Per entity</p>
+  <section id="scratch">
+    <span class="eyebrow">Reference · instance vars of G_TargetingServer</span>
+    <h2>Scratch data of the running search</h2>
+    <div class="prose"><p><code>_find_best_target()</code> copies what the ring scan needs about the searcher into these vars once, so the inner loops read one instance var instead of indexing shared arrays by the searcher's id again and again. They hold the state of the <a href="#score">worked example</a> after ring 1.</p></div>
     <div class="vlist">
-      <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
-
-      <details class="var">
-        <summary><span class="vn">_targetingEntityTargetedGroups</span><span class="vt">PackedInt64Array</span><span class="vh">Groups the entity may go after</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Matched against candidates' <code>_chunkEntityGroups</code> in the chunk index, so it uses the same bits. With <code>GROUND = 0b01</code>, <code>AIR = 0b10</code>: a swordsman <code>0b01</code>, an archer <code>0b11</code>, an anti-air tower <code>0b10</code>. 0 means it never finds anything.</p>
-        </div>
+      <div class="vlist-head"><span>Variable</span><span>Type</span><span>Holds</span><span></span></div>
+      <details class="var" id="v-_searcherId">
+        <summary><span class="vn">_searcherId</span><span class="vt">int</span><span class="vh">The entity that searches</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Used for the mutual term: a candidate whose <code>_entityTarget</code> equals it already fights the searcher.</p>
+          <div class="arrs"><div class="arr" data-name="_searcherId" data-v="3"></div></div>
+          <figure class="mini" data-label="The searcher, id 3, highlighted." data-world='{"hl":{"11":"b"},"dim":[0,1,2]}'><figcaption>The searcher of the example: id 3.</figcaption></figure></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">_targetingEntityPriorityTargetedGroups</span><span class="vt">PackedInt64Array</span><span class="vh">Groups it goes after before considering the normal ones</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>An archer with targeted <code>0b11</code> and priority <code>0b10</code>: if <em>any</em> AIR enemy is in its square, it takes the best-scoring one of those, even if a ground unit scores far higher. Only with no AIR in reach does it fall back to the best of the rest. Priority groups are searched even if they are missing from the targeted mask.</p>
-          <div class="code">priority winner exists  →  take it
-else                     →  take the normal winner (or NO_ID)</div>
-        </div>
+      <details class="var" id="v-_searcherTeam">
+        <summary><span class="vn">_searcherTeam</span><span class="vt">int</span><span class="vh">Team of the searcher</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Candidates of this team are skipped; the column and chunk filters look at every other team's masks.</p>
+          <div class="arrs"><div class="arr" data-name="_searcherTeam" data-v="0" data-hl2="0"></div></div>
+          <figure class="mini" data-label="Attackers dimmed as never candidates; defenders are." data-world='{"dim":[0],"hl":{"11":"b"}}'><figcaption>Team 0 (attacker): only defenders can be candidates; id 0 is never looked at.</figcaption></figure></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">_targetingEntitySearchChunks · _targetingEntityFleeChunks · _targetingEntityHitRange</span><span class="vt">Int32 · Int32 · Float32</span><span class="vh">Search reach, flee distance, combat range</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Drawn and worked through under <a href="#chunks">Chunk ranges</a>.</p></div>
+      <details class="var" id="v-_searcherColumn">
+        <summary><span class="vn">_searcherColumn · _searcherRow</span><span class="vt">int</span><span class="vh">Center chunk of the searcher</span><span class="chev"></span></summary>
+        <div class="var-body"><p>The middle of every ring, and the point chunk distances are measured from.</p>
+          <div class="arrs"><div class="arr" data-name="_searcherColumn" data-v="3"></div><div class="arr" data-name="_searcherRow" data-v="2"></div></div>
+          <figure class="mini" data-label="Chunk 11, column 3 row 2, is ring 0." data-world='{"ring":[11,0],"hl":{"11":"b"},"cols":{"3":"b"},"rows":{"2":"b"}}'><figcaption>Column 3, row 2: chunk 11.</figcaption></figure></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">_targetingEntityFlags</span><span class="vt">PackedByteArray</span><span class="vh">Invisible, sees invisible, has focus, ignores focus — four bits</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="table-wrap">
-            <table class="num">
-              <tr><th>Bit</th><th>Constant</th><th>Value</th><th>Set by</th></tr>
-              <tr><td>0</td><td>FLAG_INVISIBLE</td><td>1</td><td><code>isInvisible</code> · <code>set_invisible()</code></td></tr>
-              <tr><td>1</td><td>FLAG_TARGETS_INVISIBLE</td><td>2</td><td><code>canTargetInvisible</code> · <code>set_targets_invisible()</code></td></tr>
-              <tr><td>2</td><td>FLAG_HAS_FOCUS</td><td>4</td><td><code>hasFocus</code> · <code>set_focused()</code></td></tr>
-              <tr><td>3</td><td>FLAG_IGNORES_FOCUS</td><td>8</td><td><code>isIgnoringFocus</code> · <code>set_ignores_focus()</code></td></tr>
-            </table>
-          </div>
-          <p>An assassin that is invisible and sees other invisibles: <code>0b0011 = 3</code>. A banner bearer everyone should rush: <code>0b0100 = 4</code>. Four booleans in one byte, read with one lookup and a bit test during scoring.</p>
-        </div>
+      <details class="var" id="v-_searcherFlags">
+        <summary><span class="vn">_searcherFlags</span><span class="vt">int</span><span class="vh">Flags of the searcher</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Read for <code>CAN_TARGET_INVISIBLE</code> (may it score invisible candidates?) and <code>IS_IGNORING_FOCUS</code> (does the focus bonus count, and does it enter the settle bound?).</p>
+          <div class="arrs"><div class="arr" data-name="_searcherFlags" data-v="2"></div></div>
+          <figure class="bits" data-label="Searcher flags: only CAN_TARGET_INVISIBLE." data-bits='{"cw":96,"cols":["IS_INVISIBLE","CAN_TARGET_INV","HAS_FOCUS","IGNORING_FOCUS"],"rows":[["id 3","0100","b"]]}'><figcaption>Id 3 sees invisible id 2; focus counts.</figcaption></figure></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">_targetingEntityState</span><span class="vt">PackedByteArray</span><span class="vh">Current <code>STATE</code>, as last decided</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="STATE" data-v="SEARCH APPROACH COMBAT FLEE" data-idx="0 1 2 3"></div></div>
-          <p>Written by <code>update_entity()</code>, and reset to <code>SEARCH</code> right away whenever the entity's target is dropped — so an entity whose target vanished mid-tick already reads <code>SEARCH</code> before its next update. <code>get_state()</code> returns it.</p>
-        </div>
+      <details class="var" id="v-_searcherForwardSign">
+        <summary><span class="vn">_searcherForwardSign</span><span class="vt">int</span><span class="vh">+1 or −1: which way is forward</span><span class="chev"></span></summary>
+        <div class="var-body"><p>A candidate is behind when <code>(candidateColumn − searcherColumn) * sign &lt; 0</code>.</p>
+          <div class="arrs"><div class="arr" data-name="_searcherForwardSign" data-v="1"></div></div>
+          <figure class="mini" data-label="Id 3 marches right; columns 0 to 2 are behind it." data-world='{"cols":{"0":"c","1":"c","2":"c"},"hl":{"11":"b"},"coltxt":{"0":"behind","1":"behind","2":"behind","3":"own"}}'><figcaption>Marching right (+1): every smaller column counts as behind.</figcaption></figure></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">_targetingEntityTarget · _targetersOf · _targetingEntityTargeterIndex</span><span class="vt">—</span><span class="vh">The two-way target link</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Drawn with swap-and-pop under <a href="#graph">Target graph</a>.</p></div>
+      <details class="var" id="v-_searchRadiusChunks">
+        <summary><span class="vn">_searchRadiusChunks</span><span class="vt">int</span><span class="vh">Rings of the running search</span><span class="chev"></span></summary>
+        <div class="var-body"><p>The number of rings beyond ring 0, and the base of the closeness term and of the settle bound.</p>
+          <div class="arrs"><div class="arr" data-name="_searchRadiusChunks" data-v="6"></div></div>
+          <figure class="mini" data-label="Rings 0 to 3 around chunk 11 already cover the whole example map." data-world='{"ring":[11,3],"hl":{"11":"b"}}'><figcaption>Ring 3 already covers the whole 4 × 3 map; rings 4 to 6 lie entirely off it and scan nothing.</figcaption></figure></div>
       </details>
-    </div>
-
-    <p class="group-title">The running search</p>
-    <div class="prose" style="margin-top:2px;">
-      <p>Set at the start of <code>_find_best_target()</code> and read by the ring, chunk and score steps, so none of them needs a long parameter list. Only one search runs at a time; the values of the last one simply stay behind.</p>
-    </div>
-    <div class="vlist">
-      <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
-
-      <details class="var">
-        <summary><span class="vn">_searchId · _searchTeam · _searchColumn · _searchRow</span><span class="vt">int</span><span class="vh">Who searches, and from which center chunk</span><span class="chev"></span></summary>
-        <div class="var-body"><p>For the worked example under <a href="#score">Scoring</a>: <code>_searchTeam = ATTACKER</code>, <code>_searchColumn = 5</code>, <code>_searchRow = 5</code>. <code>_searchId</code> is what the mutual term compares candidates' targets against.</p></div>
+      <details class="var" id="v-_searchedGroups">
+        <summary><span class="vn">_searchedGroups</span><span class="vt">int</span><span class="vh">Every group the search accepts</span><span class="chev"></span></summary>
+        <div class="var-body"><p><code>targeted | priority</code>. Used by all three mask filters and the candidate check.</p>
+          <div class="arrs"><div class="arr" data-name="_searchedGroups" data-v="0b11"></div></div>
+          <figure class="mini" data-label="Chunks with defender groups matching 0b11 highlighted." data-world='{"hl":{"1":"a","2":"a","5":"a","6":"a"},"txt":{"1":"10 ✓","2":"10 ✓","5":"10 ✓","6":"11 ✓"},"dim":[0,3]}'><figcaption>Every defender chunk matches <code>0b11</code>; only chunk 6 has centers in it.</figcaption></figure></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">_searchFlags · _searchReach · _searchForwardSign</span><span class="vt">int</span><span class="vh">The searcher's flags, reach in chunks, and march direction</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Copies of <code>_targetingEntityFlags</code>, <code>_targetingEntitySearchChunks</code> and <code>TEAM_FORWARD_SIGN[team]</code>. In the example: no flags, reach 4, sign +1.</p></div>
+      <details class="var" id="v-_searchedPriorityGroups">
+        <summary><span class="vn">_searchedPriorityGroups</span><span class="vt">int</span><span class="vh">Groups that make a candidate a priority one</span><span class="chev"></span></summary>
+        <div class="var-body"><p>A candidate with <code>groups &amp; this != 0</code> competes in the priority ranking.</p>
+          <div class="arrs"><div class="arr" data-name="_searchedPriorityGroups" data-v="0b10"></div></div>
+          <figure class="mini" data-label="Id 2 (AIR) marked as priority, id 1 as normal." data-world='{"names":{"2":"priority","1":"normal"},"dim":[0]}'><figcaption>AIR is priority: id 2.</figcaption></figure></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">_searchGroups · _searchPriorityGroups</span><span class="vt">int</span><span class="vh">Every accepted group, and the preferred ones</span><span class="chev"></span></summary>
-        <div class="var-body"><p><code>_searchGroups = priority | targeted</code> — what filters columns, chunks and candidates. <code>_searchPriorityGroups</code> decides which pool a candidate lands in. Archer example: <code>0b11</code> and <code>0b10</code>.</p></div>
+      <details class="var" id="v-_bestPriorityId">
+        <summary><span class="vn">_bestPriorityId · _bestPriorityScore</span><span class="vt">int · float</span><span class="vh">Leader of the priority ranking</span><span class="chev"></span></summary>
+        <div class="var-body"><p><code>NO_ID</code> and 0 at the start. Returned if set, whatever the normal leader scored.</p>
+          <div class="arrs"><div class="arr" data-name="_bestPriorityId" data-v="2"></div><div class="arr" data-name="_bestPriorityScore" data-v="7.55"></div></div>
+          <figure class="mini" data-label="Id 2 leads the priority ranking with 7.55." data-world='{"arrows":[[3,2,"b","7.55"]],"dim":[0,1]}'><figcaption>Priority leader: id 2.</figcaption></figure></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">_searchBestPriorityId / Score · _searchBestNormalId / Score</span><span class="vt">int · float</span><span class="vh">The leader of each pool so far</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Two independent leaderboards filled by one walk. A candidate joins the priority pool if any of its groups is a priority group, otherwise the normal pool, and replaces the leader if it scores higher — or scores the same with a lower id, so the winner never depends on chunk storage order.</p>
-          <div class="code">B scores 10 (normal)   →  best normal   = B, 10
-C scores 5.5 (normal)  →  no change
-bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins at the end despite the lower score</span></div>
-        </div>
+      <details class="var" id="v-_bestNormalId">
+        <summary><span class="vn">_bestNormalId · _bestNormalScore</span><span class="vt">int · float</span><span class="vh">Leader of the normal ranking</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Returned only when no priority candidate was found.</p>
+          <div class="arrs"><div class="arr" data-name="_bestNormalId" data-v="1"></div><div class="arr" data-name="_bestNormalScore" data-v="12.05"></div></div>
+          <figure class="mini" data-label="Id 1 leads the normal ranking with 12.05 but loses to the priority leader." data-world='{"arrows":[[3,1,"n","12.05 (unused)"]],"dim":[0,2]}'><figcaption>Normal leader: id 1, unused this time.</figcaption></figure></div>
       </details>
     </div>
   </section>
 
   <section id="api">
     <span class="eyebrow">Reference</span>
-    <h2>Public API</h2>
-    <p class="prose">Entities call it directly with the id registration gave them. Everything is set up front by <code>A_CoreServers.register(p_position, p_radius, p_team, p_groups, p_module, p_hitProfile, p_targetingData)</code> — called by convention as <code>G_ChunkingServer.register(...)</code> — which sets up chunking, hit and targeting together in one call instead of three; a null <code>p_targetingData</code> falls back to a fresh <code>R_TargetingData.new()</code>, which carries no groups, so the entity simply never finds anything. The setters below are for changes during a round. Removal needs no call here either: <code>pre_unregister()</code>, <code>unregister()</code> and <code>release_removed_ids()</code> are inherited from <code>A_CoreServers</code> too, and handle every server's data — targeting's included — directly in one function body, with no signal hand-off needed to reach it.</p>
-
-    <div class="fn">
-      <div class="fn-head"><span class="fn-name">update_entity</span><span class="tag pub">public</span><span class="tag cost">O(targeters)</span></div>
-      <div class="fn-body">
-        <div class="code"><span class="k">func</span> update_entity(p_id: <span class="t">int</span>) -&gt; <span class="t">int</span></div>
-        <p class="fn-note">The per tick step: flee check, range check, state. <strong>Never searches.</strong> Returns the new <code>STATE</code>.</p>
-      </div>
-    </div>
-
-    <div class="fn">
-      <div class="fn-head"><span class="fn-name">search_target</span><span class="tag pub">public</span><span class="tag cost">O(entities in the square)</span></div>
-      <div class="fn-body">
-        <div class="code"><span class="k">func</span> search_target(p_id: <span class="t">int</span>) -&gt; <span class="t">int</span></div>
-        <p class="fn-note">The scan, triggered by the entity so the work can be spread across ticks. Assigns the winner and returns it, or <code>NO_ID</code>.</p>
-      </div>
-    </div>
-
-    <div class="fn">
-      <div class="fn-head"><span class="fn-name">get_target_position</span><span class="tag pub">public</span><span class="tag cost">O(1)</span></div>
-      <div class="fn-body">
-        <div class="code"><span class="k">func</span> get_target_position(p_id: <span class="t">int</span>) -&gt; <span class="t">Vector2</span></div>
-        <p class="fn-note">Fighting and approaching return the target's own position. Fleeing returns the entity's own base x at its current y. Searching returns the enemy base x — or its own, if <code>has_opponent_before/after_column()</code> says something is behind it, or the map holds nothing it may go after.</p>
-      </div>
-    </div>
-
-    <div class="fn">
-      <div class="fn-head"><span class="fn-name">drop_targeters</span><span class="tag pub">public</span><span class="tag cost">O(targeters)</span></div>
-      <div class="fn-body">
-        <div class="code"><span class="k">func</span> drop_targeters(p_id: <span class="t">int</span>) -&gt; <span class="t">void</span></div>
-        <p class="fn-note">The manual third way to lose a target. Everyone aiming here goes back to <code>SEARCH</code>.</p>
-        <p class="fn-note">Defined on <code>A_CoreServers</code>, not here — <code>G_TargetingServer</code> inherits it, so it is still called exactly as <code>G_TargetingServer.drop_targeters(p_id)</code>. <code>pre_unregister()</code> and <code>unregister()</code> call it directly too, on top of the runtime call from <code>set_invisible()</code>.</p>
-      </div>
-    </div>
-
-    <p class="group-title">Reads</p>
-    <div class="table-wrap">
-      <table class="vars">
-        <tr><th>Function</th><th>Returns</th><th>Cost</th></tr>
-        <tr><td>get_state(p_id)</td><td>Its current <code>STATE</code>, as last set by <code>update_entity()</code></td><td>O(1)</td></tr>
-        <tr><td>get_target(p_id)</td><td>Its target, or <code>NO_ID</code></td><td>O(1)</td></tr>
-        <tr><td>get_targeters(p_id)</td><td>A snapshot of who currently targets it</td><td>O(1)</td></tr>
-      </table>
-    </div>
-    <p class="note-inline"><code>get_targeters()</code> returns a <code>PackedInt32Array</code>, which Godot copies on write — the array handed back never follows later changes, and editing it changes nothing on the server. Reading it is still O(1); the copy only happens if the caller mutates it.</p>
-
-    <p class="group-title">Setters, for changes during a round</p>
-    <div class="table-wrap">
-      <table class="vars">
-        <tr><th>Function</th><th>Sets</th></tr>
-        <tr><td>set_invisible(p_id, p_isInvisible)</td><td>Hides it — and drops every targeter that cannot see invisibles</td></tr>
-        <tr><td>set_targets_invisible(p_id, p_isEnabled)</td><td>Whether it can see invisible enemies</td></tr>
-        <tr><td>set_focused(p_id, p_isEnabled)</td><td>Whether it scores the focus bonus for others</td></tr>
-        <tr><td>set_ignores_focus(p_id, p_isEnabled)</td><td>Whether it ignores focus while scoring</td></tr>
-        <tr><td>set_search_chunks · set_flee_chunks</td><td>Reach and threat distance, in chunks</td></tr>
-        <tr><td>set_hit_range(p_id, p_hitRange)</td><td>Real combat distance; combined with the target's radius and squared at check time</td></tr>
-        <tr><td>set_targeted_groups(p_id, p_groups)</td><td>The normal mask</td></tr>
-        <tr><td>set_priority_targeted_groups(p_id, p_groups)</td><td>The preferred mask</td></tr>
-      </table>
+    <h2>G_TargetingServer functions</h2>
+    <div class="vlist">
+      <div class="vlist-head"><span>Function</span><span>Cost</span><span>Does</span><span></span></div>
+      <details class="var" id="f-update_state">
+        <summary><span class="vn">update_state(p_id) → STATE</span><span class="vt">O(targeters)</span><span class="vh">Advances the state; call every tick</span><span class="chev"></span></summary>
+        <div class="var-body"><p>See <a href="#states">States</a>. Never searches. Writes and returns the new state.</p></div>
+      </details>
+      <details class="var" id="f-acquire_target">
+        <summary><span class="vn">acquire_target(p_id) → int</span><span class="vt">O(rings × columns)</span><span class="vh">Searches and assigns the best target</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Call it when the state is <code>SEARCH</code> (and as often as the game wants to allow searching). Returns the new target or <code>NO_ID</code>; a removed id is ignored with a warning. If nothing is found the old target is kept.</p>
+          <div class="code"><span class="k">if</span> G_TargetingServer.update_state(id) == C_TargetingServer.STATE.SEARCH:
+    G_TargetingServer.acquire_target(id)
+velocity = (G_TargetingServer.get_move_destination(id) - position).normalized() * speed</div></div>
+      </details>
+      <details class="var" id="f-get_move_destination">
+        <summary><span class="vn">get_move_destination(p_id) → Vector2</span><span class="vt">O(teams)</span><span class="vh">Target, base or march point</span><span class="chev"></span></summary>
+        <div class="var-body"><p>See <a href="#move">Move</a>.</p></div>
+      </details>
+      <details class="var" id="f-getters">
+        <summary><span class="vn">get_state · get_target · get_targeters</span><span class="vt">O(1) · O(targeters)</span><span class="vh">Read the current targeting state</span><span class="chev"></span></summary>
+        <div class="var-body"><p><code>get_targeters(id)</code> returns a new <code>PackedInt32Array</code> snapshot of the chain, newest first: for id 0 in the example world <code>[2, 1]</code>.</p></div>
+      </details>
+      <details class="var" id="f-flag-setters">
+        <summary><span class="vn">set_is_invisible · set_can_target_invisible · set_has_focus · set_is_ignoring_focus</span><span class="vt">O(1) · O(targeters)</span><span class="vh">Switch one flag</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Each switches one bit of <a href="core-servers.html#v-_entityTargetingFlags"><code>_entityTargetingFlags</code></a>. Turning invisible also releases every targeter that cannot see invisible entities.</p></div>
+      </details>
+      <details class="var" id="f-value-setters">
+        <summary><span class="vn">set_search_radius_chunks · set_flee_radius_chunks · set_combat_range · set_targeted_groups · set_priority_targeted_groups</span><span class="vt">O(1)</span><span class="vh">Change one targeting value</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Write the matching <a href="core-servers.html#g-targeting">shared array</a>. They take effect at the next <code>update_state()</code> or search; the current target is kept.</p></div>
+      </details>
     </div>
   </section>
 
   <section id="constants">
     <span class="eyebrow">Reference</span>
     <h2>C_TargetingServer and R_TargetingData</h2>
-
-    <p class="group-title">C_TargetingServer</p>
+    <p class="hint">Every constant is cached onto <code>G_TargetingServer</code> in <code>_init()</code> under the same name.</p>
     <div class="vlist">
-      <div class="vlist-head"><span>Name</span><span>Kind</span><span>Meaning</span><span></span></div>
-
-      <details class="var">
-        <summary><span class="vn">STATE</span><span class="vt">enum</span><span class="vh"><code>SEARCH</code>, <code>APPROACH</code>, <code>COMBAT</code>, <code>FLEE</code></span><span class="chev"></span></summary>
-        <div class="var-body"><p>0 … 3. See the <a href="#states">state diagram</a>.</p></div>
+      <div class="vlist-head"><span>Name</span><span>Kind · value</span><span>Meaning</span><span></span></div>
+      <details class="var" id="c-STATE">
+        <summary><span class="vn">STATE</span><span class="vt">enum</span><span class="vh">SEARCH · APPROACH · COMBAT · FLEE</span><span class="chev"></span></summary>
+        <div class="var-body"><p>What an entity is doing. <a href="core-servers.html#v-_entityTargetingState">State machine drawing.</a></p></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">FLAG_INVISIBLE · FLAG_TARGETS_INVISIBLE · FLAG_HAS_FOCUS · FLAG_IGNORES_FOCUS</span><span class="vt">const int</span><span class="vh">Bits 0 … 3 of <code>_targetingEntityFlags</code></span><span class="chev"></span></summary>
-        <div class="var-body"><p>1, 2, 4, 8. Table and examples under <a href="#data">_targetingEntityFlags</a>.</p></div>
+      <details class="var" id="c-FLAGS">
+        <summary><span class="vn">FLAG_IS_INVISIBLE · FLAG_CAN_TARGET_INVISIBLE · FLAG_HAS_FOCUS · FLAG_IS_IGNORING_FOCUS</span><span class="vt">const int · 1, 2, 4, 8</span><span class="vh">Bits of the flag byte</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Packed by <code>_pack_targeting_flags()</code> from the four booleans of <code>R_TargetingData</code>. <a href="core-servers.html#v-_entityTargetingFlags">Bit table of the example world.</a></p></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">NO_ID</span><span class="vt">const int, on <a href="core-servers.html">C_CoreServers</a></span><span class="vh"><code>−1</code>: the target of an entity that has none</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Returned by <code>get_target()</code> and <code>search_target()</code> when there is nothing. Used to be <code>C_TargetingServer.NO_TARGET</code>, its own <code>−1</code>; it is now the same sentinel chunking and hit use for their own "nowhere" slots.</p></div>
+      <details class="var" id="c-NEVER_FLEE">
+        <summary><span class="vn">NEVER_FLEE</span><span class="vt">const int · −1</span><span class="vh">Flee radius that turns fleeing off</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Also the flee radius of the default targeting data, so inert entities never flee.</p></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">BASE_REACHED_EPSILON</span><span class="vt">const float</span><span class="vh"><code>32</code>: how close to its base x a flight ends</span><span class="chev"></span></summary>
-        <div class="var-body"><p>A fleeing defender (base x 4096) stops fleeing once <code>|x − 4096| ≤ 32</code>, i.e. from x 4064 on, even if the threat is still there. Without a margin, an entity clamped a few units short of the map edge would flee forever.</p></div>
+      <details class="var" id="c-BASE_REACHED_EPSILON">
+        <summary><span class="vn">BASE_REACHED_EPSILON</span><span class="vt">const float · 32</span><span class="vh">How close to its base x an entity stops fleeing</span><span class="chev"></span></summary>
+        <div class="var-body"><p>An entity within 32 units of its base x along x can no longer flee: there is nowhere further to go.</p>
+          <figure class="mini" data-label="A 32 unit band next to the defender base at x 512." data-world='{"ents":[],"vlines":[[480,"x 480","a"],[512,"base 512","a"]],"cols":{"3":"a"},"below":"defenders inside x 480 … 512 no longer flee"}'><figcaption>The defender base band: x 480 … 512.</figcaption></figure></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">DIAGONAL_CHUNK_COST</span><span class="vt">const float</span><span class="vh"><code>1.45</code>: cost of one diagonal chunk step</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Close to √2 ≈ 1.41, without a square root. Three columns and one row away = 1 diagonal + 2 straight = 3.45. See the <a href="#chunks">ring drawing</a>.</p></div>
+      <details class="var" id="c-DIAGONAL_CHUNK_COST">
+        <summary><span class="vn">DIAGONAL_CHUNK_COST</span><span class="vt">const float · 1.45</span><span class="vh">Cost of a diagonal chunk step</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Close to √2 ≈ 1.414, and needs no square root: a chunk distance is a few integer steps and one multiplication. See <a href="#score">chunk distance</a>.</p></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">TEAM_BASE_X · TEAM_MARCH_X · TEAM_FORWARD_SIGN</span><span class="vt">static packed</span><span class="vh">Home x, target x and march direction per team</span><span class="chev"></span></summary>
+      <details class="var" id="c-WEIGHTS">
+        <summary><span class="vn">WEIGHT_CLOSENESS · _FOCUS · _BEHIND · _CROWDING · _MUTUAL</span><span class="vt">const float · 1, 6, 3, 1.5, 4</span><span class="vh">The score weights</span><span class="chev"></span></summary>
+        <div class="var-body"><p>See <a href="#score">Score</a>. Changing a bonus weight also changes how early searches can <a href="#settle">stop</a>, because the bound adds all bonuses up.</p></div>
+      </details>
+      <details class="var" id="c-TEAM_X">
+        <summary><span class="vn">TEAM_BASE_X · TEAM_MARCH_X · TEAM_FORWARD_SIGN</span><span class="vt">static per team</span><span class="vh">The two bases along x</span><span class="chev"></span></summary>
         <div class="var-body">
-          <figure class="var-fig" style="margin:0;">
-            <svg viewBox="0 0 560 110" role="img" aria-label="The map along x from 0 to 4096. The attacker base is at x 0 and it marches right, forward sign plus one. The defender base is at x 4096 and it marches left, forward sign minus one." style="color:var(--ink)">
-              <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
-                <rect x="40" y="40" width="480" height="30" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-                <rect x="40" y="40" width="8" height="30" fill="var(--accent-2)"/>
-                <rect x="512" y="40" width="8" height="30" fill="var(--accent)"/>
-                <text x="40" y="88" text-anchor="middle" fill="var(--ink-soft)">x 0</text>
-                <text x="520" y="88" text-anchor="middle" fill="var(--ink-soft)">x 4096</text>
-                <path d="M60,55 L240,55" stroke="var(--accent-2)" fill="none" marker-end="url(#tb1)"/>
-                <path d="M500,55 L320,55" stroke="var(--accent)" fill="none" marker-end="url(#tb2)"/>
-                <text x="44" y="28" fill="var(--accent-2)">ATTACKER base 0 · march 4096 · sign +1</text>
-                <text x="516" y="104" text-anchor="end" fill="var(--accent)">DEFENDER base 4096 · march 0 · sign −1</text>
-              </g>
-              <defs>
-                <marker id="tb1" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent-2)"/></marker>
-                <marker id="tb2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker>
-              </defs>
-            </svg>
-          </figure>
-          <p>Indexed by <code>TEAM</code>: <code>TEAM_BASE_X = [0, 4096]</code>, <code>TEAM_MARCH_X = [4096, 0]</code>, <code>TEAM_FORWARD_SIGN = [1, −1]</code>, with 4096 = <code>C_ChunkingServer.MAP_SIZE.x</code>. Fleeing heads for the base x, marching for the march x, both at the entity's current y. The sign decides what counts as "behind" for scoring and for the fall-back check.</p>
+          <p>Filled in <code>_static_init()</code>: attackers hold the left edge (base x 0, march x <code>MAP_SIZE.x</code>, sign +1), defenders the right edge (base x <code>MAP_SIZE.x</code>, march x 0, sign −1).</p>
+          <div class="arrs"><div class="arr" data-name="TEAM_BASE_X" data-v="0 4096" data-idx="ATT DEF"></div><div class="arr" data-name="TEAM_MARCH_X" data-v="4096 0" data-idx="ATT DEF"></div><div class="arr" data-name="TEAM_FORWARD_SIGN" data-v="+1 -1" data-idx="ATT DEF"></div></div>
+          <figure class="mini" data-label="Attacker base on the left edge marching right, defender base on the right edge marching left." data-world='{"ents":[0,1],"vlines":[[0,"attacker base","b"],[512,"defender base","a"]],"arrows":[[0,1,"b","attackers →"],[1,0,"a","← defenders"]]}'><figcaption>In the example world the right edge is x 512; in the game it is 4096.</figcaption></figure>
         </div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">WEIGHT_*</span><span class="vt">const float</span><span class="vh">The five scoring weights</span><span class="chev"></span></summary>
-        <div class="var-body"><p>Listed and worked through under <a href="#score">Scoring</a>.</p></div>
-      </details>
-    </div>
-
-    <p class="group-title">R_TargetingData — one per archetype, handed to <code>register()</code></p>
-    <div class="vlist">
-      <div class="vlist-head"><span>Field</span><span>Type · default</span><span>Becomes</span><span></span></div>
-      <details class="var">
-        <summary><span class="vn">targetedGroups</span><span class="vt">int · 0</span><span class="vh"><code>_targetingEntityTargetedGroups</code></span><span class="chev"></span></summary>
-        <div class="var-body"><p>Leave it (and the priority groups) at 0 and the entity never finds a target. Since nothing on the map then counts as something it may go after, <code>get_target_position()</code> sends it back to its own base.</p></div>
-      </details>
-      <details class="var">
-        <summary><span class="vn">priorityTargetedGroups</span><span class="vt">int · 0</span><span class="vh"><code>_targetingEntityPriorityTargetedGroups</code></span><span class="chev"></span></summary>
-        <div class="var-body"><p>0 means no preference: one pool, best score wins.</p></div>
-      </details>
-      <details class="var">
-        <summary><span class="vn">searchChunks · fleeChunks · hitRange</span><span class="vt">int 4 · int 2 · float 64</span><span class="vh">The three distances</span><span class="chev"></span></summary>
-        <div class="var-body"><p>See <a href="#chunks">Chunk ranges</a> — note that the default <code>fleeChunks = 2</code> makes an entity flee when targeted from nearby.</p></div>
-      </details>
-      <details class="var">
-        <summary><span class="vn">isInvisible · canTargetInvisible · hasFocus · isIgnoringFocus</span><span class="vt">bool · false</span><span class="vh">Packed into <code>_targetingEntityFlags</code></span><span class="chev"></span></summary>
-        <div class="var-body"><p>One bit each, see <a href="#data">_targetingEntityFlags</a>. The <code>set_*</code> functions change them later.</p></div>
+      <details class="var" id="c-R_TargetingData">
+        <summary><span class="vn">R_TargetingData</span><span class="vt">Resource</span><span class="vh">The targeting side of one archetype</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <div class="table-wrap" style="margin-top:0"><table>
+            <tr><th>Field</th><th>Default</th><th>Copied into</th></tr>
+            <tr><td><code>targetedGroups</code></td><td>0</td><td><a href="core-servers.html#v-_entityTargetedGroups"><code>_entityTargetedGroups</code></a></td></tr>
+            <tr><td><code>priorityTargetedGroups</code></td><td>0</td><td><a href="core-servers.html#v-_entityPriorityTargetedGroups"><code>_entityPriorityTargetedGroups</code></a></td></tr>
+            <tr><td><code>searchRadiusChunks</code></td><td>4</td><td><a href="core-servers.html#v-_entitySearchRadiusChunks"><code>_entitySearchRadiusChunks</code></a></td></tr>
+            <tr><td><code>fleeRadiusChunks</code></td><td>2</td><td><a href="core-servers.html#v-_entityFleeRadiusChunks"><code>_entityFleeRadiusChunks</code></a></td></tr>
+            <tr><td><code>combatRange</code></td><td>64</td><td><a href="core-servers.html#v-_entityCombatRange"><code>_entityCombatRange</code></a></td></tr>
+            <tr><td><code>isInvisible · canTargetInvisible · hasFocus · isIgnoringFocus</code></td><td>false</td><td><a href="core-servers.html#v-_entityTargetingFlags"><code>_entityTargetingFlags</code></a></td></tr>
+          </table></div>
+          <p>Handed over once in <code>register()</code>; later changes go through the setters.</p>
+        </div>
       </details>
     </div>
   </section>
@@ -862,30 +653,22 @@ bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins a
     <span class="eyebrow">Contract</span>
     <h2>What the caller has to respect</h2>
     <ul class="rules">
-      <li><strong>Only three events lose a target.</strong> Pre-unregistration, turning invisible to a blind searcher, and <code>drop_targeters()</code>. Nothing polls.</li>
-      <li><strong>The entity triggers its own search.</strong> <code>update_entity()</code> never does — that split is what lets searches be spread over ticks later.</li>
-      <li><strong>Movement is not in here.</strong> The server reports a position; something else has to walk towards it.</li>
-      <li><strong>Base and march x are fixed per team</strong> in <code>C_TargetingServer</code>. Attackers hold the left of the map, defenders the right.</li>
-      <li><strong>Pre-unregistered entities are never targeted</strong>, and neither are invisible ones unless the searcher carries <code>FLAG_TARGETS_INVISIBLE</code>.</li>
-      <li><strong><code>get_targeters()</code> returns a snapshot.</strong> Packed arrays copy on write, so editing the result changes nothing on the server and later changes never show up in it.</li>
-      <li><strong>Search only ever visits a candidate through its center chunk.</strong> Reading <code>_chunkEntityCenterColumn/_chunkEntityCenterRow</code> instead of the coverage rectangle is what makes a multi-chunk entity scored exactly once.</li>
+      <li><strong>Call <code>update_state()</code> before reading the state or moving.</strong> It is what notices combat range and threats.</li>
+      <li><strong>Searching is the caller's decision.</strong> <code>update_state()</code> never searches; call <code>acquire_target()</code> when the state is <code>SEARCH</code>, as often as the budget allows.</li>
+      <li><strong>A target is not re-evaluated.</strong> A better candidate walking by does not replace it; only the loss events do.</li>
+      <li><strong>Ranges are chunk counts, combat range is a real distance.</strong> Changing <code>CHUNK_SIZE</code> changes how far search and flee radii reach.</li>
+      <li><strong><code>get_targeters()</code> allocates.</strong> It is for tests and tools, not for per tick loops.</li>
     </ul>
-
-    <p class="group-title">Verification</p>
-    <div class="prose" style="margin-top:8px;">
-      <p>The link graph was fuzz-tested against its invariants: 40 worlds × 400 random assign, drop, hide, announce, remove and release operations, asserting that every back reference resolves, every targeter index matches its slot, nobody targets their own team or a removed entity, and that a reachable priority candidate is never passed over. All pass.</p>
-      <p>That validated the algorithm, ahead of the GDScript. The end-to-end suite in <code>res://Tests/EndToEndTest.gd</code> now drives search, approach, combat and flee through <code>G_ChunkingServer</code> and <code>G_TargetingServer</code> together inside Godot itself.</p>
-    </div>
   </section>
 
 </div>
 
 <script>
 (function(){
-  // Draws every .arr from its data attributes:
-  //   data-v    values, space separated ("-1" and "·" render faded)
-  //   data-hl   indices to highlight in the accent colour, data-hl2 in the second one
-  //   data-idx  optional labels instead of 0, 1, 2 ...
+  // ---- Drawn arrays: every .arr[data-v] becomes a row of indexed cells.
+  //   data-v     values, space separated ("-1" and "·" render faded)
+  //   data-hl    indices highlighted in the orange accent, data-hl2 in the teal one
+  //   data-idx   labels instead of 0, 1, 2 ...
   //   data-split index before which a gap is drawn (team blocks)
   Array.prototype.forEach.call(document.querySelectorAll('.arr[data-v]'), function(el){
     var vals = el.getAttribute('data-v').trim().split(/\s+/);
@@ -893,7 +676,7 @@ bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins a
     var hl2 = (el.getAttribute('data-hl2') || '').split(/\s+/);
     var idx = el.getAttribute('data-idx');
     var labels = idx ? idx.trim().split(/\s+/) : null;
-    var split = el.getAttribute('data-split');
+    var splits = (el.getAttribute('data-split') || '').split(/\s+/);
     var name = document.createElement('span');
     name.className = 'arr-name';
     name.textContent = el.getAttribute('data-name') || '';
@@ -905,40 +688,280 @@ bat scores 2 (priority)→  best priority = bat, 2      <span class="c"># wins a
       if(v === '-1' || v === '·') c.classList.add('nil');
       if(hl.indexOf(k) >= 0) c.classList.add('hl');
       if(hl2.indexOf(k) >= 0) c.classList.add('hl2');
-      if(split !== null && String(split) === k) c.classList.add('split');
+      if(splits.indexOf(k) >= 0) c.classList.add('split');
       var n = document.createElement('i');
       n.textContent = labels ? labels[i] : k;
       var b = document.createElement('b');
-      b.textContent = v;
+      b.textContent = v.replace(/_/g, ' ');
       c.appendChild(n); c.appendChild(b);
       row.appendChild(c);
     });
     el.appendChild(name); el.appendChild(row);
   });
 
+  // ---- The example world: 4 x 3 chunks of 128 units, four entities.
+  // Every figure.mini[data-world] is drawn from a small JSON spec (see the keys below).
+  var NS = 'http://www.w3.org/2000/svg';
+  var CHUNK = 128, COLS = 4, ROWS = 3, S = 56, OX = 40, OY = 26;
+  var K = S / CHUNK;
+  var WORLD = {
+    0: {team: 0, x: 64,  y: 64,  r: 20},
+    1: {team: 1, x: 300, y: 200, r: 20},
+    2: {team: 1, x: 256, y: 128, r: 40},
+    3: {team: 0, x: 420, y: 300, r: 20}
+  };
+  var TEAM_COLOR = ['var(--accent-2)', 'var(--accent)'];
+  var FILL = {a: 'var(--accent-soft)', b: 'var(--accent-2-soft)', c: 'var(--accent-3-soft)'};
+  var STROKE = {a: 'var(--accent)', b: 'var(--accent-2)', c: 'var(--accent-3)', n: 'var(--ink-soft)'};
+  var uid = 0;
+
+  function node(tag, attrs, parent, text){
+    var n = document.createElementNS(NS, tag);
+    for(var k in attrs){ n.setAttribute(k, attrs[k]); }
+    if(text !== undefined) n.textContent = text;
+    if(parent) parent.appendChild(n);
+    return n;
+  }
+  function px(x){ return OX + x * K; }
+  function py(y){ return OY + y * K; }
+  function chunkXY(c){ return {x: OX + (c % COLS) * S, y: OY + Math.floor(c / COLS) * S}; }
+
+  Array.prototype.forEach.call(document.querySelectorAll('figure.mini[data-world]'), function(fig){
+    var o = JSON.parse(fig.getAttribute('data-world'));
+    var id = 'w' + (uid++);
+    var extraH = (o.below ? 22 : 0) + (o.vlines ? 12 : 0) + (o.coltxt ? 4 : 0);
+    var W = OX + COLS * S + 20 + (o.right || 0), H = OY + ROWS * S + 18 + extraH;
+    var svg = node('svg', {viewBox: '0 0 ' + W + ' ' + H, width: Math.round(W * (o.scale || 1.35)), role: 'img', 'aria-label': fig.getAttribute('data-label') || 'Example world drawing'});
+    svg.style.color = 'var(--ink)';
+    var defs = node('defs', {}, svg);
+    ['a', 'b', 'c', 'n'].forEach(function(k){
+      var m = node('marker', {id: id + k, viewBox: '0 0 8 8', refX: 7, refY: 4, markerWidth: 6, markerHeight: 6, orient: 'auto'}, defs);
+      node('path', {d: 'M0,0 L8,4 L0,8 Z', fill: STROKE[k]}, m);
+    });
+    var g = node('g', {'font-family': 'JetBrains Mono, monospace', 'font-size': 9}, svg);
+
+    // column / row bands
+    for(var col in (o.cols || {})){
+      node('rect', {x: OX + col * S, y: OY, width: S, height: ROWS * S, fill: FILL[o.cols[col]]}, g);
+    }
+    for(var row in (o.rows || {})){
+      node('rect', {x: OX, y: OY + row * S, width: COLS * S, height: S, fill: FILL[o.rows[row]]}, g);
+    }
+    // highlighted chunks
+    for(var c in (o.hl || {})){
+      var p = chunkXY(+c);
+      node('rect', {x: p.x, y: p.y, width: S, height: S, fill: FILL[o.hl[c]], stroke: STROKE[o.hl[c]], 'stroke-width': 1.2}, g);
+    }
+    // grid
+    var grid = node('g', {fill: 'none', stroke: 'currentColor', 'stroke-opacity': .35}, g);
+    node('rect', {x: OX, y: OY, width: COLS * S, height: ROWS * S}, grid);
+    for(var i = 1; i < COLS; i++) node('line', {x1: OX + i * S, y1: OY, x2: OX + i * S, y2: OY + ROWS * S}, grid);
+    for(var j = 1; j < ROWS; j++) node('line', {x1: OX, y1: OY + j * S, x2: OX + COLS * S, y2: OY + j * S}, grid);
+    // labels
+    var lab = node('g', {fill: 'var(--ink-soft)', 'font-size': 8.5}, g);
+    for(i = 0; i < COLS; i++) node('text', {x: OX + i * S + S / 2, y: OY - 8, 'text-anchor': 'middle'}, lab, 'col ' + i);
+    for(j = 0; j < ROWS; j++) node('text', {x: OX - 6, y: OY + j * S + S / 2 + 3, 'text-anchor': 'end'}, lab, 'row ' + j);
+    if(o.nums !== false){
+      for(c = 0; c < COLS * ROWS; c++){
+        p = chunkXY(c);
+        node('text', {x: p.x + 3, y: p.y + 10, 'fill-opacity': .8}, lab, String(c));
+      }
+    }
+    // rings around a chunk: [chunk, maxRing]
+    if(o.ring){
+      var clip = node('clipPath', {id: id + 'clip'}, defs);
+      node('rect', {x: OX, y: OY, width: COLS * S, height: ROWS * S}, clip);
+      var rg = node('g', {'clip-path': 'url(#' + id + 'clip)'}, g);
+      var rc = chunkXY(o.ring[0]);
+      for(var r = o.ring[1]; r >= 0; r--){
+        node('rect', {x: rc.x - r * S + 2, y: rc.y - r * S + 2, width: (2 * r + 1) * S - 4, height: (2 * r + 1) * S - 4,
+          fill: 'none', stroke: STROKE.c, 'stroke-dasharray': r ? '4 3' : '', 'stroke-width': 1.5}, rg);
+      }
+    }
+    // chunk texts
+    for(c in (o.txt || {})){
+      p = chunkXY(+c);
+      node('text', {x: p.x + S / 2, y: p.y + S - 7, 'text-anchor': 'middle', 'font-size': 9.5, 'font-weight': 700, fill: 'var(--ink)'}, g, o.txt[c]);
+    }
+    // vertical lines at a world x: [x, label, colour]
+    (o.vlines || []).forEach(function(v){
+      node('line', {x1: px(v[0]), y1: OY - 2, x2: px(v[0]), y2: OY + ROWS * S + 2, stroke: STROKE[v[2] || 'n'], 'stroke-width': 2, 'stroke-dasharray': '5 3'}, g);
+      var right = v[0] > CHUNK * COLS / 2;
+      node('text', {x: px(v[0]) + (right ? -4 : 4), y: OY + ROWS * S + (right ? 13 : 24), 'text-anchor': right ? 'end' : 'start', fill: STROKE[v[2] || 'n']}, g, v[1]);
+    });
+    // free circles (hit shapes and the like): [x, y, r, colour]
+    (o.circ || []).forEach(function(v){
+      node('circle', {cx: px(v[0]), cy: py(v[1]), r: v[2] * K, fill: FILL[v[3]], 'fill-opacity': .6, stroke: STROKE[v[3]], 'stroke-dasharray': '4 3'}, g);
+    });
+    // entities
+    var ents = o.ents || [0, 1, 2, 3];
+    var pos = {};
+    ents.forEach(function(e){
+      var d = WORLD[e];
+      var team = (o.teams || {})[e];
+      d = {team: team === undefined ? d.team : team, x: d.x, y: d.y, r: d.r};
+      var m = (o.move || {})[e];
+      var x = m ? m[0] : d.x, y = m ? m[1] : d.y, rad = m && m[2] !== undefined ? m[2] : d.r;
+      if(m){
+        node('circle', {cx: px(d.x), cy: py(d.y), r: d.r * K, fill: 'none', stroke: TEAM_COLOR[d.team], 'stroke-dasharray': '2 2', 'stroke-opacity': .7}, g);
+      }
+      pos[e] = {x: px(x), y: py(y), r: rad * K};
+      var dim = (o.dim || []).indexOf(e) >= 0;
+      var eg = node('g', {opacity: dim ? .3 : 1}, g);
+      if((o.box || []).indexOf(e) >= 0){
+        node('rect', {x: px(x - rad), y: py(y - rad), width: 2 * rad * K, height: 2 * rad * K, fill: 'none', stroke: TEAM_COLOR[d.team], 'stroke-dasharray': '3 2'}, eg);
+      }
+      node('circle', {cx: px(x), cy: py(y), r: rad * K, fill: TEAM_COLOR[d.team], 'fill-opacity': .2, stroke: TEAM_COLOR[d.team], 'stroke-width': 1.3}, eg);
+      node('circle', {cx: px(x), cy: py(y), r: 2.2, fill: TEAM_COLOR[d.team]}, eg);
+      if(o.ids !== false){
+        var lx = px(x) + rad * K + 2, anchor = 'start';
+        if(e === 2){ lx = px(x) - rad * K - 2; anchor = 'end'; }
+        node('text', {x: lx, y: py(y) - rad * K * .55, 'text-anchor': anchor, fill: TEAM_COLOR[d.team], 'font-weight': 700, 'font-size': 9.5}, eg, (o.names || {})[e] || ('id ' + e));
+      }
+    });
+    // arrows between entities: [from, to, colour, label]
+    (o.arrows || []).forEach(function(a){
+      var f = pos[a[0]], t = pos[a[1]];
+      var dx = t.x - f.x, dy = t.y - f.y, len = Math.sqrt(dx * dx + dy * dy) || 1;
+      var sx = f.x + dx / len * (f.r + 2), sy = f.y + dy / len * (f.r + 2);
+      var ex = t.x - dx / len * (t.r + 3), ey = t.y - dy / len * (t.r + 3);
+      var mx = (sx + ex) / 2 - dy / len * 10, my = (sy + ey) / 2 + dx / len * 10;
+      node('path', {d: 'M' + sx + ',' + sy + ' Q' + mx + ',' + my + ' ' + ex + ',' + ey, fill: 'none', stroke: STROKE[a[2] || 'n'], 'stroke-width': 1.4, 'marker-end': 'url(#' + id + (a[2] || 'n') + ')'}, g);
+      if(a[3]) node('text', {x: mx, y: my - 3, 'text-anchor': 'middle', fill: STROKE[a[2] || 'n'], 'font-size': 8.5}, g, a[3]);
+    });
+    // world points: [x, y, label, colour]
+    (o.pts || []).forEach(function(v){
+      var cx = px(v[0]), cy = py(v[1]);
+      node('path', {d: 'M' + (cx - 4) + ',' + (cy - 4) + ' L' + (cx + 4) + ',' + (cy + 4) + ' M' + (cx + 4) + ',' + (cy - 4) + ' L' + (cx - 4) + ',' + (cy + 4), stroke: STROKE[v[3] || 'n'], 'stroke-width': 1.6}, g);
+      if(v[2]) node('text', {x: cx + 6, y: cy - 5, fill: STROKE[v[3] || 'n']}, g, v[2]);
+    });
+    // side notes to the right of the grid: [[text, colour], ...]
+    (o.side || []).forEach(function(v, k){
+      node('text', {x: OX + COLS * S + 12, y: OY + 10 + k * 14, fill: STROKE[v[1]] || 'var(--ink)', 'font-size': 9}, g, v[0]);
+    });
+    // text under each column: {column: text}
+    for(var ct in (o.coltxt || {})){
+      node('text', {x: OX + ct * S + S / 2, y: OY + ROWS * S + 13, 'text-anchor': 'middle', fill: 'var(--ink)', 'font-weight': 700}, g, o.coltxt[ct]);
+    }
+    if(o.below) node('text', {x: OX, y: H - 6, fill: 'var(--ink-soft)', 'font-size': 9}, g, o.below);
+    fig.insertBefore(svg, fig.firstChild);
+  });
+
+  // ---- Chains: a row of boxes with links drawn as arcs above or below them.
+  // figure.chain[data-chain] JSON:
+  //   boxes  [[title, subtitle, colour?], ...]   colour: a / b / c / n (faded)
+  //   links  [{seq: [box indices in chain order], c: colour, side: "top" | "bottom", head: label, end: true}]
+  Array.prototype.forEach.call(document.querySelectorAll('figure.chain[data-chain]'), function(fig){
+    var o = JSON.parse(fig.getAttribute('data-chain'));
+    var id = 'c' + (uid++);
+    var BW = o.bw || 76, BH = 38, GAP = 14, X0 = 16, Y0 = 58;
+    var n = o.boxes.length;
+    var hasBottom = (o.links || []).some(function(l){ return l.side === 'bottom'; }) || (o.notes || []).length;
+    var W = X0 * 2 + n * BW + (n - 1) * GAP + 40, H = Y0 + BH + (hasBottom ? 58 : 14);
+    var svg = node('svg', {viewBox: '0 0 ' + W + ' ' + H, width: Math.round(W * (o.scale || 1.2)), role: 'img', 'aria-label': fig.getAttribute('data-label') || 'Chain drawing'});
+    svg.style.color = 'var(--ink)';
+    var defs = node('defs', {}, svg);
+    ['a', 'b', 'c', 'n'].forEach(function(k){
+      var m = node('marker', {id: id + k, viewBox: '0 0 8 8', refX: 7, refY: 4, markerWidth: 6, markerHeight: 6, orient: 'auto'}, defs);
+      node('path', {d: 'M0,0 L8,4 L0,8 Z', fill: STROKE[k]}, m);
+    });
+    var g = node('g', {'font-family': 'JetBrains Mono, monospace', 'font-size': 9.5}, svg);
+    function bx(i){ return X0 + i * (BW + GAP); }
+    o.boxes.forEach(function(b, i){
+      var col = b[2];
+      var faded = col === 'n';
+      node('rect', {x: bx(i), y: Y0, width: BW, height: BH, rx: 3, fill: col && !faded ? FILL[col] : 'var(--surface)', stroke: col && !faded ? STROKE[col] : 'var(--line)', 'stroke-width': col && !faded ? 1.4 : 1, opacity: faded ? .45 : 1}, g);
+      node('text', {x: bx(i) + BW / 2, y: Y0 + 16, 'text-anchor': 'middle', 'font-weight': 700, fill: faded ? 'var(--ink-soft)' : 'var(--ink)'}, g, b[0]);
+      if(b[1]) node('text', {x: bx(i) + BW / 2, y: Y0 + 30, 'text-anchor': 'middle', fill: 'var(--ink-soft)', 'font-size': 8.5}, g, b[1]);
+    });
+    (o.links || []).forEach(function(l, li){
+      var c = l.c || 'n', top = l.side !== 'bottom';
+      var edge = top ? Y0 : Y0 + BH, dir = top ? -1 : 1;
+      var off = (li % 2 ? 10 : -10) + BW / 2;
+      var attrs = {fill: 'none', stroke: STROKE[c], 'stroke-width': 1.4, 'marker-end': 'url(#' + id + c + ')'};
+      if(l.head !== undefined){
+        var hx = bx(l.seq[0]) + off;
+        var hy = top ? 12 : H - 6;
+        node('text', {x: hx, y: hy, 'text-anchor': 'middle', fill: STROKE[c], 'font-weight': 700}, g, l.head);
+        node('path', Object.assign({d: 'M' + hx + ',' + (hy + (top ? 4 : -12)) + ' L' + hx + ',' + (edge + dir * 3)}, attrs), g);
+      }
+      for(var k = 0; k + 1 < l.seq.length; k++){
+        var x1 = bx(l.seq[k]) + off + (top ? -6 : 6), x2 = bx(l.seq[k + 1]) + off + (top ? 6 : -6);
+        var h = 16 + Math.min(26, Math.abs(l.seq[k + 1] - l.seq[k]) * 5);
+        node('path', Object.assign({d: 'M' + x1 + ',' + edge + ' C' + x1 + ',' + (edge + dir * h) + ' ' + x2 + ',' + (edge + dir * h) + ' ' + x2 + ',' + (edge + dir * 3)}, attrs), g);
+      }
+      if(l.end){
+        var last = l.seq[l.seq.length - 1];
+        var ex = bx(last) + off + (top ? -6 : 6);
+        node('path', {d: 'M' + ex + ',' + edge + ' L' + ex + ',' + (edge + dir * 12), stroke: STROKE[c], 'stroke-width': 1.4, 'stroke-dasharray': '2 2'}, g);
+        node('text', {x: ex + (top ? -3 : 3), y: edge + dir * 12 + (top ? 0 : 8), 'text-anchor': top ? 'end' : 'start', fill: STROKE[c], 'font-weight': 700}, g, '−1');
+      }
+    });
+    (o.notes || []).forEach(function(t, k){
+      node('text', {x: X0, y: H - 6 - (o.notes.length - 1 - k) * 12, fill: 'var(--ink-soft)', 'font-size': 9}, g, t);
+    });
+    fig.insertBefore(svg, fig.firstChild);
+  });
+
+  // ---- Bit tables: one row per entity, one column per named bit.
+  // figure.bits[data-bits] JSON: {cols: [names], rows: [[label, "0101", colour?], ...]}  bits in column order.
+  Array.prototype.forEach.call(document.querySelectorAll('figure.bits[data-bits]'), function(fig){
+    var o = JSON.parse(fig.getAttribute('data-bits'));
+    var CW = o.cw || 74, RH = 22, LX = 110, TY = 30;
+    var W = LX + o.cols.length * CW + 10, H = TY + o.rows.length * RH + 8;
+    var svg = node('svg', {viewBox: '0 0 ' + W + ' ' + H, width: Math.round(W * 1.15), role: 'img', 'aria-label': fig.getAttribute('data-label') || 'Bit table'});
+    svg.style.color = 'var(--ink)';
+    var g = node('g', {'font-family': 'JetBrains Mono, monospace', 'font-size': 9.5}, svg);
+    o.cols.forEach(function(c, i){
+      node('text', {x: LX + i * CW + CW / 2, y: TY - 10, 'text-anchor': 'middle', fill: 'var(--ink-soft)', 'font-size': 8.5}, g, c);
+    });
+    o.rows.forEach(function(r, j){
+      var y = TY + j * RH;
+      var col = r[2] || 'n';
+      node('text', {x: LX - 10, y: y + 15, 'text-anchor': 'end', fill: col === 'n' ? 'var(--ink)' : STROKE[col], 'font-weight': 700}, g, r[0]);
+      r[1].split('').forEach(function(b, i){
+        var on = b === '1';
+        node('rect', {x: LX + i * CW + 4, y: y + 3, width: CW - 8, height: RH - 6, rx: 2,
+          fill: on ? (col === 'n' ? 'var(--accent-2-soft)' : FILL[col]) : 'none', stroke: on ? (col === 'n' ? STROKE.b : STROKE[col]) : 'var(--line)'}, g);
+        node('text', {x: LX + i * CW + CW / 2, y: y + 15, 'text-anchor': 'middle', fill: on ? 'var(--ink)' : 'var(--ink-soft)'}, g, b);
+      });
+    });
+    fig.insertBefore(svg, fig.firstChild);
+  });
+
+  // ---- Expand / collapse every reference row at once.
   var btn = document.querySelector('.xall');
   if(btn){
     btn.addEventListener('click', function(){
-      var all = document.querySelectorAll('details.var');
       var open = btn.getAttribute('aria-pressed') !== 'true';
-      Array.prototype.forEach.call(all, function(d){ d.open = open; });
+      Array.prototype.forEach.call(document.querySelectorAll('details.var'), function(d){ d.open = open; });
       btn.setAttribute('aria-pressed', open ? 'true' : 'false');
-      btn.textContent = open ? 'Collapse details' : 'Expand details';
+      btn.textContent = open ? 'Collapse all' : 'Expand all';
     });
   }
-})();
-(function(){
+
+  // ---- A link to a reference row opens it.
+  function openTarget(){
+    if(!location.hash) return;
+    var t = document.getElementById(location.hash.slice(1));
+    if(t && t.tagName === 'DETAILS'){ t.open = true; }
+  }
+  window.addEventListener('hashchange', openTarget);
+  openTarget();
+
+  // ---- Highlight the section in view.
   var links = Array.prototype.slice.call(document.querySelectorAll('.nav a[href^="#"]'));
-  var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
   if(!('IntersectionObserver' in window)) return;
   var obs = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
       if(e.isIntersecting){
-        var id = '#' + e.target.id;
-        links.forEach(function(a){ a.classList.toggle('active', a.getAttribute('href') === id); });
+        var hash = '#' + e.target.id;
+        links.forEach(function(a){ a.classList.toggle('active', a.getAttribute('href') === hash); });
       }
     });
-  }, { rootMargin: '-35% 0px -60% 0px' });
-  sections.forEach(function(s){ if(s) obs.observe(s); });
+  }, {rootMargin: '-35% 0px -60% 0px'});
+  links.forEach(function(a){ var s = document.querySelector(a.getAttribute('href')); if(s) obs.observe(s); });
 })();
 </script>
+</body>
+</html>

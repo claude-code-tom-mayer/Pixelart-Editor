@@ -1,171 +1,108 @@
-<title>Entity Chunk System</title>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chunking System</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass:wght@400;600;700;800&family=Literata:ital,opsz,wght@0,18..36,400;0,18..36,500;0,18..36,600;1,18..36,400&family=JetBrains+Mono:wght@400;500;700&display=swap">
 <style>
 :root{
-  --bg:#EEF0EA;
-  --surface:#FFFFFF;
-  --surface-2:#E3E7DD;
-  --ink:#1B2420;
-  --ink-soft:#56635B;
-  --line:#C6CFC0;
-  --accent:#C15A2B;
-  --accent-soft:#EFD9C9;
-  --accent-2:#2B6E6E;
-  --accent-2-soft:#D3E5E3;
-  --code-bg:#1B2420;
-  --code-ink:#E7ECDC;
-  --code-soft:#93A392;
-  --code-accent:#EDA274;
-  --code-accent-2:#7FCFC6;
+  --bg:#EEF0EA;--surface:#FFFFFF;--surface-2:#E3E7DD;--ink:#1B2420;--ink-soft:#56635B;--line:#C6CFC0;
+  --accent:#C15A2B;--accent-soft:#EFD9C9;--accent-2:#2B6E6E;--accent-2-soft:#D3E5E3;
+  --accent-3:#6B5AA6;--accent-3-soft:#E2DDF0;
+  --code-bg:#1B2420;--code-ink:#E7ECDC;--code-soft:#93A392;--code-accent:#EDA274;--code-accent-2:#7FCFC6;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#12160F;
-    --surface:#181D16;
-    --surface-2:#20271C;
-    --ink:#E8ECE1;
-    --ink-soft:#A3AFA0;
-    --line:#323C2C;
-    --accent:#E38A56;
-    --accent-soft:#3A2A1D;
-    --accent-2:#63C2B8;
-    --accent-2-soft:#173230;
-    --code-bg:#0B0E08;
-    --code-ink:#DCE6D0;
-    --code-soft:#7C8A78;
-    --code-accent:#F0A878;
-    --code-accent-2:#8AD9CF;
+    --bg:#12160F;--surface:#181D16;--surface-2:#20271C;--ink:#E8ECE1;--ink-soft:#A3AFA0;--line:#323C2C;
+    --accent:#E38A56;--accent-soft:#3A2A1D;--accent-2:#63C2B8;--accent-2-soft:#173230;
+    --accent-3:#A897E0;--accent-3-soft:#2A2440;
+    --code-bg:#0B0E08;--code-ink:#DCE6D0;--code-soft:#7C8A78;--code-accent:#F0A878;--code-accent-2:#8AD9CF;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#12160F;
-  --surface:#181D16;
-  --surface-2:#20271C;
-  --ink:#E8ECE1;
-  --ink-soft:#A3AFA0;
-  --line:#323C2C;
-  --accent:#E38A56;
-  --accent-soft:#3A2A1D;
-  --accent-2:#63C2B8;
-  --accent-2-soft:#173230;
-  --code-bg:#0B0E08;
-  --code-ink:#DCE6D0;
-  --code-soft:#7C8A78;
-  --code-accent:#F0A878;
-  --code-accent-2:#8AD9CF;
+  --bg:#12160F;--surface:#181D16;--surface-2:#20271C;--ink:#E8ECE1;--ink-soft:#A3AFA0;--line:#323C2C;
+  --accent:#E38A56;--accent-soft:#3A2A1D;--accent-2:#63C2B8;--accent-2-soft:#173230;
+  --accent-3:#A897E0;--accent-3-soft:#2A2440;
+  --code-bg:#0B0E08;--code-ink:#DCE6D0;--code-soft:#7C8A78;--code-accent:#F0A878;--code-accent-2:#8AD9CF;
 }
-
 *{box-sizing:border-box;}
+html{background:var(--bg);}
 body{
-  background:var(--bg);
-  color:var(--ink);
-  font-family:'Literata',Georgia,'Times New Roman',serif;
-  font-size:16px;
-  line-height:1.62;
-  padding-inline:20px;
-  -webkit-font-smoothing:antialiased;
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:'Literata',Georgia,'Times New Roman',serif;font-size:16px;line-height:1.62;
+  padding-inline:16px;-webkit-font-smoothing:antialiased;
 }
-h1,h2,h3,h4,.eyebrow,.nav,.meta dt,.tag,.group-title,figcaption,th,.chip,.strip-label{
+h1,h2,h3,h4,.eyebrow,.nav,.meta dt,.tag,.group-title,figcaption,th,.chip,.lbl,.xall{
   font-family:'Overpass',system-ui,-apple-system,sans-serif;
 }
-code,.mono,.code,table.vars td:nth-child(1),table.vars td:nth-child(2),.sig{
-  font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;
-}
+code,.mono,.code,.sig{font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;}
+code{font-size:.88em;overflow-wrap:anywhere;}
 h1,h2,h3{text-wrap:balance;margin:0 0 .4em;}
 h1{font-size:2.1rem;font-weight:800;letter-spacing:-.015em;}
 h2{font-size:1.35rem;font-weight:700;margin-top:0;}
-h3{font-size:1rem;font-weight:700;}
-p{max-width:66ch;margin:0 0 .9em;}
+h3{font-size:1.02rem;font-weight:700;margin-top:1.6em;}
+p{max-width:68ch;margin:0 0 .9em;}
 .prose p:last-child{margin-bottom:0;}
 a{color:var(--accent-2);text-underline-offset:2px;}
-a:focus-visible,.nav a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-
-.wrap{max-width:920px;margin-inline:auto;padding-block:28px 80px;}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+.wrap{max-width:940px;margin-inline:auto;padding-block:28px 80px;}
 
 .nav{
-  position:sticky;top:0;z-index:5;
-  display:flex;gap:2px;overflow-x:auto;
-  background:var(--bg);
-  border-bottom:1px solid var(--line);
-  padding-block:10px;
-  margin-inline:calc(-1 * max(20px, (100vw - 920px)/2));
-  padding-inline:max(20px, (100vw - 920px)/2);
+  position:sticky;top:0;z-index:5;display:flex;gap:2px;overflow-x:auto;align-items:center;
+  background:var(--bg);border-bottom:1px solid var(--line);padding-block:10px;
+  margin-inline:-16px;padding-inline:16px;
 }
 .nav a{
   flex:none;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink-soft);text-decoration:none;
-  padding:6px 12px;border-radius:99px;border:1px solid transparent;white-space:nowrap;
+  color:var(--ink-soft);text-decoration:none;padding:6px 12px;border-radius:99px;border:1px solid transparent;white-space:nowrap;
 }
 .nav a:hover{color:var(--ink);border-color:var(--line);}
 .nav a.active{color:var(--accent);background:var(--accent-soft);border-color:var(--accent-soft);}
+.nav .home{color:var(--accent-2);}
+.xall{
+  flex:none;margin-left:auto;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-soft);background:none;border:1px solid var(--line);border-radius:99px;padding:5px 12px;cursor:pointer;
+}
+.xall:hover{color:var(--ink);}
+.xall:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
 
-.titleblock{
-  margin-top:22px;border:1px solid var(--line);background:var(--surface);
-  border-radius:2px;padding:24px;position:relative;
-}
-.titleblock::before,.titleblock::after{
-  content:"";position:absolute;width:10px;height:10px;border-color:var(--ink-soft);opacity:.5;
-}
+.titleblock{margin-top:22px;border:1px solid var(--line);background:var(--surface);border-radius:2px;padding:24px;position:relative;}
+.titleblock::before,.titleblock::after{content:"";position:absolute;width:10px;height:10px;border-color:var(--ink-soft);opacity:.5;}
 .titleblock::before{top:6px;left:6px;border-top:1px solid;border-left:1px solid;}
 .titleblock::after{top:6px;right:6px;border-top:1px solid;border-right:1px solid;}
 .eyebrow{font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);}
 .titleblock h1{margin-top:.3em;}
-.titleblock .sub{color:var(--ink-soft);font-size:1rem;max-width:58ch;}
-.meta{display:flex;flex-wrap:wrap;gap:22px;margin-top:18px;padding-top:16px;border-top:1px dashed var(--line);}
-.meta div{display:flex;flex-direction:column;gap:2px;}
+.titleblock .sub{color:var(--ink-soft);font-size:1rem;max-width:62ch;}
+.meta{display:flex;flex-wrap:wrap;gap:22px;margin:18px 0 0;padding-top:16px;border-top:1px dashed var(--line);}
+.meta div{display:flex;flex-direction:column;gap:2px;min-width:0;}
 .meta dt{font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);font-weight:700;}
-.meta dd{margin:0;font-size:.84rem;font-family:'JetBrains Mono',monospace;}
+.meta dd{margin:0;font-size:.84rem;font-family:'JetBrains Mono',monospace;overflow-wrap:anywhere;}
 
 section{margin-top:56px;}
 section > .eyebrow{display:block;margin-bottom:6px;}
-.group-title{
-  font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--ink-soft);margin:30px 0 8px;
-}
+.group-title{font-weight:700;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);margin:30px 0 8px;}
 
-.figure-panel{
-  background:var(--surface);border:1px solid var(--line);border-radius:3px;
-  padding:18px 18px 12px;overflow-x:auto;margin-top:16px;
-}
+.figure-panel{background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:18px 18px 12px;overflow-x:auto;margin:16px 0 0;}
 .figure-panel svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
-figcaption{font-size:.8rem;color:var(--ink-soft);margin-top:10px;text-align:center;}
+figure{margin:0;}
+figcaption{font-size:.8rem;color:var(--ink-soft);margin-top:10px;text-align:center;line-height:1.5;}
 
 .decisions{display:flex;flex-direction:column;gap:12px;margin-top:14px;}
-.decision{
-  display:grid;grid-template-columns:auto 1fr;gap:14px;
-  padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--accent-2);
-  background:var(--surface);border-radius:2px;
-}
+.decision{display:grid;grid-template-columns:auto 1fr;gap:14px;padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--accent-2);background:var(--surface);border-radius:2px;}
 .decision.warn{border-left-color:var(--accent);}
-.decision .chip{
-  font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--accent-2);white-space:nowrap;padding-top:3px;
-}
+.decision .chip{font-size:.62rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-2);white-space:nowrap;padding-top:3px;}
 .decision.warn .chip{color:var(--accent);}
-.decision p{margin:0;max-width:62ch;font-size:.94rem;}
-.decision strong{color:var(--ink);}
+.decision p{margin:0;max-width:64ch;font-size:.94rem;}
 
-.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--surface);}
-table{border-collapse:collapse;width:100%;font-size:.86rem;min-width:560px;}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px;}
+table{border-collapse:collapse;width:100%;font-size:.86rem;}
 th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top;}
 th{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);background:var(--surface-2);font-weight:700;}
 tr:last-child td{border-bottom:none;}
-table.vars td:nth-child(1){color:var(--accent-2);white-space:nowrap;}
-table.vars td:nth-child(2){color:var(--ink-soft);white-space:nowrap;}
+td code{white-space:nowrap;}
 table.num td{font-variant-numeric:tabular-nums;}
-table.num td:nth-child(n+2){font-family:'JetBrains Mono',monospace;white-space:nowrap;}
 td .win{color:var(--accent-2);font-weight:700;}
-
-.fn{border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px;overflow:hidden;}
-.fn-head{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;}
-.fn-name{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:.9rem;}
-.tag{font-size:.6rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:99px;}
-.tag.pub{background:var(--accent-2-soft);color:var(--accent-2);}
-.tag.cost{background:var(--surface-2);color:var(--ink-soft);}
-.fn-body{padding:14px 16px 16px;display:grid;gap:12px;}
-.fn-note{margin:0;font-size:.9rem;color:var(--ink-soft);max-width:68ch;}
-.fn-note strong{color:var(--ink);font-weight:600;}
-.fn-note + .fn-note{margin-top:-4px;}
 
 .code{
   background:var(--code-bg);color:var(--code-ink);border-radius:3px;padding:13px 15px;
@@ -174,13 +111,6 @@ td .win{color:var(--accent-2);font-weight:700;}
 .code .c{color:var(--code-soft);}
 .code .k{color:var(--code-accent-2);}
 .code .t{color:var(--code-accent);}
-.code .s{color:#B6C98F;}
-
-.strip{display:flex;border:1px solid var(--line);border-radius:3px;overflow:hidden;margin-top:14px;font-size:.74rem;}
-.strip div{padding:10px 12px;flex:1;text-align:center;font-family:'JetBrains Mono',monospace;}
-.strip .t0{background:var(--accent-2-soft);color:var(--accent-2);border-right:1px solid var(--line);}
-.strip .t1{background:var(--accent-soft);color:var(--accent);}
-.strip-label{font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;display:block;opacity:.8;font-weight:700;}
 
 ol.seq{list-style:none;margin:14px 0 0;padding:0;display:flex;flex-direction:column;}
 ol.seq li{display:grid;grid-template-columns:28px 1fr;gap:14px;padding:12px 0;border-top:1px solid var(--line);}
@@ -188,17 +118,25 @@ ol.seq li:first-child{border-top:none;}
 ol.seq .n{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent-2);}
 ol.seq p{margin:0;font-size:.94rem;}
 ul.rules{margin:14px 0 0;padding-left:1.1em;}
-ul.rules li{margin-bottom:.55em;font-size:.94rem;max-width:66ch;}
+ul.rules li{margin-bottom:.55em;font-size:.94rem;max-width:68ch;}
 ul.rules li::marker{color:var(--accent);}
+.note-inline{border-left:3px solid var(--line);padding:2px 0 2px 14px;margin-top:16px;color:var(--ink-soft);font-size:.9rem;max-width:72ch;}
+.hint{font-size:.84rem;color:var(--ink-soft);margin:6px 0 10px;}
 
-.note-inline{
-  border-left:3px solid var(--line);padding:2px 0 2px 14px;margin-top:16px;
-  color:var(--ink-soft);font-size:.9rem;
-}
-/* ---- Collapsible variable reference ---- */
+/* legend chips */
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-family:'Overpass',system-ui,sans-serif;font-size:.74rem;color:var(--ink-soft);margin-top:10px;}
+.legend span{display:inline-flex;align-items:center;gap:6px;}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:50%;}
+.legend i.att{background:var(--accent-2);}
+.legend i.def{background:var(--accent);}
+.legend i.hl{background:var(--accent-soft);border:1px solid var(--accent);border-radius:2px;}
+.legend i.hl2{background:var(--accent-2-soft);border:1px solid var(--accent-2);border-radius:2px;}
+
+/* collapsible reference rows */
 .vlist{border:1px solid var(--line);border-radius:3px;background:var(--surface);}
+.vlist + .vlist{margin-top:14px;}
 .vlist-head,details.var>summary{
-  display:grid;grid-template-columns:minmax(0,15rem) minmax(0,9.5rem) minmax(0,1fr) 16px;
+  display:grid;grid-template-columns:minmax(0,15.5rem) minmax(0,9.5rem) minmax(0,1fr) 16px;
   gap:12px;padding:9px 12px;align-items:baseline;
 }
 .vlist-head{
@@ -212,30 +150,35 @@ details.var>summary::-webkit-details-marker{display:none;}
 details.var>summary:hover{background:var(--surface-2);}
 details.var>summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
 details.var[open]>summary{background:var(--surface-2);}
+details.var.box{border:1px solid var(--line);border-radius:3px;background:var(--surface);margin-top:14px;}
+details.var.box>summary{grid-template-columns:minmax(0,1fr) 16px;}
 .vn{font-family:'JetBrains Mono',monospace;color:var(--accent-2);overflow-wrap:anywhere;}
-.vt{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);font-size:.8rem;overflow-wrap:anywhere;}
+.vt{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);font-size:.78rem;overflow-wrap:anywhere;}
+.vh{min-width:0;}
 .chev{font-family:'JetBrains Mono',monospace;color:var(--ink-soft);text-align:right;}
 .chev::before{content:"+";}
 details[open]>summary .chev::before{content:"\2212";}
 .var-body{padding:14px 16px 18px;border-top:1px dashed var(--line);display:grid;gap:12px;font-size:.92rem;min-width:0;}
-.var-body p{margin:0;max-width:68ch;}
-.var-body ul{margin:0;padding-left:1.1em;max-width:68ch;}
+.var-body p{margin:0;max-width:70ch;}
+.var-body ul{margin:0;padding-left:1.1em;max-width:70ch;}
 .var-body li{margin-bottom:.3em;}
 .var-body .code{font-size:.76rem;}
-.lbl{
-  display:block;margin-bottom:2px;font-family:'Overpass',system-ui,sans-serif;font-size:.62rem;font-weight:700;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--accent);
-}
+.lbl{display:block;margin-bottom:2px;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);}
+.facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:3px 14px;font-size:.84rem;margin:0;}
+.facts dt{font-family:'Overpass',system-ui,sans-serif;font-size:.64rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding-top:3px;}
+.facts dd{margin:0;min-width:0;overflow-wrap:anywhere;}
 .var-fig{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:12px;overflow-x:auto;}
 .var-fig svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
 .var-fig figcaption{margin-top:6px;}
+.split2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start;}
 
-/* A drawn array: one cell per index, index on top. Filled in by the script at the end. */
-.arr{display:grid;grid-template-columns:minmax(0,11rem) minmax(0,1fr);gap:4px 12px;align-items:end;}
+/* drawn arrays */
+.arrs{display:grid;gap:6px;}
+.arr{display:grid;grid-template-columns:minmax(0,12rem) minmax(0,1fr);gap:4px 12px;align-items:end;}
 .arr-name{font-family:'JetBrains Mono',monospace;font-size:.74rem;color:var(--ink-soft);overflow-wrap:anywhere;padding-bottom:6px;}
 .cells{display:flex;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:.78rem;min-width:0;padding-bottom:2px;}
 .cells>span{
-  flex:none;display:flex;flex-direction:column;align-items:center;min-width:2.5em;padding:2px 6px 4px;
+  display:flex;flex-direction:column;align-items:center;min-width:2.6em;padding:2px 6px 4px;
   border:1px solid var(--line);margin-left:-1px;background:var(--surface);white-space:nowrap;
 }
 .cells>span:first-child{margin-left:0;}
@@ -246,870 +189,380 @@ details[open]>summary .chev::before{content:"\2212";}
 .cells>span.hl{background:var(--accent-soft);color:var(--accent);}
 .cells>span.hl2{background:var(--accent-2-soft);color:var(--accent-2);}
 .cells>span.split{margin-left:10px;}
-.arrs{display:grid;gap:6px;}
 
-.xall{
-  flex:none;margin-left:auto;font:inherit;font-size:.68rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink-soft);background:none;border:1px solid var(--line);border-radius:99px;padding:5px 12px;cursor:pointer;
-}
-.xall:hover{color:var(--ink);}
-.xall:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
-.hint{font-size:.8rem;color:var(--ink-soft);margin:6px 0 0;}
-@media (max-width:640px){
+/* the example world renderer */
+.mini{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:10px 12px;overflow-x:auto;}
+.mini svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+.mini figcaption,.chain figcaption{margin-top:6px;}
+.bits{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:10px 12px;overflow-x:auto;}
+.bits svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+.bits figcaption{margin-top:6px;}
+.chain{background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:10px 12px;overflow-x:auto;}
+.chain svg{max-width:100%;height:auto;display:block;margin-inline:auto;}
+
+@media (max-width:680px){
   .vlist-head{display:none;}
   details.var>summary{grid-template-columns:minmax(0,1fr) 16px;gap:2px 10px;}
   details.var>summary>.vn,details.var>summary>.vt,details.var>summary>.vh{grid-column:1;}
   details.var>summary>.chev{grid-column:2;grid-row:1;}
   .arr{grid-template-columns:minmax(0,1fr);}
   .arr-name{padding-bottom:0;}
-}
-@media (max-width:640px){
+  .split2{grid-template-columns:minmax(0,1fr);}
   h1{font-size:1.55rem;}
   .titleblock{padding:18px;}
   .meta{gap:14px;}
   section{margin-top:44px;}
 }
-@media (prefers-reduced-motion: no-preference){
-  html{scroll-behavior:smooth;}
-}
+@media (prefers-reduced-motion: no-preference){ html{scroll-behavior:smooth;} }
 </style>
-
+</head>
+<body>
 <div class="nav" id="nav">
-  <a href="#architecture">Architecture</a>
+  <a href="#overview">Overview</a>
+  <a href="#grid">Square grid</a>
+  <a href="#membership">Membership</a>
+  <a href="#moving">Moving</a>
   <a href="#cascade">Cascade</a>
-  <a href="#layout">Memory layout</a>
-  <a href="#fastpath">Fast path</a>
+  <a href="#span">Column span</a>
+  <a href="#queries">Queries on it</a>
   <a href="#api">API</a>
   <a href="#constants">Constants</a>
   <a href="#rules">Rules</a>
   <a href="#performance">Performance</a>
-  <button class="xall" type="button" aria-pressed="false">Expand details</button>
+  <button class="xall" type="button" aria-pressed="false">Expand all</button>
 </div>
 
 <div class="wrap">
 
   <div class="titleblock">
-    <span class="eyebrow">Implementation reference · Godot 4 / GDScript</span>
-    <h1>Entity Chunk System</h1>
-    <p class="sub">The spatial index underneath everything else: entities sorted into square chunks, columns and one map aggregate.</p>
-    <div class="meta">
-      <div><dt>Classes</dt><dd>G_ChunkingServer · C_ChunkingServer · A_CoreServers · C_CoreServers</dd></div>
-      <div><dt>Grid</dt><dd>square, derived on class load</dd></div>
-      <div><dt>Aggregates</dt><dd>chunk · column · map</dd></div>
-      <div><dt>Owns</dt><dd>entity ids and their lifecycle — on <a href="core-servers.html">A_CoreServers</a>, shared with Hit and Targeting</dd></div>
-      <div><dt>Built on it</dt><dd><a href="hit-system.html">Hit</a> · <a href="targeting-system.html">Targeting</a></dd></div>
-      <div><dt>State</dt><dd>tested end to end in Godot 4.7</dd></div>
-    </div>
+    <span class="eyebrow">Implementation reference · Godot 4.7 / GDScript</span>
+    <h1>Chunking System</h1>
+    <p class="sub">The spatial index under everything else: every entity is sorted into the square chunks it touches, and every chunk, column and the whole map keep a per team summary, so queries skip empty space without looking at it.</p>
+    <dl class="meta">
+      <div><dt>Classes</dt><dd>G_ChunkingServer · C_ChunkingServer</dd></div>
+      <div><dt>Data and upkeep on</dt><dd><a href="core-servers.html#g-index">A_CoreServer</a></dd></div>
+      <div><dt>Levels</dt><dd>chunk · column · map</dd></div>
+      <div><dt>Read by</dt><dd><a href="hit-system.html">Hit</a> · <a href="targeting-system.html">Targeting</a></dd></div>
+      <div><dt>Words</dt><dd>Servers/TERMS.md</dd></div>
+    </dl>
   </div>
 
-  <section id="architecture">
-    <span class="eyebrow">Architecture</span>
-    <h2>Three levels, one rule</h2>
+  <section id="overview">
+    <span class="eyebrow">Overview</span>
+    <h2>One grid, two kinds of membership, three levels of summary</h2>
     <div class="prose">
-      <p>Every entity stands in one or more <strong>chunks</strong>, depending on its radius. A vertical stack of chunks forms a <strong>column</strong>, all columns form the <strong>map</strong>. Each level carries the same two aggregates per team: a bitmask of the groups present, and a plain count of memberships (an entity covering four chunks counts four times).</p>
-      <p>Columns are the middle level because the two bases face each other along x. "Is there anything hostile ahead of me, or did something slip behind me" is then a walk over column entries rather than over entities — which is exactly what the targeting system asks every time an entity has nobody to fight.</p>
-      <p>The rule that keeps it cheap: <strong>counts are always written through, masks only cascade upwards while they actually change.</strong> A removal can never force a rescan of the whole map — it stops at the first level whose value comes out unchanged.</p>
-      <p>Entities are pure data. There is no node and no object per entity: an entity <em>is</em> an integer id, and every property is one slot in a packed array at that index.</p>
-      <p>Membership comes in two independent flavours. The <strong>coverage</strong> chains list an entity in <em>every</em> chunk its radius touches — that is what an area hit walks. The <strong>center</strong> chain lists it in exactly <em>one</em> chunk, the one its position falls into — that is what a targeting search walks, so an entity spanning six chunks is still scored exactly once.</p>
-      <p class="note-inline">All of this data — chunking's, and the hit and targeting data described in their own docs — actually lives on <code>A_CoreServers</code>, an abstract base class every autoload extends. Its per-entity fields are declared as <code>static var</code>, which Godot 4.3+ GDScript shares across every subclass that does not redeclare them; <code>G_ChunkingServer</code>, <code>G_HitServer</code> and <code>G_TargetingServer</code> are three separate autoload instances that all read and write the same underlying arrays. It is also where the id lifecycle lives now: one <code>register()</code> call sets up an entity's chunking, hit and targeting side at once, where three separate calls — one of them chunking-only — used to be needed.</p>
+      <p>The map is cut into square <strong>chunks</strong>. A vertical stack of chunks is a <strong>column</strong>; all columns together are the <strong>map</strong>. Columns are the middle level on purpose: the two bases face each other along x, so a column is a slice of the front line, and "did an opponent get behind me?" becomes a question about columns.</p>
+      <p><code>G_ChunkingServer</code> itself is small: it has two setters, <code>set_position()</code> and <code>set_radius()</code>. All the data and the code that keeps it correct live on <a href="core-servers.html"><code>A_CoreServer</code></a>, because registration and removal need them as well. This page explains how that index works; the core page explains every one of its variables with an example and a drawing.</p>
     </div>
 
     <div class="figure-panel">
-      <figure style="margin:0;">
-        <svg viewBox="0 0 840 330" role="img" aria-label="The map holds columns running along the battle axis, each column holds a vertical stack of chunks, and each chunk holds entity ids. Every level carries a group bitmask and an entity count per team." style="color:var(--ink)">
-          <rect x="8" y="8" width="824" height="314" rx="4" fill="none" stroke="currentColor" stroke-width="1.5"/>
-          <text x="24" y="30" font-family="Overpass,sans-serif" font-size="12" font-weight="700" letter-spacing="1" fill="currentColor">MAP</text>
-          <text x="648" y="26" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-soft)">_mapGroups[team]</text>
-          <text x="648" y="40" font-family="JetBrains Mono,monospace" font-size="10" fill="var(--ink-soft)">_mapCounts[team]</text>
-
+      <figure>
+        <svg viewBox="0 0 860 360" width="860" role="img" aria-label="Three levels. Left: the map as one box with a mask per team. Middle: four columns, each with a mask and a count per team. Right: a column cut into three chunks, each with a count and mask per team and two chains, a slot chain and a center chain." style="color:var(--ink)">
+          <defs><marker id="ov" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-soft)"/></marker></defs>
           <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
-            <rect x="30" y="48" width="146" height="230" rx="3" fill="none" stroke="currentColor" stroke-width="1.2"/>
-            <rect x="186" y="48" width="146" height="230" rx="3" fill="none" stroke="currentColor" stroke-width="1.2"/>
-            <rect x="342" y="48" width="146" height="230" rx="3" fill="none" stroke="currentColor" stroke-width="1.2"/>
-            <rect x="498" y="48" width="146" height="230" rx="3" fill="none" stroke="currentColor" stroke-width="1.2"/>
-            <text x="103" y="66" text-anchor="middle" font-family="Overpass,sans-serif" font-size="11" font-weight="700" fill="var(--accent-2)">COLUMN 0</text>
-            <text x="259" y="66" text-anchor="middle" font-family="Overpass,sans-serif" font-size="11" font-weight="700" fill="var(--accent-2)">COLUMN 1</text>
-            <text x="415" y="66" text-anchor="middle" font-family="Overpass,sans-serif" font-size="11" font-weight="700" fill="var(--accent-2)">COLUMN 2</text>
-            <text x="571" y="66" text-anchor="middle" font-family="Overpass,sans-serif" font-size="11" font-weight="700" fill="var(--accent-2)">COLUMN 3</text>
+            <text x="100" y="22" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700" font-size="12">MAP</text>
+            <rect x="20" y="34" width="160" height="120" rx="4" fill="var(--surface)" stroke="currentColor" stroke-opacity=".5"/>
+            <text x="100" y="70" text-anchor="middle" fill="var(--ink-soft)">_teamMapGroups</text>
+            <text x="100" y="92" text-anchor="middle" fill="var(--accent-2)">A: 0b01</text>
+            <text x="100" y="110" text-anchor="middle" fill="var(--accent)">D: 0b11</text>
+            <text x="100" y="136" text-anchor="middle" fill="var(--ink-soft)" font-size="9">_teamMin/MaxColumn</text>
+            <path d="M184,94 L234,94" stroke="var(--ink-soft)" marker-end="url(#ov)"/><text x="209" y="86" text-anchor="middle" font-size="9" fill="var(--ink-soft)">OR of</text>
 
-            <rect x="44" y="78" width="118" height="60" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-            <rect x="44" y="146" width="118" height="60" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-            <rect x="44" y="214" width="118" height="52" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-            <text x="52" y="94">chunk 0</text><text x="52" y="162">chunk 4</text><text x="52" y="230">chunk 8</text>
-            <rect x="200" y="78" width="118" height="60" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-            <rect x="200" y="146" width="118" height="60" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-            <rect x="200" y="214" width="118" height="52" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-            <text x="208" y="94">chunk 1</text><text x="208" y="162">chunk 5</text><text x="208" y="230">chunk 9</text>
-            <rect x="356" y="78" width="118" height="60" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-            <rect x="356" y="146" width="118" height="60" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-            <rect x="356" y="214" width="118" height="52" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-            <text x="364" y="94">chunk 2</text><text x="364" y="162">chunk 6</text><text x="364" y="230">chunk 10</text>
-            <rect x="512" y="78" width="118" height="60" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-            <rect x="512" y="146" width="118" height="60" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-            <rect x="512" y="214" width="118" height="52" fill="none" stroke="currentColor" stroke-opacity=".45"/>
-            <text x="520" y="94">chunk 3</text><text x="520" y="162">chunk 7</text><text x="520" y="230">chunk 11</text>
+            <text x="390" y="22" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700" font-size="12">COLUMNS</text>
+            <g>
+              <rect x="240" y="34" width="70" height="300" rx="3" fill="var(--accent-2-soft)" stroke="var(--accent-2)" opacity=".8"/>
+              <rect x="316" y="34" width="70" height="300" rx="3" fill="var(--accent-soft)" stroke="var(--accent)" opacity=".8"/>
+              <rect x="392" y="34" width="70" height="300" rx="3" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+              <rect x="468" y="34" width="70" height="300" rx="3" fill="var(--accent-2-soft)" stroke="var(--accent-2)" opacity=".8"/>
+              <g text-anchor="middle" font-size="9">
+                <text x="275" y="52">col 0</text><text x="275" y="70" fill="var(--accent-2)">A 01 · 1</text>
+                <text x="351" y="52">col 1</text><text x="351" y="70" fill="var(--accent)">D 10 · 2</text>
+                <text x="427" y="52">col 2</text><text x="427" y="70" fill="var(--accent)">D 11 · 3</text>
+                <text x="503" y="52">col 3</text><text x="503" y="70" fill="var(--accent-2)">A 01 · 1</text>
+              </g>
+              <text x="390" y="352" text-anchor="middle" font-size="9" fill="var(--ink-soft)">_teamColumnGroups · _teamColumnMembershipCount (mask · count)</text>
+            </g>
+            <path d="M464,190 L590,190" stroke="var(--ink-soft)" marker-end="url(#ov)"/><text x="527" y="182" text-anchor="middle" font-size="9" fill="var(--ink-soft)">OR of</text>
 
-            <circle cx="120" cy="120" r="4.5" fill="var(--accent)"/>
-            <circle cx="250" cy="190" r="4.5" fill="var(--accent)"/>
-            <circle cx="410" cy="110" r="4.5" fill="var(--accent)"/>
-            <circle cx="330" cy="126" r="17" fill="none" stroke="var(--accent)" stroke-dasharray="3 3"/>
-            <circle cx="330" cy="126" r="4.5" fill="var(--accent)"/>
-
-            <text x="662" y="100" font-size="10" fill="var(--ink-soft)">_columnGroups · _columnCounts</text>
-            <text x="662" y="116" font-size="10" fill="var(--ink-soft)">one entry per column</text>
-            <text x="662" y="152" font-size="10" fill="var(--ink-soft)">_chunkGroups · _chunkCounts</text>
-            <text x="662" y="168" font-size="10" fill="var(--ink-soft)">_chunkHead[chunkId] → slot chain</text>
-            <text x="662" y="212" font-size="10" fill="var(--accent)">an entity on a border</text>
-            <text x="662" y="228" font-size="10" fill="var(--accent)">stands in every chunk</text>
-            <text x="662" y="244" font-size="10" fill="var(--accent)">its radius touches</text>
+            <text x="720" y="22" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700" font-size="12">CHUNKS of column 2</text>
+            <rect x="596" y="34" width="250" height="92" rx="3" fill="var(--surface)" stroke="var(--line)"/>
+            <text x="606" y="52" font-weight="700">chunk 2</text><text x="606" y="70" fill="var(--accent)">D 10 · count 1</text><text x="606" y="88" fill="var(--ink-soft)">slots: 3 (id 2)</text><text x="606" y="106" fill="var(--ink-soft)">centers: none</text>
+            <rect x="596" y="134" width="250" height="100" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/>
+            <text x="606" y="152" font-weight="700">chunk 6</text><text x="606" y="170" fill="var(--accent)">D 11 · count 2</text><text x="606" y="188" fill="var(--ink-soft)">slots: 5 → 1  (id 2, id 1)</text><text x="606" y="206" fill="var(--ink-soft)">centers: id 2 → id 1</text>
+            <text x="606" y="224" font-size="9" fill="var(--ink-soft)">per team: mask · count · 2 chains</text>
+            <rect x="596" y="242" width="250" height="92" rx="3" fill="var(--surface)" stroke="var(--line)"/>
+            <text x="606" y="260" font-weight="700">chunk 10</text><text x="606" y="278" fill="var(--ink-soft)">empty: masks 0, counts 0</text>
           </g>
-          <text x="420" y="300" text-anchor="middle" font-family="Overpass,sans-serif" font-size="10.5" fill="var(--ink-soft)">← attacker base            the battle runs along x            defender base →</text>
         </svg>
-        <figcaption>Map ⊃ Column ⊃ Chunk ⊃ entity id. Chunk ids run row major, so the chunks of a column are strided by <code>MAP_CHUNK_COLUMNS</code>.</figcaption>
+        <figcaption>The <a href="core-servers.html#world">example world</a> at all three levels (A = attackers, D = defenders). Each level is the OR of the one below; the map level also keeps each team's column span.</figcaption>
       </figure>
     </div>
   </section>
 
-  <section id="cascade">
-    <span class="eyebrow">Aggregation</span>
-    <h2>Add cascades by OR, remove cascades by rebuild</h2>
+  <section id="grid">
+    <span class="eyebrow">C_ChunkingServer</span>
+    <h2>Square chunks, whatever the configuration says</h2>
     <div class="prose">
-      <p>A bitmask grows for free: <code>mask |= groups</code>. It cannot shrink the same way — clearing a bit would be wrong as long as any other entity still holds it. So the two directions are genuinely different operations, and only the add path is O(1) per level.</p>
+      <p>You configure a map size and a wanted number of columns and rows. <code>_static_init()</code> then makes every chunk square: it averages the two edge lengths the configuration implies, and uses as many chunks of that edge as it takes to cover the map on each axis. The grid can therefore end up slightly larger than configured, never smaller. With the shipped configuration (4096 × 4096 in 32 × 32) nothing changes: 128 × 128 chunks, 32 × 32 of them.</p>
     </div>
+    <div class="code"><span class="c"># a configuration that does not fit: 5000 × 3000 in 40 columns × 20 rows</span>
+column edge = 5000 / 40 = 125
+row edge    = 3000 / 20 = 150
+CHUNK_SIZE  = (125 + 150) / 2                        = <span class="t">137.5</span>
+CHUNK_COLUMNS = ceil(5000 / 137.5 − 0.0001) = ceil(36.36) = <span class="t">37</span>
+CHUNK_ROWS    = ceil(3000 / 137.5 − 0.0001) = ceil(21.82) = <span class="t">22</span>
+MAP_SIZE      = (37, 22) * 137.5                      = (5087.5, 3025)</div>
+    <div class="figure-panel">
+      <figure>
+        <svg viewBox="0 0 700 220" width="700" role="img" aria-label="Left: the configured 5000 by 3000 map with non-square 125 by 150 cells. Right: the derived grid of square 137.5 cells, 37 by 22, slightly larger than the configured map, which it fully covers." style="color:var(--ink)">
+          <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
+            <text x="150" y="18" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700">configured: 40 × 20 cells of 125 × 150</text>
+            <rect x="20" y="30" width="260" height="156" fill="var(--surface)" stroke="currentColor" stroke-opacity=".6"/>
+            <g stroke="currentColor" stroke-opacity=".2"><line x1="46" y1="30" x2="46" y2="186"/><line x1="72" y1="30" x2="72" y2="186"/><line x1="98" y1="30" x2="98" y2="186"/><line x1="124" y1="30" x2="124" y2="186"/><line x1="20" y1="61" x2="280" y2="61"/><line x1="20" y1="92" x2="280" y2="92"/><line x1="20" y1="123" x2="280" y2="123"/></g>
+            <rect x="20" y="30" width="26" height="31" fill="var(--accent-soft)" stroke="var(--accent)"/>
+            <text x="150" y="206" text-anchor="middle" fill="var(--ink-soft)">5000 × 3000 · cells not square</text>
+            <text x="520" y="18" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700">derived: 37 × 22 squares of 137.5</text>
+            <rect x="380" y="30" width="264.5" height="157.3" fill="var(--accent-2-soft)" stroke="var(--accent-2)" stroke-dasharray="4 3"/>
+            <rect x="380" y="30" width="260" height="156" fill="var(--surface)" stroke="currentColor" stroke-opacity=".6"/>
+            <g stroke="currentColor" stroke-opacity=".2"><line x1="408.6" y1="30" x2="408.6" y2="186"/><line x1="437.2" y1="30" x2="437.2" y2="186"/><line x1="465.8" y1="30" x2="465.8" y2="186"/><line x1="380" y1="58.6" x2="640" y2="58.6"/><line x1="380" y1="87.2" x2="640" y2="87.2"/><line x1="380" y1="115.8" x2="640" y2="115.8"/><line x1="380" y1="144.4" x2="640" y2="144.4"/></g>
+            <rect x="380" y="30" width="28.6" height="28.6" fill="var(--accent-soft)" stroke="var(--accent)"/>
+            <text x="652" y="110" fill="var(--accent-2)">+87.5</text>
+            <text x="520" y="206" text-anchor="middle" fill="var(--ink-soft)">MAP_SIZE 5087.5 × 3025 (dashed) ⊇ configured</text>
+          </g>
+        </svg>
+        <figcaption>One cell highlighted on each side. The derived grid overhangs the configured map a little on the right and bottom, so every configured position lies in some chunk.</figcaption>
+      </figure>
+    </div>
+  </section>
 
-    <div class="table-wrap" style="margin-top:16px;">
+  <section id="membership">
+    <span class="eyebrow">Membership</span>
+    <h2>Slots for hits, centers for searches</h2>
+    <div class="split2">
+      <div class="prose">
+        <p><strong>Slots.</strong> An entity stands in every chunk its bounding square <code>position ± radius</code> touches. Each such fact is one <em>membership slot</em>, linked into two chains: the chain of its chunk and the chain of its entity. A hit walks the slot chains of the chunks under its shape, so it finds large entities even when only their edge reaches in. A visit stamp keeps it from collecting the same entity twice.</p>
+      </div>
+      <div class="prose">
+        <p><strong>Centers.</strong> Every entity is also in exactly one <em>center chain</em>: the one of the chunk its position falls into. A targeting search walks center chains ring by ring, so every candidate is scored exactly once, and its chunk distance is measured from one well defined chunk.</p>
+      </div>
+    </div>
+    <div class="split2" style="margin-top:12px">
+      <figure class="mini" data-label="Slots: id 2 stands in four chunks." data-world='{"ents":[2],"box":[2],"hl":{"1":"a","2":"a","5":"a","6":"a"},"txt":{"1":"slot 2","2":"slot 3","5":"slot 4","6":"slot 5"}}'><figcaption>Slots of id 2: four chunks, four slots.</figcaption></figure>
+      <figure class="mini" data-label="Centers: id 2 is in one center chain, chunk 6." data-world='{"ents":[2],"hl":{"6":"b"},"txt":{"6":"center"}}'><figcaption>Center of id 2: chunk 6 only.</figcaption></figure>
+    </div>
+    <p class="note-inline">Every variable named here is explained with a drawing on the core page: <a href="core-servers.html#v-_chunkFirstSlot">slot chains</a>, <a href="core-servers.html#v-_chunkFirstCenter">center chains</a>, <a href="core-servers.html#v-_teamChunkMembershipCount">counts</a>, <a href="core-servers.html#v-_teamChunkGroups">masks</a>.</p>
+  </section>
+
+  <section id="moving">
+    <span class="eyebrow">Moving</span>
+    <h2>Only the difference is touched</h2>
+    <div class="prose">
+      <p><code>set_position(id, position)</code> writes the position, computes the new chunk area and hands it to <code>_move_to_chunk_area()</code>, then calls <code>_update_center_chunk()</code>. Both steps return at once when nothing changed, which is by far the common case: an entity walking a few units per tick almost never crosses a chunk border. <code>set_radius()</code> does the same with the radius, and skips the center step, because the center does not move with the radius.</p>
+    </div>
+    <div class="figure-panel">
+      <figure>
+        <svg viewBox="0 0 860 250" width="860" role="img" aria-label="Three cases of a move. One: the area and the center chunk are unchanged, nothing is written. Two: the center crosses into another chunk but the area stays, only the center chain changes. Three: the area changes, slots are removed for chunks left and added for chunks entered." style="color:var(--ink)">
+          <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
+            <g>
+              <text x="140" y="18" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700" fill="var(--accent-2)">1 · no work</text>
+              <g fill="none" stroke="currentColor" stroke-opacity=".35"><rect x="40" y="30" width="200" height="140"/><line x1="140" y1="30" x2="140" y2="170"/><line x1="40" y1="100" x2="240" y2="100"/></g>
+              <circle cx="80" cy="60" r="14" fill="none" stroke="var(--accent-2)" stroke-dasharray="2 2"/>
+              <circle cx="100" cy="66" r="14" fill="var(--accent-2-soft)" stroke="var(--accent-2)"/>
+              <text x="140" y="196" text-anchor="middle">area same · center same</text>
+              <text x="140" y="214" text-anchor="middle" fill="var(--ink-soft)">2 comparisons, 0 writes</text>
+            </g>
+            <g>
+              <text x="430" y="18" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700" fill="var(--accent-3)">2 · center only</text>
+              <g fill="none" stroke="currentColor" stroke-opacity=".35"><rect x="330" y="30" width="200" height="140"/><line x1="430" y1="30" x2="430" y2="170"/><line x1="330" y1="100" x2="530" y2="100"/></g>
+              <rect x="330" y="30" width="200" height="70" fill="var(--accent-3-soft)" opacity=".5"/>
+              <circle cx="420" cy="60" r="16" fill="none" stroke="var(--accent)" stroke-dasharray="2 2"/>
+              <circle cx="440" cy="60" r="16" fill="var(--accent-soft)" stroke="var(--accent)"/>
+              <text x="430" y="196" text-anchor="middle">area same (still both chunks)</text>
+              <text x="430" y="214" text-anchor="middle" fill="var(--ink-soft)">center chain: unlink + push</text>
+            </g>
+            <g>
+              <text x="720" y="18" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700" fill="var(--accent)">3 · area changes</text>
+              <g fill="none" stroke="currentColor" stroke-opacity=".35"><rect x="620" y="30" width="200" height="140"/><line x1="720" y1="30" x2="720" y2="170"/><line x1="620" y1="100" x2="820" y2="100"/></g>
+              <rect x="620" y="30" width="100" height="70" fill="var(--accent-3-soft)"/>
+              <rect x="720" y="100" width="100" height="70" fill="var(--accent-soft)"/>
+              <rect x="720" y="30" width="100" height="70" fill="var(--accent-2-soft)" opacity=".7"/>
+              <circle cx="712" cy="80" r="14" fill="none" stroke="var(--accent)" stroke-dasharray="2 2"/>
+              <circle cx="760" cy="104" r="14" fill="var(--accent-soft)" stroke="var(--accent)"/>
+              <text x="720" y="196" text-anchor="middle">left: purple · kept: teal · entered: orange</text>
+              <text x="720" y="214" text-anchor="middle" fill="var(--ink-soft)">1 slot removed, 1 slot added</text>
+            </g>
+          </g>
+        </svg>
+        <figcaption>The three things a move can cause. Dashed: before. The slot changes in case 3 also update the counts and masks, and possibly the column span.</figcaption>
+      </figure>
+    </div>
+    <h3>Worked example: id 2 moves from (256, 128) to (300, 250)</h3>
+    <div class="code">new square  = (260, 210) … (340, 290)  → columns 2 … 2, rows 1 … 2 → area (2, 1, 2, 2)
+old area    = (1, 0, 2, 1)             → chunks 1, 2, 5, 6
+
+walk id 2's slot chain 5 → 4 → 3 → 2:
+  slot 5 (chunk 6)  inside new area → keep
+  slot 4 (chunk 5)  outside         → _remove_membership(4)
+  slot 3 (chunk 2)  outside         → _remove_membership(3)
+  slot 2 (chunk 1)  outside         → _remove_membership(2)
+walk the new area, add chunks outside the old one:
+  chunk 6 (row 1) inside old → skip;  chunk 10 (row 2) → _add_membership(2, 10)
+center: floor(300 / 128), floor(250 / 128) = (2, 1) → chunk 6, unchanged → no center work</div>
+    <figure class="mini" style="margin-top:12px" data-label="Id 2 moves down right, leaving chunks 1, 2, 5, keeping 6, entering 10." data-world='{"ents":[2],"move":{"2":[300,250]},"box":[2],"hl":{"1":"c","2":"c","5":"c","6":"b","10":"a"}}'><figcaption>Purple: left. Teal: kept. Orange: entered. Three removals and one add; nothing else in the index is touched.</figcaption></figure>
+  </section>
+
+  <section id="cascade">
+    <span class="eyebrow">Summaries</span>
+    <h2>Counts are written through, masks cascade only while they change</h2>
+    <div class="prose">
+      <p>Per team and level there are two summaries: a <strong>membership count</strong> (chunk and column) and a <strong>group mask</strong> (chunk, column, map). Counts are simple: every add and remove writes ±1 into its chunk and its column. Masks are asymmetric: adding is <code>mask |= groups</code>, but removing cannot just clear the entity's bits, because another entity of the same team may still carry them. So a removal <em>rebuilds</em> the mask from the level below. Two rules keep that cheap:</p>
+    </div>
+    <div class="decisions">
+      <div class="decision"><span class="chip">Stop upwards</span><p>A level is only touched when the level below changed. Adding a GROUND unit where GROUND already is ends after the chunk.</p></div>
+      <div class="decision"><span class="chip">Stop early</span><p>A rebuild can only shrink the mask. Its running OR is compared to the old value after every step; once they match, the rest cannot change it, so it returns "unchanged" immediately.</p></div>
+    </div>
+    <div class="table-wrap">
       <table>
         <tr><th>Level</th><th>Add path</th><th>Remove path</th></tr>
-        <tr>
-          <td><strong>Chunk</strong></td>
-          <td><code>_chunkGroups |= groups</code><br><span style="color:var(--ink-soft)">O(1)</span></td>
-          <td>Re-ORs the entities left in the chunk<br><span style="color:var(--ink-soft)">O(entities in chunk), stops early</span></td>
-        </tr>
-        <tr>
-          <td><strong>Column</strong></td>
-          <td><code>_apply_group_to_column()</code><br><span style="color:var(--ink-soft)">O(1)</span></td>
-          <td>Re-ORs the chunks of that column, strided<br><span style="color:var(--ink-soft)">O(rows), stops early</span></td>
-        </tr>
-        <tr>
-          <td><strong>Map</strong></td>
-          <td><code>_apply_group_to_map()</code><br><span style="color:var(--ink-soft)">O(1)</span></td>
-          <td>Re-ORs all column masks, never chunks<br><span style="color:var(--ink-soft)">O(columns), stops early</span></td>
-        </tr>
-        <tr>
-          <td><strong>Counts</strong></td>
-          <td colspan="2"><code>_apply_count_delta()</code> writes ±1 through all three levels, unconditionally, on both paths<br><span style="color:var(--ink-soft)">O(1)</span></td>
-        </tr>
+        <tr><td><strong>Chunk</strong></td><td><code>_merge_groups_into_chunk()</code> · O(1)</td><td><code>_rebuild_chunk_groups()</code>: OR the team's entities in the chunk's slot chain · stops early</td></tr>
+        <tr><td><strong>Column</strong></td><td><code>_merge_groups_into_column()</code> · O(1), only if the chunk changed</td><td><code>_rebuild_column_groups()</code>: OR the column's <code>CHUNK_ROWS</code> chunk masks · stops early</td></tr>
+        <tr><td><strong>Map</strong></td><td><code>_merge_groups_into_map()</code> · O(1), only if the column changed</td><td><code>_rebuild_map_groups()</code>: OR the <code>CHUNK_COLUMNS</code> column masks · stops early</td></tr>
+        <tr><td><strong>Counts</strong></td><td colspan="2"><code>_change_membership_counts()</code>: ±1 on chunk and column, always · O(1)</td></tr>
       </table>
     </div>
+    <div class="figure-panel">
+      <figure>
+        <svg viewBox="0 0 860 200" width="860" role="img" aria-label="Two removals compared. Left: id 1 leaves chunk 6; the defender chunk mask shrinks from 11 to 10, the column mask from 11 to 10, the map from 11 to 10: all three levels change. Right: id 2 leaves chunk 1; the chunk mask shrinks from 10 to 0, but the column is still 10 because of chunk 5, so the cascade stops at the column." style="color:var(--ink)">
+          <defs><marker id="cs" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--ink-soft)"/></marker></defs>
+          <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
+            <text x="200" y="18" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700">id 1 leaves chunk 6</text>
+            <g>
+              <rect x="20" y="36" width="110" height="56" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="75" y="56" text-anchor="middle">chunk 6</text><text x="75" y="76" text-anchor="middle" fill="var(--accent)">11 → 10</text>
+              <path d="M130,64 L150,64" stroke="var(--ink-soft)" marker-end="url(#cs)"/>
+              <rect x="152" y="36" width="110" height="56" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="207" y="56" text-anchor="middle">column 2</text><text x="207" y="76" text-anchor="middle" fill="var(--accent)">11 → 10</text>
+              <path d="M262,64 L282,64" stroke="var(--ink-soft)" marker-end="url(#cs)"/>
+              <rect x="284" y="36" width="110" height="56" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="339" y="56" text-anchor="middle">map</text><text x="339" y="76" text-anchor="middle" fill="var(--accent)">11 → 10</text>
+            </g>
+            <text x="20" y="122" fill="var(--ink-soft)">chunk rebuild: walk slots 5 (id 2: 10) → end</text>
+            <text x="20" y="140" fill="var(--ink-soft)">column: chunk 2 (10) | chunk 6 (10) | chunk 10 (0)</text>
+            <text x="20" y="158" fill="var(--ink-soft)">map: col 0 (0) | col 1 (10) | col 2 (10) | col 3 (0)</text>
+            <text x="20" y="182" fill="var(--accent)">the defenders lost their only GROUND unit</text>
 
-    <p class="note-inline">Every rebuild stops the moment its running <code>OR</code> reaches the old value. They are only ever reached while removing, where a mask can only shrink — so once the partial result matches what was there before, the rest of the scan cannot change it.</p>
+            <text x="640" y="18" text-anchor="middle" font-family="Overpass,sans-serif" font-weight="700">id 2 leaves chunk 1</text>
+            <g>
+              <rect x="470" y="36" width="110" height="56" rx="3" fill="var(--accent-soft)" stroke="var(--accent)"/><text x="525" y="56" text-anchor="middle">chunk 1</text><text x="525" y="76" text-anchor="middle" fill="var(--accent)">10 → 0</text>
+              <path d="M580,64 L600,64" stroke="var(--ink-soft)" marker-end="url(#cs)"/>
+              <rect x="602" y="36" width="110" height="56" rx="3" fill="var(--surface)" stroke="var(--accent-2)"/><text x="657" y="56" text-anchor="middle">column 1</text><text x="657" y="76" text-anchor="middle" fill="var(--accent-2)">10 = 10 stop</text>
+              <rect x="734" y="36" width="110" height="56" rx="3" fill="var(--surface)" stroke="var(--line)" opacity=".5"/><text x="789" y="56" text-anchor="middle" fill="var(--ink-soft)">map</text><text x="789" y="76" text-anchor="middle" fill="var(--ink-soft)">not touched</text>
+            </g>
+            <text x="470" y="122" fill="var(--ink-soft)">chunk rebuild: no defender left → 0</text>
+            <text x="470" y="140" fill="var(--ink-soft)">column: chunk 1 (0) | chunk 5 (10) = 10 = old</text>
+            <text x="470" y="158" fill="var(--ink-soft)">→ stops after 2 of 3 rows, returns "unchanged"</text>
+          </g>
+        </svg>
+        <figcaption>Left: a real change goes all the way up. Right: the column still gets its AIR bit from chunk 5, so the column rebuild stops early and the map is never looked at.</figcaption>
+      </figure>
+    </div>
   </section>
 
-  <section id="layout">
-    <span class="eyebrow">Data</span>
-    <h2>Everything is private; some of it is read from outside anyway</h2>
+  <section id="span">
+    <span class="eyebrow">Column span</span>
+    <h2>Leftmost and rightmost column per team, kept for free</h2>
     <div class="prose">
-      <p>Every field carries the <code>_</code> private prefix the style guide asks for — GDScript cannot enforce access control across classes, so <code>_</code> here means "the index's own bookkeeping," not "nobody else may touch it." The fields below are declared once, as <code>static var</code>s on the shared base class <code>A_CoreServers</code>, which <code>G_ChunkingServer</code>, <code>G_HitServer</code> and <code>G_TargetingServer</code> all extend and therefore all see the same storage for. <code>G_HitServer</code> and <code>G_TargetingServer</code> read a handful of them directly (<code>_chunkEntityPosition[id]</code> and the like) with no <code>G_ChunkingServer.</code> qualification needed, which keeps a function call out of every inner loop. Writing to one of these from outside the lifecycle code skips the chunk update and corrupts the grid — see <a href="#rules">Rules</a>.</p>
-      <p>Each per team aggregate is a single packed array where the team selects a block and the chunk or column selects the slot, so adding a third team means adding one enum entry and nothing else.</p>
+      <p><code>_teamMinColumn</code> and <code>_teamMaxColumn</code> are updated inside <code>_change_membership_counts()</code>, only when a column count crosses 0. A column getting its first membership widens the span if it lies outside. A column losing its last membership only matters if it is an end of the span: then the span scans inwards to the next non-empty column; if the span was that one column, the team is gone (both ends <code>NO_ID</code>). Targeting reads the span to answer "did an opponent get behind me?" in two comparisons per team.</p>
     </div>
-
-    <p class="hint">Every row below opens. Closed, it reads like a table; open, it explains the field with real values from the example world, and draws it where a picture helps.</p>
-
-    <details class="var" style="margin-top:14px;border:1px solid var(--line);border-radius:3px;background:var(--surface);">
-      <summary style="grid-template-columns:minmax(0,1fr) 16px;"><span class="vh"><strong>The example world</strong> <span style="color:var(--ink-soft)">— three entities on a 4 × 3 grid. Every example on this page uses it.</span></span><span class="chev"></span></summary>
-      <div class="var-body">
-        <p>A shrunk grid, so every array fits on screen: <code>CHUNK_SIZE = 128</code>, 4 columns × 3 rows, <code>CHUNK_COUNT = 12</code>, <code>MAP_SIZE = 512 × 384</code>. The shipped default is 32 × 32; nothing else changes. Two groups are defined by the game: <code>GROUND = 1 &lt;&lt; 0</code> (<code>0b01</code>) and <code>AIR = 1 &lt;&lt; 1</code> (<code>0b10</code>). The entities were registered in id order.</p>
-        <figure class="var-fig" style="margin:0;">
-          <svg viewBox="0 0 560 480" role="img" aria-label="A 4 by 3 chunk grid numbered 0 to 11 row by row. Entity 0, an attacker, sits in chunk 0. Entity 1, a defender, sits in chunk 6. Entity 2, a large defender, sits on the corner where chunks 1, 2, 5 and 6 meet, and covers all four." style="color:var(--ink)">
-            <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
-              <rect x="172" y="40" width="224" height="224" fill="var(--accent)" fill-opacity=".10"/>
-              <g fill="none" stroke="currentColor" stroke-opacity=".45">
-                <rect x="60" y="40" width="448" height="336"/>
-                <line x1="172" y1="40" x2="172" y2="376"/><line x1="284" y1="40" x2="284" y2="376"/><line x1="396" y1="40" x2="396" y2="376"/>
-                <line x1="60" y1="152" x2="508" y2="152"/><line x1="60" y1="264" x2="508" y2="264"/>
-              </g>
-              <g fill="var(--ink-soft)">
-                <text x="116" y="30" text-anchor="middle">col 0</text><text x="228" y="30" text-anchor="middle">col 1</text>
-                <text x="340" y="30" text-anchor="middle">col 2</text><text x="452" y="30" text-anchor="middle">col 3</text>
-                <text x="52" y="100" text-anchor="end">row 0</text><text x="52" y="212" text-anchor="end">row 1</text><text x="52" y="324" text-anchor="end">row 2</text>
-                <text x="66" y="54">0</text><text x="178" y="54">1</text><text x="290" y="54">2</text><text x="402" y="54">3</text>
-                <text x="66" y="166">4</text><text x="178" y="166">5</text><text x="290" y="166">6</text><text x="402" y="166">7</text>
-                <text x="66" y="278">8</text><text x="178" y="278">9</text><text x="290" y="278">10</text><text x="402" y="278">11</text>
-              </g>
-              <circle cx="116" cy="96" r="17.5" fill="var(--accent-2)" fill-opacity=".18" stroke="var(--accent-2)"/>
-              <circle cx="116" cy="96" r="3" fill="var(--accent-2)"/>
-              <text x="116" y="128" text-anchor="middle" fill="var(--accent-2)">id 0</text>
-              <circle cx="322.5" cy="215" r="17.5" fill="var(--accent)" fill-opacity=".18" stroke="var(--accent)"/>
-              <circle cx="322.5" cy="215" r="3" fill="var(--accent)"/>
-              <text x="322.5" y="247" text-anchor="middle" fill="var(--accent)">id 1</text>
-              <rect x="249" y="117" width="70" height="70" fill="none" stroke="var(--accent)" stroke-dasharray="3 3"/>
-              <circle cx="284" cy="152" r="35" fill="var(--accent)" fill-opacity=".18" stroke="var(--accent)"/>
-              <circle cx="284" cy="152" r="3" fill="var(--accent)"/>
-              <text x="236" y="112" text-anchor="end" fill="var(--accent)">id 2</text>
-              <text x="60" y="400" style="white-space:pre" font-size="10" font-weight="700" fill="var(--ink-soft)">ID   TEAM       GROUPS        POSITION     RADIUS   CENTER CHUNK</text>
-              <text x="60" y="420" style="white-space:pre" fill="var(--accent-2)">0    ATTACKER   GROUND 0b01   (64, 64)     20       0</text>
-              <text x="60" y="440" style="white-space:pre" fill="var(--accent)">1    DEFENDER   GROUND 0b01   (300, 200)   20       6</text>
-              <text x="60" y="460" style="white-space:pre" fill="var(--accent)">2    DEFENDER   AIR    0b10   (256, 128)   40       6  (covers 1, 2, 5, 6)</text>
-            </g>
-          </svg>
-          <figcaption>Shaded: the four chunks id 2 covers. Dashed: the square <code>position ± radius</code> its coverage is computed from. Its center sits exactly on a corner and rounds down-right into chunk 6.</figcaption>
-        </figure>
-      </div>
-    </details>
-
-    <p class="group-title">Per entity data, read directly by the servers built on top</p>
-    <div class="vlist">
-      <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
-
-      <details class="var">
-        <summary><span class="vn">_chunkEntityTeam</span><span class="vt">PackedByteArray</span><span class="vh">Team, as a <code>TEAM</code> value</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>One byte per id: <code>0</code> = <code>ATTACKER</code>, <code>1</code> = <code>DEFENDER</code>. It does two jobs — it answers "is this an opponent?" for every hit and every search, and it picks which team block of the aggregate arrays an add or remove writes into.</p>
-          <div class="arrs"><div class="arr" data-name="_chunkEntityTeam" data-v="0 1 1" data-hl2="0" data-hl="1 2"></div></div>
-          <p>Fixed at registration; there is no setter. An entity that changes sides has to be unregistered and registered again.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_chunkEntityGroups</span><span class="vt">PackedInt64Array</span><span class="vh">Bitmask of the groups the entity belongs to</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>What the entity <em>is</em>, as up to 64 bits whose meaning the game defines. The index never interprets a bit — it only ORs them into the chunk, column and map masks so a search can ask "is there any AIR here?" without opening a chunk.</p>
-          <div class="arrs"><div class="arr" data-name="_chunkEntityGroups" data-v="0b01 0b01 0b10" data-hl="2"></div></div>
-          <p>An entity can be several things at once: a flying mount carrying a rider could be <code>GROUND | AIR = 0b11</code>. Like the team it is set once, in <code>register()</code>; the masks it was ORed into could not be updated otherwise.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_chunkEntityPosition</span><span class="vt">PackedVector2Array</span><span class="vh">Current position, in world units</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_chunkEntityPosition" data-v="(64,64) (300,200) (256,128)"></div></div>
-          <p>The chunk a position falls into is <code>floor(position / CHUNK_SIZE)</code> per axis, clamped to the grid:</p>
-          <div class="code">id 2 at (256, 128):  column = floor(256 / 128) = 2
-                     row    = floor(128 / 128) = 1
-                     chunk  = row * MAP_CHUNK_COLUMNS + column = 1 * 4 + 2 = <span class="t">6</span></div>
-          <p>A position exactly on a border belongs to the chunk right of / below it. Positions outside the map clamp into the border chunks instead of erroring. <strong>Only write it through <code>set_position()</code></strong> — writing the array directly leaves every chunk list, count and mask describing the old position.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_chunkEntityRadius</span><span class="vt">PackedFloat32Array</span><span class="vh">Effect radius — what decides chunk coverage</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_chunkEntityRadius" data-v="20 20 40" data-hl="2"></div></div>
-          <p>The index turns <code>position ± radius</code> into a square and lists the entity in every chunk that square touches:</p>
-          <div class="code">id 2: square (256-40, 128-40) … (256+40, 128+40) = (216, 88) … (296, 168)
-      columns floor(216/128) … floor(296/128) = 1 … 2
-      rows    floor( 88/128) … floor(168/128) = 0 … 1
-      →  chunks 1, 2, 5, 6</div>
-          <p>A square, not a circle, on purpose: it can list an entity in a corner chunk its circle does not quite reach, but it can never miss one. The hit server treats this value as the full silhouette radius (scaled by its radius curve, if any); targeting adds it to the attacker's hit range.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_chunkEntityPreUnregistered</span><span class="vt">PackedByteArray</span><span class="vh">1 while announced for removal but still in the grid</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Set by <code>pre_unregister()</code>. The entity stays in every chunk, keeps counting and can still move and hit — but the hit server skips it as a target and the targeting server never picks it, and drops everyone already aiming at it. Typical use: a unit starts its death animation. It should still take up space for half a second, but nothing should waste an attack on it.</p>
-          <figure class="var-fig" style="margin:0;">
-            <svg viewBox="0 0 760 180" role="img" aria-label="Lifetime of one id: alive, announced after pre_unregister, removed with the id locked after unregister, and free again after release_removed_ids. The two flags and whether the entity is in the chunks or can be hit are shown per phase." style="color:var(--ink)">
-              <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
-                <g fill="var(--ink-soft)" text-anchor="middle" font-size="9.5">
-                  <text x="300" y="16">pre_unregister()</text>
-                  <text x="440" y="32">unregister()</text>
-                  <text x="580" y="16">release_removed_ids()</text>
-                </g>
-                <g stroke="currentColor" stroke-opacity=".35">
-                  <line x1="300" y1="20" x2="300" y2="170"/><line x1="440" y1="36" x2="440" y2="170"/><line x1="580" y1="20" x2="580" y2="170"/>
-                </g>
-                <g font-family="Overpass,sans-serif" font-size="10.5" font-weight="700" text-anchor="middle">
-                  <text x="230" y="50" fill="var(--accent-2)">alive</text>
-                  <text x="370" y="50" fill="var(--accent)">announced</text>
-                  <text x="510" y="50" fill="var(--accent)">removed · id locked</text>
-                  <text x="650" y="50" fill="var(--ink-soft)">id free for reuse</text>
-                </g>
-                <g fill="var(--ink-soft)" text-anchor="end">
-                  <text x="150" y="80">_chunkEntityPreUnregistered</text>
-                  <text x="150" y="106">_chunkEntityUnregistering</text>
-                  <text x="150" y="132">stands in chunks</text>
-                  <text x="150" y="158">can be hit / targeted</text>
-                </g>
-                <g text-anchor="middle">
-                  <text x="230" y="80">0</text><text x="370" y="80" fill="var(--accent)">1</text><text x="510" y="80" fill="var(--accent)">1</text><text x="650" y="80">0</text>
-                  <text x="230" y="106">0</text><text x="370" y="106">0</text><text x="510" y="106" fill="var(--accent)">1</text><text x="650" y="106">0</text>
-                  <text x="230" y="132">yes</text><text x="370" y="132">yes</text><text x="510" y="132" fill="var(--ink-soft)">no</text><text x="650" y="132" fill="var(--ink-soft)">—</text>
-                  <text x="230" y="158">yes</text><text x="370" y="158" fill="var(--ink-soft)">no</text><text x="510" y="158" fill="var(--ink-soft)">no</text><text x="650" y="158" fill="var(--ink-soft)">—</text>
-                </g>
-              </g>
-            </svg>
-            <figcaption>One id, from alive to reusable. Both flags go back to 0 together, in <code>release_removed_ids()</code>.</figcaption>
-          </figure>
-          <p>Skipping it is optional: <code>unregister()</code> works on an entity that was never announced.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_chunkEntityUnregistering</span><span class="vt">PackedByteArray</span><span class="vh">1 while removed but the id is still locked</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Set by <code>unregister()</code>, cleared by <code>release_removed_ids()</code> (see the timeline above). While it is 1 the entity is out of every chunk, but its id cannot be handed out again yet.</p>
-          <p><strong>Why the lock:</strong> say id 1 dies mid-frame while an explosion is still queued to hit id 1 later in the same frame. If the id were free at once, a new entity spawned in between would get id 1 and eat the damage. With the lock, the old id 1 is simply skipped (hit and targeting both check this flag) until the end of the frame.</p>
-          <p>It also makes removal idempotent: a second <code>unregister(1)</code> sees the 1 and returns, so id 1 cannot land in the free list twice.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_chunkEntityChunkArea</span><span class="vt">Array[Vector4i]</span><span class="vh">Covered rectangle as (minColumn, minRow, maxColumn, maxRow)</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_chunkEntityChunkArea" data-v="(0,0,0,0) (2,1,2,1) (1,0,2,1)" data-hl="2"></div></div>
-          <p>The last coverage rectangle, kept so a move can be compared against it. If the new rectangle is identical, <code>set_position()</code> leaves every chunk alone — the <a href="#fastpath">fast path</a>.</p>
-          <figure class="var-fig" style="margin:0;">
-            <svg viewBox="0 0 600 190" role="img" aria-label="Left: entity 2 at x 256 covers columns 1 to 2 and rows 0 to 1. Right: after moving to x 300 it covers only column 2, so it left chunks 1 and 5." style="color:var(--ink)">
-              <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
-                <rect x="90" y="40" width="100" height="80" fill="var(--accent)" fill-opacity=".14"/>
-                <rect x="440" y="40" width="50" height="80" fill="var(--accent)" fill-opacity=".14"/>
-                <g fill="none" stroke="currentColor" stroke-opacity=".45">
-                  <rect x="40" y="40" width="200" height="120"/>
-                  <line x1="90" y1="40" x2="90" y2="160"/><line x1="140" y1="40" x2="140" y2="160"/><line x1="190" y1="40" x2="190" y2="160"/>
-                  <line x1="40" y1="80" x2="240" y2="80"/><line x1="40" y1="120" x2="240" y2="120"/>
-                  <rect x="340" y="40" width="200" height="120"/>
-                  <line x1="390" y1="40" x2="390" y2="160"/><line x1="440" y1="40" x2="440" y2="160"/><line x1="490" y1="40" x2="490" y2="160"/>
-                  <line x1="340" y1="80" x2="540" y2="80"/><line x1="340" y1="120" x2="540" y2="120"/>
-                </g>
-                <rect x="124.4" y="74.4" width="31.2" height="31.2" fill="none" stroke="var(--accent)" stroke-dasharray="3 3"/>
-                <circle cx="140" cy="90" r="15.6" fill="var(--accent)" fill-opacity=".2" stroke="var(--accent)"/>
-                <rect x="441.6" y="74.4" width="31.2" height="31.2" fill="none" stroke="var(--accent)" stroke-dasharray="3 3"/>
-                <circle cx="457.2" cy="90" r="15.6" fill="var(--accent)" fill-opacity=".2" stroke="var(--accent)"/>
-                <text x="140" y="26" text-anchor="middle">at (256, 128) → (1, 0, 2, 1)</text>
-                <text x="440" y="26" text-anchor="middle">at (300, 128) → (2, 0, 2, 1)</text>
-                <text x="140" y="180" text-anchor="middle" fill="var(--ink-soft)">chunks 1, 2, 5, 6</text>
-                <text x="440" y="180" text-anchor="middle" fill="var(--ink-soft)">chunks 2, 6 — left 1 and 5</text>
-                <path d="M258,100 L322,100" stroke="currentColor" fill="none" marker-end="url(#ca)"/>
-              </g>
-              <defs><marker id="ca" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="currentColor"/></marker></defs>
-            </svg>
-          </figure>
-          <p>Moving id 2 by 20 units to (276, 128) gives the square 236 … 316 — still columns 1 … 2 — so the rectangle is unchanged and nothing happens. Moving it to (300, 128) changes the rectangle to <code>(2, 0, 2, 1)</code>: only the slots in chunks 1 and 5 are unlinked, 2 and 6 are not touched. <code>Array[Vector4i]</code> because Godot has no packed <code>Vector4i</code> array.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_chunkEntityCenterColumn · _chunkEntityCenterRow</span><span class="vt">PackedInt32Array</span><span class="vh">Column and row of the entity's center chunk — what search reads</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs">
-            <div class="arr" data-name="_chunkEntityCenterColumn" data-v="0 2 2"></div>
-            <div class="arr" data-name="_chunkEntityCenterRow" data-v="0 1 1"></div>
-          </div>
-          <p>The same chunk as <code>_chunkEntityCenterChunk</code>, pre-split into column and row. Targeting measures chunk distances between two entities thousands of times per search; reading two ints saves a <code>%</code> and a <code>/</code> each time. Written only when the center chunk actually changes.</p>
-        </div>
-      </details>
+    <div class="split2" style="margin-top:12px">
+      <figure class="mini" data-label="Attacker span columns 0 to 3, defender span 1 to 2." data-world='{"cols":{"0":"b","3":"b","1":"a","2":"a"},"coltxt":{"0":"A min","1":"D min","2":"D max","3":"A max"}}'><figcaption>Now: attackers span columns 0 … 3, defenders 1 … 2.</figcaption></figure>
+      <figure class="mini" data-label="After id 3 is removed the attacker span shrinks to column 0." data-world='{"ents":[0,1,2],"cols":{"0":"b","3":"c"},"coltxt":{"0":"A min+max","3":"emptied"}}'><figcaption>If id 3 is removed: column 3 runs empty, it was the max end, so the scan walks left over 2 and 1 to column 0.</figcaption></figure>
     </div>
-
-    <p class="group-title">Coverage membership — one slot per chunk an entity touches</p>
-    <div class="prose" style="margin-top:2px;">
-      <p>An intrusive doubly linked list, threaded two ways through the same slot array: once per chunk, once per entity. No list is ever copied to add or remove a member.</p>
-    </div>
-
-    <details class="var" style="margin-bottom:10px;border:1px solid var(--line);border-radius:3px;background:var(--surface);">
-      <summary style="grid-template-columns:minmax(0,1fr) 16px;"><span class="vh"><strong>How the two chains share one slot array</strong> <span style="color:var(--ink-soft)">— drawn for the example world</span></span><span class="chev"></span></summary>
-      <div class="var-body">
-        <p>A <strong>slot</strong> is one "entity X stands in chunk Y" fact. The example world has six of them: id 0 in chunk 0, id 1 in chunk 6, and id 2 in chunks 1, 2, 5 and 6. Each slot is one index across six parallel arrays:</p>
-        <div class="arrs">
-          <div class="arr" data-name="_slotEntity" data-v="0 1 2 2 2 2" data-hl="5 1"></div>
-          <div class="arr" data-name="_slotChunk" data-v="0 6 1 2 5 6" data-hl="5 1"></div>
-          <div class="arr" data-name="_slotChunkNext" data-v="-1 -1 -1 -1 -1 1" data-hl="5 1"></div>
-          <div class="arr" data-name="_slotChunkPrev" data-v="-1 5 -1 -1 -1 -1" data-hl="5 1"></div>
-          <div class="arr" data-name="_slotEntityNext" data-v="-1 -1 -1 2 3 4" data-hl2="2 3 4 5"></div>
-          <div class="arr" data-name="_slotEntityPrev" data-v="-1 -1 3 4 5 -1" data-hl2="2 3 4 5"></div>
-        </div>
-        <figure class="var-fig" style="margin:0;">
-          <svg viewBox="0 0 640 250" role="img" aria-label="Six slot boxes. Above them, the chunk 6 chain runs from the head to slot 5, then to slot 1. Below them, the entity 2 chain runs from its head to slot 5, then 4, 3 and 2." style="color:var(--ink)">
-            <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
-              <g fill="none" stroke="currentColor">
-                <rect x="30" y="95" width="80" height="50" rx="3" stroke-opacity=".4"/>
-                <rect x="130" y="95" width="80" height="50" rx="3" stroke="var(--accent)"/>
-                <rect x="230" y="95" width="80" height="50" rx="3" stroke="var(--accent-2)"/>
-                <rect x="330" y="95" width="80" height="50" rx="3" stroke="var(--accent-2)"/>
-                <rect x="430" y="95" width="80" height="50" rx="3" stroke="var(--accent-2)"/>
-                <rect x="530" y="95" width="80" height="50" rx="3" stroke="var(--accent)" stroke-width="1.6"/>
-              </g>
-              <g text-anchor="middle">
-                <text x="70" y="116">id 0</text><text x="70" y="133" fill="var(--ink-soft)">chunk 0</text>
-                <text x="170" y="116">id 1</text><text x="170" y="133" fill="var(--ink-soft)">chunk 6</text>
-                <text x="270" y="116">id 2</text><text x="270" y="133" fill="var(--ink-soft)">chunk 1</text>
-                <text x="370" y="116">id 2</text><text x="370" y="133" fill="var(--ink-soft)">chunk 2</text>
-                <text x="470" y="116">id 2</text><text x="470" y="133" fill="var(--ink-soft)">chunk 5</text>
-                <text x="570" y="116">id 2</text><text x="570" y="133" fill="var(--ink-soft)">chunk 6</text>
-                <g font-size="9" fill="var(--ink-soft)">
-                  <text x="70" y="160">slot 0</text><text x="170" y="160">slot 1</text><text x="270" y="160">slot 2</text>
-                  <text x="370" y="160">slot 3</text><text x="470" y="160">slot 4</text><text x="570" y="160">slot 5</text>
-                </g>
-              </g>
-              <text x="632" y="18" text-anchor="end" fill="var(--accent)">_chunkHead[6]</text>
-              <path d="M596,24 L596,91" fill="none" stroke="var(--accent)" marker-end="url(#chA)"/>
-              <path d="M556,95 C556,40 184,40 184,91" fill="none" stroke="var(--accent)" marker-end="url(#chA)"/>
-              <text x="370" y="36" text-anchor="middle" fill="var(--accent)">_slotChunkNext[5] = 1   (then −1: end)</text>
-              <text x="632" y="244" text-anchor="end" fill="var(--accent-2)">_chunkEntitySlotHead[2]</text>
-              <path d="M596,228 L596,168" fill="none" stroke="var(--accent-2)" marker-end="url(#chB)"/>
-              <path d="M556,168 C556,205 484,205 484,172" fill="none" stroke="var(--accent-2)" marker-end="url(#chB)"/>
-              <path d="M456,168 C456,205 384,205 384,172" fill="none" stroke="var(--accent-2)" marker-end="url(#chB)"/>
-              <path d="M356,168 C356,205 284,205 284,172" fill="none" stroke="var(--accent-2)" marker-end="url(#chB)"/>
-              <text x="370" y="226" text-anchor="middle" fill="var(--accent-2)">_slotEntityNext: 5 → 4 → 3 → 2 → −1</text>
-            </g>
-            <defs>
-              <marker id="chA" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker>
-              <marker id="chB" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent-2)"/></marker>
-            </defs>
-          </svg>
-          <figcaption>Orange: the chain of chunk 6 (who stands here?). Teal: the chain of entity 2 (where does it stand?). The same slot 5 sits in both. New slots are pushed at the head, so chains run newest first.</figcaption>
-        </figure>
-        <div class="code"><span class="c">## Who stands in chunk 6?</span>
-slot = _chunkHead[6]          <span class="c"># 5  → _slotEntity[5] = id 2</span>
-slot = _slotChunkNext[5]      <span class="c"># 1  → _slotEntity[1] = id 1</span>
-slot = _slotChunkNext[1]      <span class="c"># −1 → done: ids 2, 1</span>
-
-<span class="c">## Where does entity 2 stand?</span>
-slot = _chunkEntitySlotHead[2]     <span class="c"># 5 → chunk 6, then 4 → chunk 5, 3 → chunk 2, 2 → chunk 1, −1</span></div>
-        <p><strong>Removing one slot</strong>, e.g. slot 4 when id 2 leaves chunk 5: in chunk 5's chain its prev is −1, so <code>_chunkHead[5] = −1</code>. In id 2's chain its prev is 5 and its next is 3, so <code>_slotEntityNext[5] = 3</code> and <code>_slotEntityPrev[3] = 5</code>. Slot 4 goes to <code>_freeSlots</code>. Four writes, whatever the chunk holds.</p>
-      </div>
-    </details>
-
-    <div class="vlist">
-      <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
-
-      <details class="var">
-        <summary><span class="vn">_chunkHead</span><span class="vt">PackedInt32Array</span><span class="vh">First slot of each chunk's chain, or <code>NO_ID</code></span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>One entry per chunk. The entry to start from when you want everything standing in a chunk; <code>−1</code> means the chunk is empty.</p>
-          <div class="arrs"><div class="arr" data-name="_chunkHead" data-v="0 2 3 -1 -1 4 5 -1 -1 -1 -1 -1" data-hl="6"></div></div>
-          <div class="code">slot = _chunkHead[c]
-<span class="k">while</span> slot != NO_ID:
-    id = _slotEntity[slot]      <span class="c"># use id</span>
-    slot = _slotChunkNext[slot]</div>
-          <p>The hit server walks exactly this loop over the chunks under a hit shape.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_chunkEntitySlotHead</span><span class="vt">PackedInt32Array</span><span class="vh">First slot of each entity's own chain, or <code>NO_ID</code></span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_chunkEntitySlotHead" data-v="0 1 5" data-hl="2"></div></div>
-          <p>One entry per entity id. Following it lists every chunk the entity stands in (for id 2: slots 5, 4, 3, 2 → chunks 6, 5, 2, 1). <code>unregister()</code> and a move that changes the rectangle walk this chain to find the slots to unlink, instead of searching every chunk.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_slotEntity · _slotChunk</span><span class="vt">PackedInt32Array</span><span class="vh">The entity and the chunk one slot belongs to</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs">
-            <div class="arr" data-name="_slotEntity" data-v="0 1 2 2 2 2"></div>
-            <div class="arr" data-name="_slotChunk" data-v="0 6 1 2 5 6"></div>
-          </div>
-          <p>The payload of a slot. A chunk walk reads <code>_slotEntity</code> to get an id; an entity walk reads <code>_slotChunk</code> to get a chunk. On removal, <code>_slotChunk</code> says which chunk's counts and masks to update.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_slotChunkNext · _slotChunkPrev</span><span class="vt">PackedInt32Array</span><span class="vh">Neighbours of a slot inside its chunk's chain</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs">
-            <div class="arr" data-name="_slotChunkNext" data-v="-1 -1 -1 -1 -1 1" data-hl="5"></div>
-            <div class="arr" data-name="_slotChunkPrev" data-v="-1 5 -1 -1 -1 -1" data-hl="1"></div>
-          </div>
-          <p>Chunk 6 holds slots 5 and 1: <code>next[5] = 1</code>, <code>prev[1] = 5</code>. <code>−1</code> marks the ends. <code>Prev</code> is only there so removal needs no search: to unlink slot 1 you already know its neighbour is 5.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_slotEntityNext · _slotEntityPrev</span><span class="vt">PackedInt32Array</span><span class="vh">Neighbours of a slot inside its entity's chain</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs">
-            <div class="arr" data-name="_slotEntityNext" data-v="-1 -1 -1 2 3 4" data-hl2="3 4 5"></div>
-            <div class="arr" data-name="_slotEntityPrev" data-v="-1 -1 3 4 5 -1" data-hl2="2 3 4"></div>
-          </div>
-          <p>The same idea, threaded per entity. Entity 2's chain is 5 → 4 → 3 → 2. Entities 0 and 1 stand in one chunk each, so their only slot has −1 on both sides.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_freeSlots</span><span class="vt">PackedInt32Array</span><span class="vh">Membership slots ready to be handed out again</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>A stack of unlinked slot indices. After id 2 moves to (300, 128) it leaves chunks 1 and 5, so slots 2 and 4 are pushed:</p>
-          <div class="arrs"><div class="arr" data-name="_freeSlots" data-v="4 2"></div></div>
-          <p>The next membership pops the last one (2) instead of growing six arrays. The slot arrays therefore never shrink: their length is the most memberships that ever existed at once, and a freed slot keeps stale values until it is reused.</p>
-        </div>
-      </details>
-    </div>
-
-    <p class="group-title">Center membership — exactly one slot per entity</p>
-    <div class="prose" style="margin-top:2px;">
-      <p>A second, unrelated chain: every entity sits in exactly one chunk here, the one its position falls into. This is what lets a search visit each entity once no matter how many chunks its radius covers.</p>
-    </div>
-    <div class="vlist">
-      <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
-
-      <details class="var">
-        <summary><span class="vn">_chunkEntityCenterChunk</span><span class="vt">PackedInt32Array</span><span class="vh">The chunk an entity's center link sits in, or <code>NO_ID</code></span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_chunkEntityCenterChunk" data-v="0 6 6" data-hl="1 2"></div></div>
-          <p>Compared on every <code>set_position()</code>: if the position still falls into the same chunk, the center chain is not touched. <code>−1</code> (the shared <code>NO_ID</code> sentinel) while the entity is not linked — before its first placement and after it was unregistered.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_centerHead</span><span class="vt">PackedInt32Array</span><span class="vh">First entity of a chunk's center chain, or <code>NO_ID</code></span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_centerHead" data-v="0 -1 -1 -1 -1 -1 2 -1 -1 -1 -1 -1" data-hl="6"></div></div>
-          <p>Unlike the coverage chains, this one needs no slot array: an entity has exactly one center, so the links live directly on the entity id. Chunks 1, 2 and 5 are covered by id 2 but hold no center — a search opening them finds nothing, and so never scores id 2 four times.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_centerNext · _centerPrev</span><span class="vt">PackedInt32Array</span><span class="vh">Neighbours of an entity inside the center chain of its chunk</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs">
-            <div class="arr" data-name="_centerNext" data-v="-1 -1 1" data-hl="2"></div>
-            <div class="arr" data-name="_centerPrev" data-v="-1 2 -1" data-hl="1"></div>
-          </div>
-          <figure class="var-fig" style="margin:0;">
-            <svg viewBox="0 0 520 110" role="img" aria-label="The center chain of chunk 6: the head points to entity 2, entity 2's next is entity 1, entity 1's prev is entity 2, and entity 1's next is the end." style="color:var(--ink)">
-              <g font-family="JetBrains Mono, monospace" font-size="10.5" fill="currentColor">
-                <text x="20" y="64" fill="var(--accent)">_centerHead[6]</text>
-                <path d="M118,60 L166,60" stroke="var(--accent)" fill="none" marker-end="url(#ce)"/>
-                <rect x="170" y="38" width="90" height="44" rx="3" fill="none" stroke="var(--accent)"/>
-                <text x="215" y="64" text-anchor="middle">id 2</text>
-                <rect x="340" y="38" width="90" height="44" rx="3" fill="none" stroke="var(--accent)"/>
-                <text x="385" y="64" text-anchor="middle">id 1</text>
-                <path d="M260,50 L336,50" stroke="currentColor" fill="none" marker-end="url(#ce2)"/>
-                <text x="298" y="42" text-anchor="middle" font-size="9" fill="var(--ink-soft)">next</text>
-                <path d="M340,72 L264,72" stroke="currentColor" fill="none" marker-end="url(#ce2)"/>
-                <text x="298" y="94" text-anchor="middle" font-size="9" fill="var(--ink-soft)">prev</text>
-                <path d="M430,60 L466,60" stroke="currentColor" fill="none" marker-end="url(#ce2)"/>
-                <text x="474" y="64" fill="var(--ink-soft)">−1</text>
-              </g>
-              <defs>
-                <marker id="ce" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="var(--accent)"/></marker>
-                <marker id="ce2" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 Z" fill="currentColor"/></marker>
-              </defs>
-            </svg>
-          </figure>
-          <p>Id 1 was placed first, id 2 was pushed in front of it. Walk it with <code>id = _centerHead[c]; while id != NO_ID: … id = _centerNext[id]</code> — the loop targeting's <code>_scan_chunk()</code> runs.</p>
-        </div>
-      </details>
-    </div>
-
-    <p class="group-title">Per team, per chunk / column / map aggregates</p>
-    <div class="prose" style="margin-top:2px;">
-      <p>Each is one flat array made of team blocks: the team picks the block, the chunk or column picks the slot inside it.</p>
-    </div>
-    <div class="strip">
-      <div class="t0"><span class="strip-label">team 0 · attacker</span>index 0 … CHUNK_COUNT-1</div>
-      <div class="t1"><span class="strip-label">team 1 · defender</span>index CHUNK_COUNT … 2·CHUNK_COUNT-1</div>
-    </div>
-    <div class="vlist" style="margin-top:10px;">
-      <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
-
-      <details class="var">
-        <summary><span class="vn">_chunkGroups</span><span class="vt">PackedInt64Array</span><span class="vh">OR of the groups of every entity of a team standing in a chunk</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Size <code>TEAM_COUNT × CHUNK_COUNT</code>; index <code>team * CHUNK_COUNT + chunk</code>. Defender chunk 6 is index <code>1 × 12 + 6 = 18</code>; it holds id 1 (GROUND) and id 2 (AIR), so its mask is <code>0b01 | 0b10 = 0b11</code>.</p>
-          <div class="arrs"><div class="arr" data-name="_chunkGroups" data-v="01 · · · · · · · · · · · · 10 10 · · 10 11 · · · · ·" data-split="12" data-hl2="0" data-hl="13 14 17 18"></div></div>
-          <figure class="var-fig" style="margin:0;">
-            <svg viewBox="0 0 600 270" role="img" aria-label="Group masks per team. Attacker: chunk 0 holds 01, column 0 holds 01, map 01. Defender: chunks 1, 2 and 5 hold 10, chunk 6 holds 11; columns 1 and 2 hold 10 and 11; the map holds 11." style="color:var(--ink)">
-              <g font-family="JetBrains Mono, monospace" font-size="11" text-anchor="middle" fill="currentColor">
-                <text x="140" y="22" font-family="Overpass,sans-serif" font-weight="700" fill="var(--accent-2)">ATTACKER</text>
-                <text x="440" y="22" font-family="Overpass,sans-serif" font-weight="700" fill="var(--accent)">DEFENDER</text>
-                <g fill="none" stroke="currentColor" stroke-opacity=".45">
-                  <rect x="20" y="36" width="240" height="120"/><line x1="80" y1="36" x2="80" y2="156"/><line x1="140" y1="36" x2="140" y2="156"/><line x1="200" y1="36" x2="200" y2="156"/><line x1="20" y1="76" x2="260" y2="76"/><line x1="20" y1="116" x2="260" y2="116"/>
-                  <rect x="320" y="36" width="240" height="120"/><line x1="380" y1="36" x2="380" y2="156"/><line x1="440" y1="36" x2="440" y2="156"/><line x1="500" y1="36" x2="500" y2="156"/><line x1="320" y1="76" x2="560" y2="76"/><line x1="320" y1="116" x2="560" y2="116"/>
-                  <rect x="20" y="180" width="240" height="30"/><line x1="80" y1="180" x2="80" y2="210"/><line x1="140" y1="180" x2="140" y2="210"/><line x1="200" y1="180" x2="200" y2="210"/>
-                  <rect x="320" y="180" width="240" height="30"/><line x1="380" y1="180" x2="380" y2="210"/><line x1="440" y1="180" x2="440" y2="210"/><line x1="500" y1="180" x2="500" y2="210"/>
-                  <rect x="110" y="230" width="60" height="30"/><rect x="410" y="230" width="60" height="30"/>
-                </g>
-                <g fill="var(--ink-soft)" opacity=".6">
-                  <text x="110" y="60">·</text><text x="170" y="60">·</text><text x="230" y="60">·</text>
-                  <text x="50" y="100">·</text><text x="110" y="100">·</text><text x="170" y="100">·</text><text x="230" y="100">·</text>
-                  <text x="50" y="140">·</text><text x="110" y="140">·</text><text x="170" y="140">·</text><text x="230" y="140">·</text>
-                  <text x="350" y="60">·</text><text x="530" y="60">·</text><text x="350" y="100">·</text><text x="530" y="100">·</text>
-                  <text x="350" y="140">·</text><text x="410" y="140">·</text><text x="470" y="140">·</text><text x="530" y="140">·</text>
-                  <text x="110" y="200">·</text><text x="170" y="200">·</text><text x="230" y="200">·</text>
-                  <text x="350" y="200">·</text><text x="530" y="200">·</text>
-                </g>
-                <g fill="var(--accent-2)"><text x="50" y="60">01</text><text x="50" y="200">01</text><text x="140" y="250">01</text></g>
-                <g fill="var(--accent)">
-                  <text x="410" y="60">10</text><text x="470" y="60">10</text><text x="410" y="100">10</text><text x="470" y="100" font-weight="700">11</text>
-                  <text x="410" y="200">10</text><text x="470" y="200">11</text><text x="440" y="250">11</text>
-                </g>
-                <g font-size="9.5" fill="var(--ink-soft)" text-anchor="start">
-                  <text x="268" y="100">chunks</text><text x="268" y="199">columns</text><text x="268" y="249">map</text>
-                </g>
-              </g>
-            </svg>
-            <figcaption>Each level is the OR of the level below it: a column ORs its three chunks, the map ORs its four columns. <code>·</code> = 0.</figcaption>
-          </figure>
-          <p>Adding just ORs in (<code>0b10 | 0b01</code>). Removing cannot "un-OR" a bit someone else may still hold, so it rebuilds from what is left — see <a href="#cascade">the cascade</a>.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_columnGroups</span><span class="vt">PackedInt64Array</span><span class="vh">OR of the chunk masks of one column, per team</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Size <code>TEAM_COUNT × MAP_CHUNK_COLUMNS</code>; index <code>team * MAP_CHUNK_COLUMNS + column</code>.</p>
-          <div class="arrs"><div class="arr" data-name="_columnGroups" data-v="01 · · · · 10 11 ·" data-split="4" data-hl2="0" data-hl="5 6"></div></div>
-          <p>Lets a search skip a whole column with one lookup: an attacker looking for AIR checks <code>_columnGroups[1*4 + 3] &amp; 0b10</code>, sees 0, and never opens chunks 3, 7 or 11. Columns (not rows) because the two bases face each other along x.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_mapGroups</span><span class="vt">PackedInt64Array</span><span class="vh">OR of all column masks, per team</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs"><div class="arr" data-name="_mapGroups" data-v="01 11" data-idx="ATK DEF" data-hl2="0" data-hl="1"></div></div>
-          <p>One entry per team: "does this team have any AIR at all?" If a search's groups are not in here, it returns before touching a single chunk.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_chunkCounts · _columnCounts · _mapCounts</span><span class="vt">PackedInt32Array</span><span class="vh">Memberships per team and level — not distinct entities</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Same team-block layout as the masks, but a plain number. <strong>It counts slots, not entities:</strong> id 2 stands in four chunks, so it adds 1 to four chunk counts, and so 4 to the map count.</p>
-          <div class="arrs">
-            <div class="arr" data-name="_chunkCounts" data-v="1 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 1 2 0 0 0 0 0" data-split="12" data-hl="18"></div>
-            <div class="arr" data-name="_columnCounts" data-v="1 0 0 0 0 2 3 0" data-split="4" data-hl="5 6"></div>
-            <div class="arr" data-name="_mapCounts" data-v="1 5" data-idx="ATK DEF" data-hl="1"></div>
-          </div>
-          <p>The defenders are two entities but <code>_mapCounts[DEFENDER] = 5</code> (1 slot of id 1 + 4 of id 2). That is fine for what the counts are used for — "is anybody of that team here, yes or no" (<code>&gt; 0</code>) and noticing a column running empty — but don't read them as head counts. Counts ignore groups, so they include invisible entities too.</p>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_teamMinColumn · _teamMaxColumn</span><span class="vt">PackedInt32Array</span><span class="vh">Outermost occupied column per team, or <code>NO_ID</code></span><span class="chev"></span></summary>
-        <div class="var-body">
-          <div class="arrs">
-            <div class="arr" data-name="_teamMinColumn" data-v="0 1" data-idx="ATK DEF" data-hl="1"></div>
-            <div class="arr" data-name="_teamMaxColumn" data-v="0 2" data-idx="ATK DEF" data-hl="1"></div>
-          </div>
-          <figure class="var-fig" style="margin:0;">
-            <svg viewBox="0 0 520 120" role="img" aria-label="Four columns. The attacker occupies column 0 only. The defender span runs from column 1 to column 2." style="color:var(--ink)">
-              <g font-family="JetBrains Mono, monospace" font-size="10" fill="currentColor">
-                <g fill="none" stroke="currentColor" stroke-opacity=".45">
-                  <rect x="60" y="20" width="400" height="30"/><line x1="160" y1="20" x2="160" y2="50"/><line x1="260" y1="20" x2="260" y2="50"/><line x1="360" y1="20" x2="360" y2="50"/>
-                </g>
-                <g text-anchor="middle" fill="var(--ink-soft)"><text x="110" y="39">col 0</text><text x="210" y="39">col 1</text><text x="310" y="39">col 2</text><text x="410" y="39">col 3</text></g>
-                <rect x="64" y="62" width="92" height="12" rx="2" fill="var(--accent-2)" fill-opacity=".6"/>
-                <text x="470" y="72" fill="var(--accent-2)">ATK 0 … 0</text>
-                <rect x="164" y="84" width="192" height="12" rx="2" fill="var(--accent)" fill-opacity=".6"/>
-                <text x="470" y="94" fill="var(--accent)">DEF 1 … 2</text>
-              </g>
-            </svg>
-          </figure>
-          <p>An attacker in column 2 asks "did a defender slip behind me?" → <code>has_opponent_before_column(2, ATTACKER)</code> reads <code>_teamMinColumn[DEFENDER] = 1 &lt; 2</code> → yes. One read per team, however wide the map.</p>
-          <p>Kept current from the column counts: when a column goes from 0 to 1 member, the span may widen; when it goes to 0 and it <em>was</em> the edge, the edge is walked inwards to the next non-empty column. If id 2 moved right out of column 1, the defender minimum would step from 1 to 2. <code>−1</code> on both while a team holds nothing.</p>
-        </div>
-      </details>
-    </div>
-
-    <p class="group-title">Free lists</p>
-    <div class="vlist">
-      <div class="vlist-head"><span>Field</span><span>Type</span><span>Holds</span><span></span></div>
-
-      <details class="var">
-        <summary><span class="vn">_pendingFreeIds</span><span class="vt">PackedInt32Array</span><span class="vh">Ids removed since the last <code>release_removed_ids()</code></span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>The waiting room between "removed" and "reusable" (the locked phase in the <code>_chunkEntityPreUnregistered</code> timeline above).</p>
-          <div class="code">frame 10   unregister(1)            _pendingFreeIds = [1]    _freeIds = []
-frame 10   release_removed_ids()    _pendingFreeIds = []     _freeIds = [1]   <span class="c"># s_entityReleased(1)</span>
-frame 11   register(…)              returns 1                _freeIds = []</div>
-        </div>
-      </details>
-
-      <details class="var">
-        <summary><span class="vn">_freeIds</span><span class="vt">PackedInt32Array</span><span class="vh">Ids ready to be handed out again</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>A stack: <code>register()</code> pops the most recently freed id. Only when it is empty does a brand-new id get appended to every per-entity array — and only then is <code>s_entitySlotAppended</code> emitted, so the other servers grow along. The id space therefore never shrinks; it is as large as the most entities alive at once.</p>
-        </div>
-      </details>
-    </div>
-
-    <p class="note-inline">Both membership lists are doubly linked, so unlinking a slot or a center entry is a fixed number of index rewrites — no swap, no search, and no per entity index to keep in step. <code>_teamMinColumn</code>/<code>_teamMaxColumn</code> only rescan when the column that just emptied <em>was</em> the span edge, so the amortised cost stays near zero. The UPPER_CASE members every server sees (<code>MAP_CHUNK_COLUMNS</code>, <code>CHUNK_COUNT</code> and the like) are cached copies of the <a href="#constants">C_ChunkingServer</a> values, declared and filled in once on <code>A_CoreServers</code>'s own <code>_init()</code>, per the style guide's caching rule. <code>NO_ID</code> is cached the same way but comes from <a href="core-servers.html">C_CoreServers</a> instead — the one "nowhere" sentinel chunking, hit and targeting all share.</p>
   </section>
 
-  <section id="fastpath">
-    <span class="eyebrow">Movement</span>
-    <h2>The rectangle check that skips the work</h2>
-    <div class="prose">
-      <p><code>set_position()</code> and <code>set_radius()</code> both go through one internal step that compares the new chunk rectangle against the one the entity already covers, and skips the coverage update entirely when they match. <code>_compute_chunk_area()</code> is allocation free — it returns a <code>Vector4i</code>, a value type — so the fast path costs four clamps and one comparison.</p>
-      <p><code>set_position()</code> also updates the entity's center chunk, through the same kind of drop-out: <code>_apply_center_chunk()</code> returns at once when the position did not cross into a new chunk. The two checks are independent — a small move can shift the center chunk without changing the coverage rectangle, or the reverse for a large entity moving near its own edge.</p>
-      <p>The coverage fast path is taken on the large majority of movement calls, which is why nothing else in the system is allowed to add work to it.</p>
+  <section id="queries">
+    <span class="eyebrow">Built on the index</span>
+    <h2>How hit and targeting read it</h2>
+    <div class="split2">
+      <div>
+        <h3 style="margin-top:0">Hit: counts and slot chains</h3>
+        <p>A hit computes the chunk area under its shape's bounds, then per column asks "does any other team count here?", per chunk the same, and only then walks the chunk's slot chain. A visit stamp per entity dedups entities standing in several chunks. <a href="hit-system.html#gather">More on the hit page.</a></p>
+        <figure class="mini" data-label="A circle hit around id 1: chunk area columns 1 to 3; attacker counts are zero in columns 1 and 2, so only column 3 is opened, and in it only chunk 11." data-world='{"circ":[[300,200,150,"c"]],"cols":{"1":"c","2":"c"},"hl":{"3":"c","7":"c","11":"a"},"coltxt":{"1":"skip","2":"skip","3":"open"}}'><figcaption>Id 1 swings with radius 150. Columns 1 and 2 hold no attacker (count 0) and are skipped whole; in column 3 only chunk 11 counts one.</figcaption></figure>
+      </div>
+      <div>
+        <h3 style="margin-top:0">Targeting: masks and center chains</h3>
+        <p>A search first asks the map mask "does any opponent have a searched group?", then per ring column the column mask, per chunk the chunk mask, and only then walks the chunk's center chain. <a href="targeting-system.html#search">More on the targeting page.</a></p>
+        <figure class="mini" data-label="Id 0 searches for GROUND: ring 0 is chunk 0, ring 1 adds chunks 1, 4, 5, ring 2 reaches chunk 6 where id 1's center is." data-world='{"ring":[0,2],"hl":{"6":"a"},"arrows":[[0,1,"b","found"]]}'><figcaption>Id 0 searches ring by ring from chunk 0; the first chunk whose defender mask has GROUND and whose center chain holds a candidate is chunk 6.</figcaption></figure>
+      </div>
     </div>
-
-    <div class="table-wrap" style="margin-top:16px;">
-      <table class="num">
-        <tr><th>Movement per frame</th><th>Entity radius</th><th>Rectangle unchanged</th></tr>
-        <tr><td>2 units</td><td>0</td><td><span class="win">98.7%</span></td></tr>
-        <tr><td>2 units</td><td>60</td><td><span class="win">97.5%</span></td></tr>
-        <tr><td>8 units</td><td>0</td><td><span class="win">95.2%</span></td></tr>
-        <tr><td>8 units</td><td>60</td><td><span class="win">90.6%</span></td></tr>
-        <tr><td>25 units</td><td>60</td><td>76.4%</td></tr>
-      </table>
-    </div>
-    <p class="note-inline">Measured over 2000 entities × 120 frames. Every one of those calls would otherwise allocate two arrays and run a set difference to conclude that nothing changed.</p>
   </section>
 
   <section id="api">
     <span class="eyebrow">Reference</span>
-    <h2>Public API</h2>
-    <p class="prose"><code>G_ChunkingServer</code> is an autoload, the first of the three, and entities call it directly. The id lifecycle itself — <code>register()</code>, <code>pre_unregister()</code>, <code>unregister()</code> and <code>release_removed_ids()</code> — is defined once on <code>A_CoreServers</code>, the abstract base every autoload extends; calling it as <code>G_ChunkingServer.register(...)</code> is convention, not a special role of that autoload. <code>G_HitServer</code> and <code>G_TargetingServer</code> extend the same base and inherit the same lifecycle, which is why one call now sets up all three sides of an entity.</p>
-
-    <p class="group-title">Lifecycle — defined on A_CoreServers</p>
-    <div class="fn">
-      <div class="fn-head"><span class="fn-name">register</span><span class="tag pub">public</span><span class="tag cost">O(covered chunks)</span></div>
-      <div class="fn-body">
-        <div class="code"><span class="k">func</span> register(p_position: <span class="t">Vector2</span>, p_radius: <span class="t">float</span>, p_team: <span class="t">int</span>, p_groups: <span class="t">int</span>,
-        p_module: <span class="t">M_ModuleManager</span>, p_hitProfile: <span class="t">R_HitProfile</span>, p_targetingData: <span class="t">R_TargetingData</span>) -&gt; <span class="t">int</span></div>
-        <p class="fn-note">One call sets up <strong>chunking, hit and targeting</strong> at once — where up to three separate calls, one of them chunking-only, used to be needed. Takes an id from the free list or appends a slot, then adds the entity to every chunk its radius covers, fills in its hit profile and fills in its targeting data.</p>
-        <p class="fn-note">A null <code>p_hitProfile</code> or <code>p_targetingData</code> falls back to a shared default that carries zero groups, so the entity is inert on that side rather than skipped. There is no more index-only, partial registration — an entity that should not take hits or should not target anything is registered with zeroed groups, not with a missing call.</p>
-      </div>
+    <h2>G_ChunkingServer</h2>
+    <div class="vlist">
+      <div class="vlist-head"><span>Function</span><span>Cost</span><span>Does</span><span></span></div>
+      <details class="var" id="f-set_position">
+        <summary><span class="vn">set_position(p_id, p_position)</span><span class="vt">O(1) usually</span><span class="vh">Moves an entity, updating only chunks entered or left</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Ignores a removed id with a warning (it would link the entity back into the index). Writes <code>_entityPosition</code>, then <code>_move_to_chunk_area(id, _compute_circle_chunk_area(position, radius))</code>, then <code>_update_center_chunk()</code>. Costs O(1) when no border is crossed, otherwise O(chunks left + entered).</p>
+          <div class="code">G_ChunkingServer.set_position(3, Vector2(330, 300))   <span class="c"># id 3: chunk 11 → chunk 10, center too</span></div>
+          <figure class="mini" data-label="Id 3 moves left from chunk 11 into chunk 10." data-world='{"ents":[3],"move":{"3":[330,300]},"hl":{"11":"c","10":"a"}}'><figcaption>One slot removed (chunk 11), one added (chunk 10), center chain switched; attacker column 3 runs empty, so the attacker max column becomes 2.</figcaption></figure>
+        </div>
+      </details>
+      <details class="var" id="f-set_radius">
+        <summary><span class="vn">set_radius(p_id, p_radius)</span><span class="vt">O(changed chunks)</span><span class="vh">Resizes an entity, updating only chunks entered or left</span><span class="chev"></span></summary>
+        <div class="var-body">
+          <p>Ignores a removed id with a warning. Writes <code>_entityRadius</code> and moves the entity to the new chunk area. The center chunk depends only on the position, so the center chain stays untouched.</p>
+          <div class="code">G_ChunkingServer.set_radius(1, 60.0)   <span class="c"># id 1 at (300, 200): square 240 … 360 × 140 … 260 → chunks 5, 6, 9, 10</span></div>
+          <figure class="mini" data-label="Id 1 grows to radius 60 and now stands in chunks 5, 6, 9 and 10." data-world='{"ents":[1],"move":{"1":[300,200,60]},"box":[1],"hl":{"5":"a","9":"a","10":"a","6":"b"}}'><figcaption>Teal: kept (chunk 6). Orange: entered (5, 9, 10).</figcaption></figure>
+        </div>
+      </details>
     </div>
-
-    <div class="table-wrap" style="margin-top:14px;">
-      <table class="vars">
-        <tr><th>Function</th><th>Does</th><th>Cost</th></tr>
-        <tr><td>set_position(p_id, p_position)</td><td>Moves an entity through the rectangle fast path</td><td>O(1) unchanged</td></tr>
-        <tr><td>set_radius(p_id, p_radius)</td><td>Resizes it through the same path</td><td>O(1) unchanged</td></tr>
-        <tr><td>pre_unregister(p_id)</td><td>Marks it; it stays fully active and hittable</td><td>O(1)</td></tr>
-        <tr><td>unregister(p_id)</td><td>Removes it from every chunk, locks its id</td><td>O(covered chunks)</td></tr>
-        <tr><td>release_removed_ids()</td><td>Hands the locked ids back for reuse</td><td>O(removed)</td></tr>
-      </table>
-    </div>
-    <p class="note-inline"><code>set_position()</code> and <code>set_radius()</code> stay on <code>G_ChunkingServer</code> itself — only chunking needs them. <code>pre_unregister()</code>, <code>unregister()</code> and <code>release_removed_ids()</code> are inherited from <code>A_CoreServers</code>.</p>
-
-    <p class="group-title">Signals — defined on A_CoreServers</p>
-    <div class="table-wrap">
-      <table class="vars">
-        <tr><th>Signal</th><th>Emitted when</th></tr>
-        <tr><td>s_entitySlotAppended(p_id)</td><td>A fresh id is handed out for the first time</td></tr>
-        <tr><td>s_entityPreUnregistered(p_id)</td><td>pre_unregister() marks an entity</td></tr>
-        <tr><td>s_entityUnregistered(p_id)</td><td>unregister() removes it, once per id</td></tr>
-        <tr><td>s_entityReleased(p_id)</td><td>release_removed_ids() hands the id back, every field of it just reset to default</td></tr>
-      </table>
-    </div>
-    <p class="note-inline">These used to be how the three servers coordinated: chunking appended its containers and emitted, hit and targeting listened and appended their own. Now <code>_acquire_id()</code>, <code>pre_unregister()</code>, <code>unregister()</code> and <code>release_removed_ids()</code> touch every domain's data directly, in one place, so nothing on <code>A_CoreServers</code> itself needs to react to its own signals anymore — they are emitted purely for listeners outside the three servers.</p>
-
-    <p class="group-title">Queries</p>
-    <div class="table-wrap">
-      <table class="vars">
-        <tr><th>Function</th><th>Answers</th><th>Cost</th></tr>
-        <tr><td>chunk_has_group(p_chunkId, p_team, p_groupMask)</td><td>Is any of these groups in this chunk</td><td>O(1)</td></tr>
-        <tr><td>column_has_group(p_columnIndex, p_team, p_groupMask)</td><td>… in this column</td><td>O(1)</td></tr>
-        <tr><td>map_has_group(p_team, p_groupMask)</td><td>… anywhere on the map</td><td>O(1)</td></tr>
-        <tr><td>chunk_has_opponent_group(p_chunkId, p_team, p_groupMask)</td><td>Does an opposing team hold one of these groups in this chunk</td><td>O(teams)</td></tr>
-        <tr><td>column_has_opponent_group(p_columnIndex, p_team, p_groupMask)</td><td>… in this column</td><td>O(teams)</td></tr>
-        <tr><td>map_has_opponent_group(p_team, p_groupMask)</td><td>… anywhere on the map</td><td>O(teams)</td></tr>
-        <tr><td>has_opponent_in_chunk(p_chunkId, p_team)</td><td>Does another team stand here at all, regardless of group</td><td>O(teams)</td></tr>
-        <tr><td>has_opponent_in_column(p_columnIndex, p_team)</td><td>… anywhere in this column</td><td>O(teams)</td></tr>
-        <tr><td>has_opponent_before_column(p_columnIndex, p_team)</td><td>Does another team stand further left</td><td>O(teams)</td></tr>
-        <tr><td>has_opponent_after_column(p_columnIndex, p_team)</td><td>Does another team stand further right</td><td>O(teams)</td></tr>
-      </table>
-    </div>
-    <p class="note-inline">The <code>has_group</code> and <code>has_opponent_group</code> queries filter by what an entity <em>is</em>; the plain <code>has_opponent</code> queries read raw counts and therefore include invisible entities. Targeting's ring search filters columns and chunks with the group aware queries, and uses <code>has_opponent_before/after_column</code> — a read of <code>_teamMinColumn</code>/<code>_teamMaxColumn</code>, never a scan — to notice something that sneaked past its march.</p>
-
-    <p class="group-title">Index helpers, for the servers on top</p>
-    <div class="table-wrap">
-      <table class="vars">
-        <tr><th>Function</th><th>Returns</th></tr>
-        <tr><td>compute_chunk_area_from_bounds(p_minCorner, p_maxCorner)</td><td>Any axis aligned box as a chunk rectangle</td></tr>
-        <tr><td>collect_chunks_in_area(p_area)</td><td>The chunk ids inside such a rectangle</td></tr>
-      </table>
-    </div>
-    <p class="note-inline">Because an entity is registered in <em>every</em> chunk its radius touches, walking the chunks of a box finds everything whose silhouette reaches into it. That is what lets the hit and targeting systems narrow a query without ever missing a candidate.</p>
+    <p class="note-inline">Registration and removal are not here: they are the lifecycle on <a href="core-servers.html#lifecycle"><code>A_CoreServer</code></a>.</p>
   </section>
 
   <section id="constants">
     <span class="eyebrow">Reference</span>
     <h2>C_ChunkingServer</h2>
-    <div class="prose">
-      <p>Configuration is four constants; the grid the server actually uses is derived from them once, in <code>_static_init()</code>, on class load. They are <code>static var</code> rather than <code>const</code> because GDScript cannot call <code>ceili()</code> or <code>maxi()</code> in a constant expression. The <code>NO_ID</code> sentinel used throughout this page used to live here as three separate <code>−1</code> constants; it now lives on <a href="core-servers.html">C_CoreServers</a>, shared with hit and targeting.</p>
-    </div>
-
-    <div class="vlist" style="margin-top:16px;">
-      <div class="vlist-head"><span>Name</span><span>Kind</span><span>Meaning</span><span></span></div>
-
-      <details class="var">
-        <summary><span class="vn">CONFIGURED_MAP_SIZE</span><span class="vt">const Vector2</span><span class="vh">World size the grid has to cover</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Default <code>(4096, 4096)</code>, in world units. The grid actually built (<code>MAP_SIZE</code>) is at least this large; it only grows when square chunks don't divide it evenly (see the table below).</p>
-        </div>
+    <div class="vlist">
+      <div class="vlist-head"><span>Name</span><span>Kind · value</span><span>Meaning</span><span></span></div>
+      <details class="var" id="c-CONFIGURED_MAP_SIZE">
+        <summary><span class="vn">CONFIGURED_MAP_SIZE</span><span class="vt">const Vector2 · (4096, 4096)</span><span class="vh">World size the grid has to cover</span><span class="chev"></span></summary>
+        <div class="var-body"><p>The input of the grid derivation. The real grid (<code>MAP_SIZE</code>) is at least this large. The x extent is also where the defender base sits, through <code>MAP_SIZE.x</code>.</p></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">CONFIGURED_CHUNK_COLUMNS / _ROWS</span><span class="vt">const int</span><span class="vh">Wanted counts — a wish, not a guarantee</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Default 32 × 32. Kept exactly only if <code>map width / columns</code> equals <code>map height / rows</code>; otherwise the average of both edges becomes the chunk edge and the counts are derived back from it. Smaller chunks mean tighter hit and search areas but more chunks to walk; bigger chunks the reverse.</p>
-        </div>
+      <details class="var" id="c-CONFIGURED_CHUNK_COLUMNS">
+        <summary><span class="vn">CONFIGURED_CHUNK_COLUMNS · _ROWS</span><span class="vt">const int · 32, 32</span><span class="vh">Wanted chunk counts</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Kept exactly only if they already give square chunks; otherwise they are recalculated (see <a href="#grid">Square grid</a>). More chunks means smaller chunks: fewer entities per chunk walk, but more chunks per area and more slots per large entity.</p></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">COVERAGE_EPSILON</span><span class="vt">const float</span><span class="vh">Tolerance so float error cannot add a spurious column</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p><code>0.0001</code>. The column count is <code>ceil(map width / CHUNK_SIZE)</code>. If rounding makes that division come out as <code>32.0000001</code> instead of <code>32</code>, <code>ceil</code> gives 33 — a whole extra column that covers nothing. Subtracting the epsilon first gives <code>ceil(31.9999…) = 32</code>.</p>
-        </div>
+      <details class="var" id="c-COVERAGE_EPSILON">
+        <summary><span class="vn">COVERAGE_EPSILON</span><span class="vt">const float · 0.0001</span><span class="vh">Float tolerance of the derivation</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Subtracted before <code>ceil()</code> so that 4096 / 128 = 32.000000001 still gives 32 columns instead of 33.</p></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">TEAM</span><span class="vt">enum</span><span class="vh"><code>ATTACKER</code>, <code>DEFENDER</code> — the values index every per-team container</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p><code>ATTACKER = 0</code>, <code>DEFENDER = 1</code>. These numbers are array indices: <code>_mapGroups[TEAM.DEFENDER]</code>, <code>TEAM_BASE_X[team]</code>. A third team needs one more enum entry here — and one more entry in each <code>TEAM_*</code> array of <code>C_TargetingServer</code>, which asserts that the sizes match.</p>
-        </div>
+      <details class="var" id="c-EMPTY_CHUNK_AREA">
+        <summary><span class="vn">EMPTY_CHUNK_AREA</span><span class="vt">const Vector4i · (0, 0, −1, −1)</span><span class="vh">An area covering no chunk</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Max below min, so every loop over it runs zero times. Held by fresh and removed entities. <a href="core-servers.html#v-EMPTY_CHUNK_AREA">Drawn on the core page.</a></p></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">CHUNK_SIZE</span><span class="vt">static float</span><span class="vh">Chunk edge, identical on both axes</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Default 128 (4096 / 32). Every position to chunk conversion divides by it: <code>column = floor(x / CHUNK_SIZE)</code>.</p>
-        </div>
+      <details class="var" id="c-CHUNK_SIZE">
+        <summary><span class="vn">CHUNK_SIZE</span><span class="vt">static float · 128</span><span class="vh">Edge of one square chunk</span><span class="chev"></span></summary>
+        <div class="var-body"><p>Derived in <code>_static_init()</code>: the mean of the two configured edge lengths.</p></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">MAP_CHUNK_COLUMNS / _ROWS</span><span class="vt">static int</span><span class="vh">Counts after the square recalculation</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Default 32 × 32. Chunk ids run row by row, so <code>chunk = row * MAP_CHUNK_COLUMNS + column</code>, and going down one row inside a column means adding <code>MAP_CHUNK_COLUMNS</code>. In the 4 × 3 example world: row 1, column 2 → <code>1 * 4 + 2 = 6</code>.</p>
-        </div>
+      <details class="var" id="c-CHUNK_COLUMNS">
+        <summary><span class="vn">CHUNK_COLUMNS · CHUNK_ROWS · CHUNK_COUNT</span><span class="vt">static int · 32, 32, 1024</span><span class="vh">The derived grid</span><span class="chev"></span></summary>
+        <div class="var-body"><p>As many chunks of <code>CHUNK_SIZE</code> as it takes to cover the configured size on each axis, at least 1. <code>CHUNK_COUNT = CHUNK_COLUMNS * CHUNK_ROWS</code>.</p></div>
       </details>
-
-      <details class="var">
-        <summary><span class="vn">CHUNK_COUNT · MAP_SIZE · TEAM_COUNT</span><span class="vt">static</span><span class="vh">Totals derived from the above</span><span class="chev"></span></summary>
-        <div class="var-body">
-          <p>Default <code>CHUNK_COUNT = 1024</code>, <code>MAP_SIZE = (4096, 4096)</code>, <code>TEAM_COUNT = 2</code>. <code>CHUNK_COUNT</code> is the length of one team block in the per-chunk aggregates; <code>TEAM_COUNT</code> is the number of blocks. <code>MAP_SIZE</code> is what the grid really covers; targeting pins the defender base to <code>MAP_SIZE.x</code>.</p>
-        </div>
+      <details class="var" id="c-MAP_SIZE">
+        <summary><span class="vn">MAP_SIZE</span><span class="vt">static Vector2 · (4096, 4096)</span><span class="vh">Size the grid really covers</span><span class="chev"></span></summary>
+        <div class="var-body"><p><code>(CHUNK_COLUMNS, CHUNK_ROWS) * CHUNK_SIZE</code>, never smaller than the configured size. <code>C_TargetingServer</code> pins the defender base to <code>MAP_SIZE.x</code>.</p></div>
       </details>
     </div>
-
-    <h3 style="margin-top:30px;">Square chunks, whatever you configure</h3>
-    <div class="prose">
-      <p>A column count and a row count imply two different chunk edges. If they disagree, chunks are rectangles. The recalculation takes the edge closest to both wishes, uses it on both axes, and derives the counts back from it so the grid still covers the whole map:</p>
-    </div>
-
-    <div class="code" style="margin-top:14px;">CHUNK_SIZE         = (MAP_SIZE.x / COLUMNS + MAP_SIZE.y / ROWS) * 0.5
-MAP_CHUNK_COLUMNS  = ceil(CONFIGURED_MAP_SIZE.x / CHUNK_SIZE)
-MAP_CHUNK_ROWS     = ceil(CONFIGURED_MAP_SIZE.y / CHUNK_SIZE)</div>
-
-    <div class="table-wrap" style="margin-top:16px;">
-      <table class="num">
-        <tr><th>Configured</th><th>Implied edges</th><th>CHUNK_SIZE</th><th>Resulting grid</th><th>MAP_SIZE</th></tr>
-        <tr><td>4096 × 4096, 32 × 32</td><td>128 · 128</td><td>128</td><td>32 × 32 = 1024</td><td>4096 × 4096</td></tr>
-        <tr><td>1000 × 1000, 10 × 5</td><td>100 · 200</td><td>150</td><td>7 × 7 = 49</td><td>1050 × 1050</td></tr>
-        <tr><td>2048 × 1024, 16 × 16</td><td>128 · 64</td><td>96</td><td>22 × 11 = 242</td><td>2112 × 1056</td></tr>
-      </table>
-    </div>
-    <p class="note-inline">Already-square configurations pass through untouched — the first row is the shipped default. Otherwise the grid ends slightly larger than configured, never smaller, so no position falls outside it. Positions beyond <code>MAP_SIZE</code> clamp into the border chunks rather than erroring.</p>
   </section>
 
   <section id="rules">
     <span class="eyebrow">Contract</span>
     <h2>What the caller has to respect</h2>
     <ul class="rules">
-      <li><strong>The per entity arrays are read only for everyone but the index.</strong> Writing <code>_chunkEntityPosition</code> directly skips the chunk update and corrupts the grid — go through <code>set_position()</code>.</li>
-      <li><strong><code>release_removed_ids()</code> once per frame, last.</strong> It is the only thing that recycles ids, and the lock it releases is what makes a queued damage event safe.</li>
-      <li><strong>An unregistered id is dead until re-registered.</strong> The index does not re-check a caller's id.</li>
-      <li><strong>64 groups maximum.</strong> Groups are bits in an <code>int64</code>; their meaning is the caller's to define.</li>
-      <li><strong>Teams are array indices.</strong> Pass <code>TEAM</code> values; a third team needs only a new enum entry.</li>
-      <li><strong>The grid is fixed after class load.</strong> Changing the configuration means changing the constants and restarting.</li>
+      <li><strong>Move and resize only through <code>set_position()</code> and <code>set_radius()</code>.</strong> Writing <code>_entityPosition</code> or <code>_entityRadius</code> directly leaves the chains, counts and masks describing the old state.</li>
+      <li><strong>Positions outside the map are clamped into the border chunks.</strong> They do not error, but everything beyond the edge piles into the edge chunks.</li>
+      <li><strong>A radius much larger than a chunk costs one slot per covered chunk</strong> and a longer walk on every move that crosses a border.</li>
+      <li><strong>The grid is fixed on class load.</strong> Change the constants and restart to change it.</li>
     </ul>
   </section>
 
@@ -1117,13 +570,24 @@ MAP_CHUNK_ROWS     = ceil(CONFIGURED_MAP_SIZE.y / CHUNK_SIZE)</div>
     <span class="eyebrow">Measurements</span>
     <h2>Where the cost went</h2>
     <div class="prose">
-      <p>Both optimisations were measured before being written, on a transliteration of the algorithm rather than in Godot — so the iteration counts are exact and the wall-clock gain is not. They are reported as ratios for that reason. The movement fast path is in the table <a href="#fastpath">above</a>; this is the other one.</p>
+      <p>Both shortcuts were measured on a transliteration of the algorithm before it was written in GDScript, so the iteration counts are exact and the wall clock gain is not; they are reported as ratios. <code>Tests/EndToEndTest.gd</code> runs the real code inside Godot.</p>
     </div>
-
-    <p class="group-title">Rebuild scan length, with and without the early exit</p>
+    <p class="group-title">How often a move needs no index work at all</p>
     <div class="table-wrap">
       <table class="num">
-        <tr><th>Chunk contents</th><th>Distinct groups</th><th>Full scan</th><th>Early exit</th><th>Ratio</th></tr>
+        <tr><th>Movement per tick</th><th>Entity radius</th><th>Area unchanged</th></tr>
+        <tr><td>2 units</td><td>0</td><td><span class="win">98.7%</span></td></tr>
+        <tr><td>2 units</td><td>60</td><td><span class="win">97.5%</span></td></tr>
+        <tr><td>8 units</td><td>0</td><td><span class="win">95.2%</span></td></tr>
+        <tr><td>8 units</td><td>60</td><td><span class="win">90.6%</span></td></tr>
+        <tr><td>25 units</td><td>60</td><td>76.4%</td></tr>
+      </table>
+    </div>
+    <p class="note-inline">2000 entities × 120 ticks, 128 unit chunks.</p>
+    <p class="group-title">Chunk rebuild length, with and without the early stop</p>
+    <div class="table-wrap">
+      <table class="num">
+        <tr><th>Chunk contents</th><th>Distinct groups</th><th>Full scan</th><th>Early stop</th><th>Ratio</th></tr>
         <tr><td>40 entities</td><td>1</td><td>39.0</td><td><span class="win">1.0</span></td><td>39×</td></tr>
         <tr><td>40 entities</td><td>4</td><td>39.0</td><td><span class="win">8.3</span></td><td>4.7×</td></tr>
         <tr><td>120 entities</td><td>1</td><td>119.0</td><td><span class="win">1.0</span></td><td>119×</td></tr>
@@ -1131,23 +595,17 @@ MAP_CHUNK_ROWS     = ceil(CONFIGURED_MAP_SIZE.y / CHUNK_SIZE)</div>
         <tr><td>400 entities</td><td>4</td><td>399.0</td><td><span class="win">8.4</span></td><td>47×</td></tr>
       </table>
     </div>
-    <p class="note-inline">Dense chunks benefit most, and a chunk whose entities share one group resolves in a single iteration. Worst case is unchanged: when the mask really did shrink, the scan runs to the end.</p>
-
-    <p class="group-title">Correctness</p>
-    <div class="prose" style="margin-top:8px;">
-      <p>Fuzz-tested against a brute-force rebuild: 50 trials × 500 random operations mixing registration, long moves, sub-chunk nudges, radius changes, removal and release. After each batch every chunk and column mask, every count at all three levels, the coverage and center membership chains, the cached rectangle and the id lifecycle are compared against a full recomputation. All pass.</p>
-      <p>That validated the algorithm, ahead of the GDScript. The end-to-end suite in <code>res://Tests/EndToEndTest.gd</code> now runs this and the two servers built on it inside Godot itself.</p>
-    </div>
+    <p class="note-inline">Dense chunks gain most; a chunk whose entities share one group resolves in one step. The worst case, when the mask really shrank, is unchanged.</p>
   </section>
 
 </div>
 
 <script>
 (function(){
-  // Draws every .arr from its data attributes:
-  //   data-v    values, space separated ("-1" and "·" render faded)
-  //   data-hl   indices to highlight in the accent colour, data-hl2 in the second one
-  //   data-idx  optional labels instead of 0, 1, 2 ...
+  // ---- Drawn arrays: every .arr[data-v] becomes a row of indexed cells.
+  //   data-v     values, space separated ("-1" and "·" render faded)
+  //   data-hl    indices highlighted in the orange accent, data-hl2 in the teal one
+  //   data-idx   labels instead of 0, 1, 2 ...
   //   data-split index before which a gap is drawn (team blocks)
   Array.prototype.forEach.call(document.querySelectorAll('.arr[data-v]'), function(el){
     var vals = el.getAttribute('data-v').trim().split(/\s+/);
@@ -1155,7 +613,7 @@ MAP_CHUNK_ROWS     = ceil(CONFIGURED_MAP_SIZE.y / CHUNK_SIZE)</div>
     var hl2 = (el.getAttribute('data-hl2') || '').split(/\s+/);
     var idx = el.getAttribute('data-idx');
     var labels = idx ? idx.trim().split(/\s+/) : null;
-    var split = el.getAttribute('data-split');
+    var splits = (el.getAttribute('data-split') || '').split(/\s+/);
     var name = document.createElement('span');
     name.className = 'arr-name';
     name.textContent = el.getAttribute('data-name') || '';
@@ -1167,40 +625,280 @@ MAP_CHUNK_ROWS     = ceil(CONFIGURED_MAP_SIZE.y / CHUNK_SIZE)</div>
       if(v === '-1' || v === '·') c.classList.add('nil');
       if(hl.indexOf(k) >= 0) c.classList.add('hl');
       if(hl2.indexOf(k) >= 0) c.classList.add('hl2');
-      if(split !== null && String(split) === k) c.classList.add('split');
+      if(splits.indexOf(k) >= 0) c.classList.add('split');
       var n = document.createElement('i');
       n.textContent = labels ? labels[i] : k;
       var b = document.createElement('b');
-      b.textContent = v;
+      b.textContent = v.replace(/_/g, ' ');
       c.appendChild(n); c.appendChild(b);
       row.appendChild(c);
     });
     el.appendChild(name); el.appendChild(row);
   });
 
+  // ---- The example world: 4 x 3 chunks of 128 units, four entities.
+  // Every figure.mini[data-world] is drawn from a small JSON spec (see the keys below).
+  var NS = 'http://www.w3.org/2000/svg';
+  var CHUNK = 128, COLS = 4, ROWS = 3, S = 56, OX = 40, OY = 26;
+  var K = S / CHUNK;
+  var WORLD = {
+    0: {team: 0, x: 64,  y: 64,  r: 20},
+    1: {team: 1, x: 300, y: 200, r: 20},
+    2: {team: 1, x: 256, y: 128, r: 40},
+    3: {team: 0, x: 420, y: 300, r: 20}
+  };
+  var TEAM_COLOR = ['var(--accent-2)', 'var(--accent)'];
+  var FILL = {a: 'var(--accent-soft)', b: 'var(--accent-2-soft)', c: 'var(--accent-3-soft)'};
+  var STROKE = {a: 'var(--accent)', b: 'var(--accent-2)', c: 'var(--accent-3)', n: 'var(--ink-soft)'};
+  var uid = 0;
+
+  function node(tag, attrs, parent, text){
+    var n = document.createElementNS(NS, tag);
+    for(var k in attrs){ n.setAttribute(k, attrs[k]); }
+    if(text !== undefined) n.textContent = text;
+    if(parent) parent.appendChild(n);
+    return n;
+  }
+  function px(x){ return OX + x * K; }
+  function py(y){ return OY + y * K; }
+  function chunkXY(c){ return {x: OX + (c % COLS) * S, y: OY + Math.floor(c / COLS) * S}; }
+
+  Array.prototype.forEach.call(document.querySelectorAll('figure.mini[data-world]'), function(fig){
+    var o = JSON.parse(fig.getAttribute('data-world'));
+    var id = 'w' + (uid++);
+    var extraH = (o.below ? 22 : 0) + (o.vlines ? 12 : 0) + (o.coltxt ? 4 : 0);
+    var W = OX + COLS * S + 20 + (o.right || 0), H = OY + ROWS * S + 18 + extraH;
+    var svg = node('svg', {viewBox: '0 0 ' + W + ' ' + H, width: Math.round(W * (o.scale || 1.35)), role: 'img', 'aria-label': fig.getAttribute('data-label') || 'Example world drawing'});
+    svg.style.color = 'var(--ink)';
+    var defs = node('defs', {}, svg);
+    ['a', 'b', 'c', 'n'].forEach(function(k){
+      var m = node('marker', {id: id + k, viewBox: '0 0 8 8', refX: 7, refY: 4, markerWidth: 6, markerHeight: 6, orient: 'auto'}, defs);
+      node('path', {d: 'M0,0 L8,4 L0,8 Z', fill: STROKE[k]}, m);
+    });
+    var g = node('g', {'font-family': 'JetBrains Mono, monospace', 'font-size': 9}, svg);
+
+    // column / row bands
+    for(var col in (o.cols || {})){
+      node('rect', {x: OX + col * S, y: OY, width: S, height: ROWS * S, fill: FILL[o.cols[col]]}, g);
+    }
+    for(var row in (o.rows || {})){
+      node('rect', {x: OX, y: OY + row * S, width: COLS * S, height: S, fill: FILL[o.rows[row]]}, g);
+    }
+    // highlighted chunks
+    for(var c in (o.hl || {})){
+      var p = chunkXY(+c);
+      node('rect', {x: p.x, y: p.y, width: S, height: S, fill: FILL[o.hl[c]], stroke: STROKE[o.hl[c]], 'stroke-width': 1.2}, g);
+    }
+    // grid
+    var grid = node('g', {fill: 'none', stroke: 'currentColor', 'stroke-opacity': .35}, g);
+    node('rect', {x: OX, y: OY, width: COLS * S, height: ROWS * S}, grid);
+    for(var i = 1; i < COLS; i++) node('line', {x1: OX + i * S, y1: OY, x2: OX + i * S, y2: OY + ROWS * S}, grid);
+    for(var j = 1; j < ROWS; j++) node('line', {x1: OX, y1: OY + j * S, x2: OX + COLS * S, y2: OY + j * S}, grid);
+    // labels
+    var lab = node('g', {fill: 'var(--ink-soft)', 'font-size': 8.5}, g);
+    for(i = 0; i < COLS; i++) node('text', {x: OX + i * S + S / 2, y: OY - 8, 'text-anchor': 'middle'}, lab, 'col ' + i);
+    for(j = 0; j < ROWS; j++) node('text', {x: OX - 6, y: OY + j * S + S / 2 + 3, 'text-anchor': 'end'}, lab, 'row ' + j);
+    if(o.nums !== false){
+      for(c = 0; c < COLS * ROWS; c++){
+        p = chunkXY(c);
+        node('text', {x: p.x + 3, y: p.y + 10, 'fill-opacity': .8}, lab, String(c));
+      }
+    }
+    // rings around a chunk: [chunk, maxRing]
+    if(o.ring){
+      var clip = node('clipPath', {id: id + 'clip'}, defs);
+      node('rect', {x: OX, y: OY, width: COLS * S, height: ROWS * S}, clip);
+      var rg = node('g', {'clip-path': 'url(#' + id + 'clip)'}, g);
+      var rc = chunkXY(o.ring[0]);
+      for(var r = o.ring[1]; r >= 0; r--){
+        node('rect', {x: rc.x - r * S + 2, y: rc.y - r * S + 2, width: (2 * r + 1) * S - 4, height: (2 * r + 1) * S - 4,
+          fill: 'none', stroke: STROKE.c, 'stroke-dasharray': r ? '4 3' : '', 'stroke-width': 1.5}, rg);
+      }
+    }
+    // chunk texts
+    for(c in (o.txt || {})){
+      p = chunkXY(+c);
+      node('text', {x: p.x + S / 2, y: p.y + S - 7, 'text-anchor': 'middle', 'font-size': 9.5, 'font-weight': 700, fill: 'var(--ink)'}, g, o.txt[c]);
+    }
+    // vertical lines at a world x: [x, label, colour]
+    (o.vlines || []).forEach(function(v){
+      node('line', {x1: px(v[0]), y1: OY - 2, x2: px(v[0]), y2: OY + ROWS * S + 2, stroke: STROKE[v[2] || 'n'], 'stroke-width': 2, 'stroke-dasharray': '5 3'}, g);
+      var right = v[0] > CHUNK * COLS / 2;
+      node('text', {x: px(v[0]) + (right ? -4 : 4), y: OY + ROWS * S + (right ? 13 : 24), 'text-anchor': right ? 'end' : 'start', fill: STROKE[v[2] || 'n']}, g, v[1]);
+    });
+    // free circles (hit shapes and the like): [x, y, r, colour]
+    (o.circ || []).forEach(function(v){
+      node('circle', {cx: px(v[0]), cy: py(v[1]), r: v[2] * K, fill: FILL[v[3]], 'fill-opacity': .6, stroke: STROKE[v[3]], 'stroke-dasharray': '4 3'}, g);
+    });
+    // entities
+    var ents = o.ents || [0, 1, 2, 3];
+    var pos = {};
+    ents.forEach(function(e){
+      var d = WORLD[e];
+      var team = (o.teams || {})[e];
+      d = {team: team === undefined ? d.team : team, x: d.x, y: d.y, r: d.r};
+      var m = (o.move || {})[e];
+      var x = m ? m[0] : d.x, y = m ? m[1] : d.y, rad = m && m[2] !== undefined ? m[2] : d.r;
+      if(m){
+        node('circle', {cx: px(d.x), cy: py(d.y), r: d.r * K, fill: 'none', stroke: TEAM_COLOR[d.team], 'stroke-dasharray': '2 2', 'stroke-opacity': .7}, g);
+      }
+      pos[e] = {x: px(x), y: py(y), r: rad * K};
+      var dim = (o.dim || []).indexOf(e) >= 0;
+      var eg = node('g', {opacity: dim ? .3 : 1}, g);
+      if((o.box || []).indexOf(e) >= 0){
+        node('rect', {x: px(x - rad), y: py(y - rad), width: 2 * rad * K, height: 2 * rad * K, fill: 'none', stroke: TEAM_COLOR[d.team], 'stroke-dasharray': '3 2'}, eg);
+      }
+      node('circle', {cx: px(x), cy: py(y), r: rad * K, fill: TEAM_COLOR[d.team], 'fill-opacity': .2, stroke: TEAM_COLOR[d.team], 'stroke-width': 1.3}, eg);
+      node('circle', {cx: px(x), cy: py(y), r: 2.2, fill: TEAM_COLOR[d.team]}, eg);
+      if(o.ids !== false){
+        var lx = px(x) + rad * K + 2, anchor = 'start';
+        if(e === 2){ lx = px(x) - rad * K - 2; anchor = 'end'; }
+        node('text', {x: lx, y: py(y) - rad * K * .55, 'text-anchor': anchor, fill: TEAM_COLOR[d.team], 'font-weight': 700, 'font-size': 9.5}, eg, (o.names || {})[e] || ('id ' + e));
+      }
+    });
+    // arrows between entities: [from, to, colour, label]
+    (o.arrows || []).forEach(function(a){
+      var f = pos[a[0]], t = pos[a[1]];
+      var dx = t.x - f.x, dy = t.y - f.y, len = Math.sqrt(dx * dx + dy * dy) || 1;
+      var sx = f.x + dx / len * (f.r + 2), sy = f.y + dy / len * (f.r + 2);
+      var ex = t.x - dx / len * (t.r + 3), ey = t.y - dy / len * (t.r + 3);
+      var mx = (sx + ex) / 2 - dy / len * 10, my = (sy + ey) / 2 + dx / len * 10;
+      node('path', {d: 'M' + sx + ',' + sy + ' Q' + mx + ',' + my + ' ' + ex + ',' + ey, fill: 'none', stroke: STROKE[a[2] || 'n'], 'stroke-width': 1.4, 'marker-end': 'url(#' + id + (a[2] || 'n') + ')'}, g);
+      if(a[3]) node('text', {x: mx, y: my - 3, 'text-anchor': 'middle', fill: STROKE[a[2] || 'n'], 'font-size': 8.5}, g, a[3]);
+    });
+    // world points: [x, y, label, colour]
+    (o.pts || []).forEach(function(v){
+      var cx = px(v[0]), cy = py(v[1]);
+      node('path', {d: 'M' + (cx - 4) + ',' + (cy - 4) + ' L' + (cx + 4) + ',' + (cy + 4) + ' M' + (cx + 4) + ',' + (cy - 4) + ' L' + (cx - 4) + ',' + (cy + 4), stroke: STROKE[v[3] || 'n'], 'stroke-width': 1.6}, g);
+      if(v[2]) node('text', {x: cx + 6, y: cy - 5, fill: STROKE[v[3] || 'n']}, g, v[2]);
+    });
+    // side notes to the right of the grid: [[text, colour], ...]
+    (o.side || []).forEach(function(v, k){
+      node('text', {x: OX + COLS * S + 12, y: OY + 10 + k * 14, fill: STROKE[v[1]] || 'var(--ink)', 'font-size': 9}, g, v[0]);
+    });
+    // text under each column: {column: text}
+    for(var ct in (o.coltxt || {})){
+      node('text', {x: OX + ct * S + S / 2, y: OY + ROWS * S + 13, 'text-anchor': 'middle', fill: 'var(--ink)', 'font-weight': 700}, g, o.coltxt[ct]);
+    }
+    if(o.below) node('text', {x: OX, y: H - 6, fill: 'var(--ink-soft)', 'font-size': 9}, g, o.below);
+    fig.insertBefore(svg, fig.firstChild);
+  });
+
+  // ---- Chains: a row of boxes with links drawn as arcs above or below them.
+  // figure.chain[data-chain] JSON:
+  //   boxes  [[title, subtitle, colour?], ...]   colour: a / b / c / n (faded)
+  //   links  [{seq: [box indices in chain order], c: colour, side: "top" | "bottom", head: label, end: true}]
+  Array.prototype.forEach.call(document.querySelectorAll('figure.chain[data-chain]'), function(fig){
+    var o = JSON.parse(fig.getAttribute('data-chain'));
+    var id = 'c' + (uid++);
+    var BW = o.bw || 76, BH = 38, GAP = 14, X0 = 16, Y0 = 58;
+    var n = o.boxes.length;
+    var hasBottom = (o.links || []).some(function(l){ return l.side === 'bottom'; }) || (o.notes || []).length;
+    var W = X0 * 2 + n * BW + (n - 1) * GAP + 40, H = Y0 + BH + (hasBottom ? 58 : 14);
+    var svg = node('svg', {viewBox: '0 0 ' + W + ' ' + H, width: Math.round(W * (o.scale || 1.2)), role: 'img', 'aria-label': fig.getAttribute('data-label') || 'Chain drawing'});
+    svg.style.color = 'var(--ink)';
+    var defs = node('defs', {}, svg);
+    ['a', 'b', 'c', 'n'].forEach(function(k){
+      var m = node('marker', {id: id + k, viewBox: '0 0 8 8', refX: 7, refY: 4, markerWidth: 6, markerHeight: 6, orient: 'auto'}, defs);
+      node('path', {d: 'M0,0 L8,4 L0,8 Z', fill: STROKE[k]}, m);
+    });
+    var g = node('g', {'font-family': 'JetBrains Mono, monospace', 'font-size': 9.5}, svg);
+    function bx(i){ return X0 + i * (BW + GAP); }
+    o.boxes.forEach(function(b, i){
+      var col = b[2];
+      var faded = col === 'n';
+      node('rect', {x: bx(i), y: Y0, width: BW, height: BH, rx: 3, fill: col && !faded ? FILL[col] : 'var(--surface)', stroke: col && !faded ? STROKE[col] : 'var(--line)', 'stroke-width': col && !faded ? 1.4 : 1, opacity: faded ? .45 : 1}, g);
+      node('text', {x: bx(i) + BW / 2, y: Y0 + 16, 'text-anchor': 'middle', 'font-weight': 700, fill: faded ? 'var(--ink-soft)' : 'var(--ink)'}, g, b[0]);
+      if(b[1]) node('text', {x: bx(i) + BW / 2, y: Y0 + 30, 'text-anchor': 'middle', fill: 'var(--ink-soft)', 'font-size': 8.5}, g, b[1]);
+    });
+    (o.links || []).forEach(function(l, li){
+      var c = l.c || 'n', top = l.side !== 'bottom';
+      var edge = top ? Y0 : Y0 + BH, dir = top ? -1 : 1;
+      var off = (li % 2 ? 10 : -10) + BW / 2;
+      var attrs = {fill: 'none', stroke: STROKE[c], 'stroke-width': 1.4, 'marker-end': 'url(#' + id + c + ')'};
+      if(l.head !== undefined){
+        var hx = bx(l.seq[0]) + off;
+        var hy = top ? 12 : H - 6;
+        node('text', {x: hx, y: hy, 'text-anchor': 'middle', fill: STROKE[c], 'font-weight': 700}, g, l.head);
+        node('path', Object.assign({d: 'M' + hx + ',' + (hy + (top ? 4 : -12)) + ' L' + hx + ',' + (edge + dir * 3)}, attrs), g);
+      }
+      for(var k = 0; k + 1 < l.seq.length; k++){
+        var x1 = bx(l.seq[k]) + off + (top ? -6 : 6), x2 = bx(l.seq[k + 1]) + off + (top ? 6 : -6);
+        var h = 16 + Math.min(26, Math.abs(l.seq[k + 1] - l.seq[k]) * 5);
+        node('path', Object.assign({d: 'M' + x1 + ',' + edge + ' C' + x1 + ',' + (edge + dir * h) + ' ' + x2 + ',' + (edge + dir * h) + ' ' + x2 + ',' + (edge + dir * 3)}, attrs), g);
+      }
+      if(l.end){
+        var last = l.seq[l.seq.length - 1];
+        var ex = bx(last) + off + (top ? -6 : 6);
+        node('path', {d: 'M' + ex + ',' + edge + ' L' + ex + ',' + (edge + dir * 12), stroke: STROKE[c], 'stroke-width': 1.4, 'stroke-dasharray': '2 2'}, g);
+        node('text', {x: ex + (top ? -3 : 3), y: edge + dir * 12 + (top ? 0 : 8), 'text-anchor': top ? 'end' : 'start', fill: STROKE[c], 'font-weight': 700}, g, '−1');
+      }
+    });
+    (o.notes || []).forEach(function(t, k){
+      node('text', {x: X0, y: H - 6 - (o.notes.length - 1 - k) * 12, fill: 'var(--ink-soft)', 'font-size': 9}, g, t);
+    });
+    fig.insertBefore(svg, fig.firstChild);
+  });
+
+  // ---- Bit tables: one row per entity, one column per named bit.
+  // figure.bits[data-bits] JSON: {cols: [names], rows: [[label, "0101", colour?], ...]}  bits in column order.
+  Array.prototype.forEach.call(document.querySelectorAll('figure.bits[data-bits]'), function(fig){
+    var o = JSON.parse(fig.getAttribute('data-bits'));
+    var CW = o.cw || 74, RH = 22, LX = 110, TY = 30;
+    var W = LX + o.cols.length * CW + 10, H = TY + o.rows.length * RH + 8;
+    var svg = node('svg', {viewBox: '0 0 ' + W + ' ' + H, width: Math.round(W * 1.15), role: 'img', 'aria-label': fig.getAttribute('data-label') || 'Bit table'});
+    svg.style.color = 'var(--ink)';
+    var g = node('g', {'font-family': 'JetBrains Mono, monospace', 'font-size': 9.5}, svg);
+    o.cols.forEach(function(c, i){
+      node('text', {x: LX + i * CW + CW / 2, y: TY - 10, 'text-anchor': 'middle', fill: 'var(--ink-soft)', 'font-size': 8.5}, g, c);
+    });
+    o.rows.forEach(function(r, j){
+      var y = TY + j * RH;
+      var col = r[2] || 'n';
+      node('text', {x: LX - 10, y: y + 15, 'text-anchor': 'end', fill: col === 'n' ? 'var(--ink)' : STROKE[col], 'font-weight': 700}, g, r[0]);
+      r[1].split('').forEach(function(b, i){
+        var on = b === '1';
+        node('rect', {x: LX + i * CW + 4, y: y + 3, width: CW - 8, height: RH - 6, rx: 2,
+          fill: on ? (col === 'n' ? 'var(--accent-2-soft)' : FILL[col]) : 'none', stroke: on ? (col === 'n' ? STROKE.b : STROKE[col]) : 'var(--line)'}, g);
+        node('text', {x: LX + i * CW + CW / 2, y: y + 15, 'text-anchor': 'middle', fill: on ? 'var(--ink)' : 'var(--ink-soft)'}, g, b);
+      });
+    });
+    fig.insertBefore(svg, fig.firstChild);
+  });
+
+  // ---- Expand / collapse every reference row at once.
   var btn = document.querySelector('.xall');
   if(btn){
     btn.addEventListener('click', function(){
-      var all = document.querySelectorAll('details.var');
       var open = btn.getAttribute('aria-pressed') !== 'true';
-      Array.prototype.forEach.call(all, function(d){ d.open = open; });
+      Array.prototype.forEach.call(document.querySelectorAll('details.var'), function(d){ d.open = open; });
       btn.setAttribute('aria-pressed', open ? 'true' : 'false');
-      btn.textContent = open ? 'Collapse details' : 'Expand details';
+      btn.textContent = open ? 'Collapse all' : 'Expand all';
     });
   }
-})();
-(function(){
+
+  // ---- A link to a reference row opens it.
+  function openTarget(){
+    if(!location.hash) return;
+    var t = document.getElementById(location.hash.slice(1));
+    if(t && t.tagName === 'DETAILS'){ t.open = true; }
+  }
+  window.addEventListener('hashchange', openTarget);
+  openTarget();
+
+  // ---- Highlight the section in view.
   var links = Array.prototype.slice.call(document.querySelectorAll('.nav a[href^="#"]'));
-  var sections = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
   if(!('IntersectionObserver' in window)) return;
   var obs = new IntersectionObserver(function(entries){
     entries.forEach(function(e){
       if(e.isIntersecting){
-        var id = '#' + e.target.id;
-        links.forEach(function(a){ a.classList.toggle('active', a.getAttribute('href') === id); });
+        var hash = '#' + e.target.id;
+        links.forEach(function(a){ a.classList.toggle('active', a.getAttribute('href') === hash); });
       }
     });
-  }, { rootMargin: '-35% 0px -60% 0px' });
-  sections.forEach(function(s){ if(s) obs.observe(s); });
+  }, {rootMargin: '-35% 0px -60% 0px'});
+  links.forEach(function(a){ var s = document.querySelector(a.getAttribute('href')); if(s) obs.observe(s); });
 })();
 </script>
+</body>
+</html>
